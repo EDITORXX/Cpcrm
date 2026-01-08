@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create & Save BASE CRM Icons</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            background: #f5f5f5;
+            text-align: center;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #205A44;
+            margin-bottom: 10px;
+        }
+        .preview {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+        .preview-item {
+            text-align: center;
+        }
+        .preview-item canvas {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #205A44;
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px;
+            font-weight: 600;
+        }
+        button:hover {
+            background: #063A1C;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        .instructions {
+            background: #fef3c7;
+            border: 1px solid #fde68a;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .instructions ol {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>BASE CRM - Icon Generator</h1>
+        <p>Generate and save PWA icon files directly to server</p>
+        
+        <div class="instructions">
+            <strong>Instructions:</strong>
+            <ol>
+                <li>Click "Generate & Save Icons" button below</li>
+                <li>Icons will be created and saved to the server automatically</li>
+                <li>Go to <a href="/pwa-test" target="_blank">PWA Test Page</a> to verify</li>
+            </ol>
+        </div>
+        
+        <div class="preview">
+            <div class="preview-item">
+                <canvas id="canvas192" width="192" height="192"></canvas>
+                <div><strong>192x192</strong></div>
+            </div>
+            <div class="preview-item">
+                <canvas id="canvas512" width="512" height="512"></canvas>
+                <div><strong>512x512</strong></div>
+            </div>
+        </div>
+        
+        <button onclick="generateAndSaveIcons()">Generate & Save Icons to Server</button>
+        <button onclick="downloadIcons()" style="background: #6366f1;">Download Icons (Manual)</button>
+        
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        // Draw BASE CRM logo on canvases
+        function drawIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            
+            // Dark green background (#205A44)
+            ctx.fillStyle = '#205A44';
+            ctx.fillRect(0, 0, size, size);
+            
+            // White text and line
+            ctx.fillStyle = '#FFFFFF';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Calculate font sizes based on canvas size
+            const baseFontSize = Math.floor(size * 0.31);
+            const crmFontSize = Math.floor(size * 0.21);
+            const lineHeight = Math.floor(size * 0.02);
+            
+            // Draw "BASE" text
+            ctx.font = `bold ${baseFontSize}px Arial`;
+            ctx.fillText('BASE', size / 2, size * 0.42);
+            
+            // Draw horizontal line
+            const lineWidth = size * 0.58;
+            const lineX = (size - lineWidth) / 2;
+            const lineY = size * 0.52;
+            ctx.fillRect(lineX, lineY, lineWidth, lineHeight);
+            
+            // Draw "CRM" text
+            ctx.font = `bold ${crmFontSize}px Arial`;
+            ctx.fillText('CRM', size / 2, size * 0.68);
+        }
+        
+        // Initialize preview
+        drawIcon(document.getElementById('canvas192'), 192);
+        drawIcon(document.getElementById('canvas512'), 512);
+        
+        // Generate and save icons to server
+        async function generateAndSaveIcons() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.style.display = 'none';
+            statusDiv.className = 'status';
+            statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving icons...';
+            statusDiv.style.display = 'block';
+            
+            try {
+                // Convert canvases to base64
+                const canvas192 = document.getElementById('canvas192');
+                const canvas512 = document.getElementById('canvas512');
+                
+                const icon192Data = canvas192.toDataURL('image/png');
+                const icon512Data = canvas512.toDataURL('image/png');
+                
+                // Remove data:image/png;base64, prefix
+                const icon192Base64 = icon192Data.split(',')[1];
+                const icon512Base64 = icon512Data.split(',')[1];
+                
+                // Get CSRF token from meta tag or fetch it
+                let csrfToken = '';
+                try {
+                    const metaTag = document.querySelector('meta[name="csrf-token"]');
+                    if (metaTag) {
+                        csrfToken = metaTag.content;
+                    } else {
+                        // Try to get from Laravel's default location
+                        const tokenResponse = await fetch('/');
+                        const tokenHtml = await tokenResponse.text();
+                        const tokenMatch = tokenHtml.match(/name="csrf-token" content="([^"]+)"/);
+                        if (tokenMatch) {
+                            csrfToken = tokenMatch[1];
+                        }
+                    }
+                } catch (e) {
+                    console.log('Could not get CSRF token:', e);
+                }
+                
+                // Send to server using FormData (works better with Laravel)
+                const formData = new FormData();
+                formData.append('icon192', icon192Base64);
+                formData.append('icon512', icon512Base64);
+                if (csrfToken) {
+                    formData.append('_token', csrfToken);
+                }
+                
+                const response = await fetch('/save-icons', {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+                
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error('Non-JSON response:', text.substring(0, 200));
+                    throw new Error('Server returned non-JSON response. Check console for details.');
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusDiv.className = 'status success';
+                    statusDiv.innerHTML = '✅ Icons saved successfully!<br><br><a href="/pwa-test" target="_blank" style="color: #065f46; font-weight: bold; text-decoration: underline;">Go to PWA Test Page to verify</a>';
+                    statusDiv.style.display = 'block';
+                } else {
+                    throw new Error(data.message || 'Failed to save icons');
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = '❌ Error: ' + error.message + '<br><br>Please use "Download Icons (Manual)" button and save files to <strong>public</strong> folder manually.';
+                statusDiv.style.display = 'block';
+            }
+        }
+        
+        // Download icons manually
+        function downloadIcons() {
+            const canvas192 = document.getElementById('canvas192');
+            const canvas512 = document.getElementById('canvas512');
+            
+            // Download 192x192
+            canvas192.toBlob(function(blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'icon-192.png';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                // Download 512x512 after delay
+                setTimeout(() => {
+                    canvas512.toBlob(function(blob) {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'icon-512.png';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 'image/png');
+                }, 300);
+            }, 'image/png');
+        }
+    </script>
+</body>
+</html>

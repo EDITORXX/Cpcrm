@@ -1,0 +1,187 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Services\DynamicFormService;
+use Illuminate\Http\Request;
+use App\Models\User;
+
+class SalesManagerController extends Controller
+{
+    public function __construct()
+    {
+        $this->middleware('auth');
+        
+        $this->middleware(function ($request, $next) {
+            $user = auth()->user();
+            
+            if (!$user) {
+                return redirect()->route('login');
+            }
+            
+            // Ensure role is loaded
+            if (!$user->relationLoaded('role')) {
+                $user->load('role');
+            }
+            
+            // Allow Admin, CRM, Sales Head, and Sales Manager to access
+            // Only redirect Sales Head if they're trying to access sales-manager dashboard specifically
+            if ($user->isSalesHead() && $request->routeIs('sales-manager.dashboard')) {
+                return redirect()->route('sales-head.dashboard')->with('info', 'Redirected to Sales Head Dashboard');
+            }
+            
+            return $next($request);
+        });
+    }
+
+    /**
+     * Show sales manager dashboard
+     */
+    public function dashboard()
+    {
+        $user = auth()->user();
+        
+        // Ensure role is loaded
+        if (!$user->relationLoaded('role')) {
+            $user->load('role');
+        }
+        
+        // Double check - if user is Sales Head, redirect to Sales Head dashboard
+        if ($user->isSalesHead()) {
+            return redirect()->route('sales-head.dashboard')->with('info', 'Redirected to Sales Head Dashboard');
+        }
+        
+        // Check if user is actually a Sales Manager
+        if (!$user->isSalesManager()) {
+            abort(403, 'Unauthorized. Only Sales Managers can access this page.');
+        }
+        
+        return view('sales-manager.dashboard');
+    }
+
+    /**
+     * Show team page
+     */
+    public function team()
+    {
+        return view('sales-manager.team');
+    }
+
+    /**
+     * Show leads page
+     */
+    public function leads()
+    {
+        $user = auth()->user();
+        $user->load('manager'); // Load manager relationship for team leader auto-fill
+        
+        // Generate API token for the session
+        $token = $user->createToken('sales-manager-web-token')->plainTextToken;
+        
+        return view('sales-manager.leads', ['api_token' => $token]);
+    }
+
+    /**
+     * Show prospects page
+     */
+    public function prospects(DynamicFormService $dynamicFormService)
+    {
+        $user = auth()->user();
+        
+        // Generate API token for the session
+        $token = $user->createToken('sales-manager-web-token')->plainTextToken;
+        
+        // Check for dynamic form for prospect verification
+        $dynamicForm = $dynamicFormService->getPublishedFormByLocation('prospects.verify');
+        
+        // Check if route is unified route (prospects.index) or sales-manager route
+        if (request()->routeIs('prospects.index')) {
+            return view('prospects.index', ['api_token' => $token, 'dynamicForm' => $dynamicForm]);
+        }
+        
+        return view('sales-manager.prospects', ['api_token' => $token, 'dynamicForm' => $dynamicForm]);
+    }
+
+    /**
+     * Show reports page
+     */
+    public function reports()
+    {
+        return view('sales-manager.reports');
+    }
+
+    /**
+     * Show profile page
+     */
+    public function profile()
+    {
+        return view('sales-manager.sections.profile');
+    }
+
+    /**
+     * Show meetings page
+     */
+    public function meetings()
+    {
+        $user = auth()->user();
+        
+        // Generate API token for the session
+        $token = $user->createToken('sales-manager-web-token')->plainTextToken;
+        
+        // Check if route is unified route (meetings.index) or sales-manager route
+        if (request()->routeIs('meetings.index')) {
+            return view('meetings.index', ['api_token' => $token]);
+        }
+        
+        return view('sales-manager.meetings', ['api_token' => $token]);
+    }
+
+    /**
+     * Show create meeting form
+     */
+    public function createMeeting(DynamicFormService $dynamicFormService)
+    {
+        $dynamicForm = $dynamicFormService->getPublishedFormByLocation('meetings.create');
+        return view('sales-manager.create-meeting', ['dynamicForm' => $dynamicForm]);
+    }
+
+    /**
+     * Show create site visit form
+     */
+    public function createSiteVisit(DynamicFormService $dynamicFormService)
+    {
+        $dynamicForm = $dynamicFormService->getPublishedFormByLocation('site-visits.create');
+        return view('sales-manager.create-site-visit', ['dynamicForm' => $dynamicForm]);
+    }
+
+    /**
+     * Show site visits page
+     */
+    public function siteVisits()
+    {
+        $user = auth()->user();
+        
+        // Generate API token for the session
+        $token = $user->createToken('sales-manager-web-token')->plainTextToken;
+        
+        // Check if route is unified route (site-visits.index) or sales-manager route
+        if (request()->routeIs('site-visits.index')) {
+            return view('site-visits.index', ['api_token' => $token]);
+        }
+        
+        return view('sales-manager.site-visits', ['api_token' => $token]);
+    }
+
+    /**
+     * Show tasks page
+     */
+    public function tasks()
+    {
+        $user = auth()->user();
+        
+        // Generate API token for the session
+        $token = $user->createToken('sales-manager-web-token')->plainTextToken;
+        
+        return view('sales-manager.tasks', ['api_token' => $token]);
+    }
+}

@@ -1,0 +1,579 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\LoginController;
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group. Make something great!
+|
+*/
+
+Route::get('/', function () {
+    return view('welcome');
+});
+
+// PWA Test Page
+Route::get('/pwa-test', function () {
+    return view('pwa-test');
+})->name('pwa.test');
+
+// Save Icons (from client-side canvas)
+Route::post('/save-icons', function (Illuminate\Http\Request $request) {
+    try {
+        $icon192 = $request->input('icon192');
+        $icon512 = $request->input('icon512');
+        
+        if (!$icon192 || !$icon512) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Icon data missing. Received: ' . ($icon192 ? 'icon192' : 'no icon192') . ', ' . ($icon512 ? 'icon512' : 'no icon512')
+            ], 400);
+        }
+        
+        // Decode base64 and save
+        $icon192Data = base64_decode($icon192, true);
+        $icon512Data = base64_decode($icon512, true);
+        
+        if ($icon192Data === false || $icon512Data === false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid base64 data'
+            ], 400);
+        }
+        
+        $publicPath = public_path();
+        
+        // Ensure public directory is writable
+        if (!is_writable($publicPath)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Public directory is not writable. Please check permissions.'
+            ], 500);
+        }
+        
+        // Save icon-192.png
+        $saved192 = file_put_contents($publicPath . '/icon-192.png', $icon192Data);
+        
+        // Save icon-512.png
+        $saved512 = file_put_contents($publicPath . '/icon-512.png', $icon512Data);
+        
+        if ($saved192 === false || $saved512 === false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to write icon files. Check file permissions.'
+            ], 500);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Icons saved successfully',
+            'files' => [
+                'icon-192.png' => file_exists($publicPath . '/icon-192.png') ? 'exists' : 'missing',
+                'icon-512.png' => file_exists($publicPath . '/icon-512.png') ? 'exists' : 'missing'
+            ],
+            'sizes' => [
+                'icon-192.png' => filesize($publicPath . '/icon-192.png'),
+                'icon-512.png' => filesize($publicPath . '/icon-512.png')
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error: ' . $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ], 500);
+    }
+})->middleware('web');
+
+// Generate Icons (Server-side)
+Route::get('/generate-icons-server', function () {
+    $publicPath = public_path();
+    $results = [];
+    
+    // Check if GD library is available
+    if (!extension_loaded('gd')) {
+        return response()->json([
+            'error' => 'GD library not installed',
+            'message' => 'Please use /create-icon.html to generate icons manually',
+            'url' => url('/create-icon.html')
+        ], 500);
+    }
+    
+    function createIcon($size, $filename) {
+        $img = imagecreatetruecolor($size, $size);
+        $green = imagecolorallocate($img, 32, 90, 68); // #205A44
+        $white = imagecolorallocate($img, 255, 255, 255);
+        
+        imagefilledrectangle($img, 0, 0, $size, $size, $green);
+        
+        // Use larger font for better visibility
+        $fontSize = max(1, (int)($size / 8));
+        $baseY = $size * 0.35;
+        $crmY = $size * 0.65;
+        $lineY = $size * 0.52;
+        $lineHeight = max(2, (int)($size * 0.02));
+        $lineWidth = $size * 0.6;
+        $lineX = ($size - $lineWidth) / 2;
+        
+        // Draw line
+        imagefilledrectangle($img, $lineX, $lineY, $lineX + $lineWidth, $lineY + $lineHeight, $white);
+        
+        // Draw text using built-in font (simple but works)
+        $font = 5;
+        $baseText = 'BASE';
+        $crmText = 'CRM';
+        
+        $baseX = ($size - imagefontwidth($font) * strlen($baseText)) / 2;
+        $crmX = ($size - imagefontwidth($font) * strlen($crmText)) / 2;
+        
+        imagestring($img, $font, $baseX, $baseY, $baseText, $white);
+        imagestring($img, $font, $crmX, $crmY, $crmText, $white);
+        
+        $success = imagepng($img, $filename);
+        imagedestroy($img);
+        
+        return $success && file_exists($filename);
+    }
+    
+    // Create icon-192.png
+    if (createIcon(192, $publicPath . '/icon-192.png')) {
+        $results['icon-192.png'] = 'created';
+    } else {
+        $results['icon-192.png'] = 'failed';
+    }
+    
+    // Create icon-512.png
+    if (createIcon(512, $publicPath . '/icon-512.png')) {
+        $results['icon-512.png'] = 'created';
+    } else {
+        $results['icon-512.png'] = 'failed';
+    }
+    
+    return response()->json([
+        'success' => true,
+        'message' => 'Icons generated',
+        'results' => $results,
+        'next_step' => 'Refresh /pwa-test page to verify'
+    ]);
+});
+
+// Route to generate PWA icons
+Route::get('/generate-icons', function () {
+    return response()->json([
+        'message' => 'Please visit /create-icon.html to generate icon files',
+        'url' => url('/create-icon.html')
+    ]);
+});
+
+// Debug/Test route
+Route::get('/test-csrf', function () {
+    return view('test-csrf');
+})->name('test.csrf');
+
+Route::get('/test/verification-api', function () {
+    return view('test-verification-api');
+})->name('test.verification-api')->middleware('auth');
+
+Route::get('/test/crm-auth', function () {
+    return view('test-crm-auth');
+})->name('test.crm-auth')->middleware('auth');
+
+Route::get('/test/crm-error', function () {
+    return view('test-crm-error');
+})->name('test.crm-error')->middleware('auth');
+
+Route::post('/test/generate-token', function () {
+    $user = auth()->user();
+    if (!$user) {
+        return response()->json(['error' => 'Not logged in'], 401);
+    }
+    
+    // Create a new token
+    $token = $user->createToken('test-token-' . time())->plainTextToken;
+    
+    return response()->json([
+        'success' => true,
+        'token' => $token,
+        'user' => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'role' => $user->role->name ?? 'N/A',
+        ]
+    ]);
+})->middleware('auth')->name('test.generate-token');
+
+// Authentication Routes
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [LoginController::class, 'login']);
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+Route::get('/logout', [LoginController::class, 'logout'])->name('logout.get'); // Fallback for expired sessions
+Route::get('/quick-login/{userId}', [LoginController::class, 'quickLogin'])->name('quick-login'); // Quick login for development
+
+// Public Telecaller Routes (no auth required)
+Route::get('/telecaller/dashboard', [\App\Http\Controllers\TelecallerController::class, 'dashboard'])->name('telecaller.dashboard');
+Route::get('/telecaller/tasks', [\App\Http\Controllers\TelecallerController::class, 'tasks'])->name('telecaller.tasks');
+Route::get('/telecaller/leads', [\App\Http\Controllers\TelecallerController::class, 'leads'])->name('telecaller.leads');
+Route::get('/telecaller/reports', [\App\Http\Controllers\TelecallerController::class, 'reports'])->name('telecaller.reports');
+Route::get('/telecaller/verification-pending', [\App\Http\Controllers\TelecallerController::class, 'verificationPending'])->name('telecaller.verification-pending');
+Route::get('/telecaller/profile', [\App\Http\Controllers\TelecallerController::class, 'profile'])->name('telecaller.profile');
+
+// Sales Head Routes (protected)
+Route::middleware(['auth'])->prefix('sales-head')->name('sales-head.')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\SalesHeadController::class, 'dashboard'])->name('dashboard');
+    Route::get('/dashboard/data', [\App\Http\Controllers\SalesHeadController::class, 'getDashboardData'])->name('dashboard.data');
+});
+
+// Sales Manager Routes (protected - Sales Head will be redirected)
+Route::middleware(['auth'])->prefix('sales-manager')->name('sales-manager.')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\SalesManagerController::class, 'dashboard'])->name('dashboard');
+    Route::get('/team', [\App\Http\Controllers\SalesManagerController::class, 'team'])->name('team');
+    Route::get('/leads', [\App\Http\Controllers\SalesManagerController::class, 'leads'])->name('leads');
+    Route::get('/prospects', [\App\Http\Controllers\SalesManagerController::class, 'prospects'])->name('prospects');
+    Route::get('/tasks', [\App\Http\Controllers\SalesManagerController::class, 'tasks'])->name('tasks');
+    Route::get('/reports', [\App\Http\Controllers\SalesManagerController::class, 'reports'])->name('reports');
+    Route::get('/profile', [\App\Http\Controllers\SalesManagerController::class, 'profile'])->name('profile');
+    Route::get('/meetings', [\App\Http\Controllers\SalesManagerController::class, 'meetings'])->name('meetings');
+    Route::get('/meetings/create', [\App\Http\Controllers\SalesManagerController::class, 'createMeeting'])->name('meetings.create');
+        Route::get('/site-visits', [\App\Http\Controllers\SalesManagerController::class, 'siteVisits'])->name('site-visits');
+        Route::get('/site-visits/create', [\App\Http\Controllers\SalesManagerController::class, 'createSiteVisit'])->name('site-visits.create');
+});
+
+// Protected Routes
+Route::middleware(['auth'])->group(function () {
+    
+    Route::get('/dashboard', function () {
+        $user = auth()->user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+        
+        // Load role relationship if not already loaded
+        if (!$user->relationLoaded('role')) {
+            $user->load('role');
+        }
+        
+        if ($user->isTelecaller()) {
+            return redirect()->route('telecaller.dashboard');
+        }
+        if ($user->isSalesHead()) {
+            return redirect()->route('sales-head.dashboard');
+        }
+        if ($user->isSalesManager()) {
+            return redirect()->route('sales-manager.dashboard');
+        }
+        if ($user->isAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
+        if ($user->isCrm()) {
+            return view('crm.dashboard');
+        }
+        return view('dashboard');
+    })->name('dashboard');
+    
+    // Users Management
+    Route::resource('users', \App\Http\Controllers\UserController::class);
+    
+    // Builders Management (CRM/Admin only)
+    Route::resource('builders', \App\Http\Controllers\BuilderController::class)->middleware('role:crm,admin');
+    
+    // Closers Management (Admin/CRM/Sales Manager/Sales Head)
+    Route::get('/closers', [\App\Http\Controllers\CloserController::class, 'index'])->name('closers.index')->middleware(['auth', 'role:admin,crm,sales_manager,sales_head']);
+    
+    // Unified routes for Prospects, Meetings, and Site Visits (Admin/CRM/Sales Manager/Sales Head)
+    Route::middleware(['auth', 'role:admin,crm,sales_manager,sales_head'])->group(function () {
+        Route::get('/prospects', [\App\Http\Controllers\SalesManagerController::class, 'prospects'])->name('prospects.index');
+        Route::get('/meetings', [\App\Http\Controllers\SalesManagerController::class, 'meetings'])->name('meetings.index');
+        Route::get('/meetings/create', [\App\Http\Controllers\SalesManagerController::class, 'createMeeting'])->name('meetings.create');
+        Route::get('/site-visits', [\App\Http\Controllers\SalesManagerController::class, 'siteVisits'])->name('site-visits.index');
+        Route::get('/site-visits/create', [\App\Http\Controllers\SalesManagerController::class, 'createSiteVisit'])->name('site-visits.create');
+    });
+
+    // Projects Management - View accessible to all, CUD only for Admin/CRM
+    // Specific routes must come before parameterized routes
+    Route::get('/projects', [\App\Http\Controllers\ProjectController::class, 'index'])->name('projects.index');
+    Route::get('/projects-list', [\App\Http\Controllers\ProjectController::class, 'list'])->name('projects.list');
+    
+    Route::middleware('role:crm,admin')->group(function () {
+        Route::get('/projects/create', [\App\Http\Controllers\ProjectController::class, 'create'])->name('projects.create');
+        Route::post('/projects', [\App\Http\Controllers\ProjectController::class, 'store'])->name('projects.store');
+        Route::get('/projects/{project}/edit', [\App\Http\Controllers\ProjectController::class, 'edit'])->name('projects.edit');
+        Route::put('/projects/{project}', [\App\Http\Controllers\ProjectController::class, 'update'])->name('projects.update');
+        Route::delete('/projects/{project}', [\App\Http\Controllers\ProjectController::class, 'destroy'])->name('projects.destroy');
+    });
+    
+    // Parameterized routes come after specific routes
+    Route::get('/projects/{project}', [\App\Http\Controllers\ProjectController::class, 'show'])->name('projects.show');
+    
+    // Project pricing and unit types (for web forms)
+    Route::post('/projects/{project}/pricing', [\App\Http\Controllers\Api\PricingController::class, 'update'])->middleware(['auth', 'role:crm,admin'])->name('projects.pricing.update');
+    Route::post('/projects/{project}/unit-types', [\App\Http\Controllers\Api\UnitTypeController::class, 'store'])->middleware(['auth', 'role:crm,admin'])->name('projects.unit-types.store');
+    Route::post('/projects/{project}/collaterals', [\App\Http\Controllers\Api\ProjectCollateralController::class, 'store'])->middleware(['auth', 'role:crm,admin'])->name('projects.collaterals.store');
+    
+    // Verifications (CRM/Admin/Sales Head)
+    Route::middleware(['role:crm,admin,sales_head'])->prefix('crm')->name('crm.')->group(function () {
+        Route::get('/verifications', [\App\Http\Controllers\Crm\VerificationController::class, 'index'])->name('verifications');
+    });
+    
+    // Broadcast (Admin/CRM only)
+    Route::middleware(['auth', 'role:admin,crm'])->group(function () {
+        Route::get('/admin/broadcast', function () {
+            return view('admin.broadcast');
+        })->name('admin.broadcast');
+    });
+    
+    // Admin Dashboard (Admin only)
+    // Integration Routes (Admin only)
+    Route::middleware(['auth', 'role:admin'])->prefix('integrations')->name('integrations.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\IntegrationController::class, 'index'])->name('index');
+        Route::get('/email', function () {
+            return view('integrations.coming-soon', ['integration' => 'Email']);
+        })->name('email');
+        Route::get('/calendar', function () {
+            return view('integrations.coming-soon', ['integration' => 'Calendar']);
+        })->name('calendar');
+        // WhatsApp Integration Routes
+        Route::get('/whatsapp', [\App\Http\Controllers\Admin\WhatsAppIntegrationController::class, 'index'])->name('whatsapp');
+        Route::post('/whatsapp/update', [\App\Http\Controllers\Admin\WhatsAppIntegrationController::class, 'updateSettings'])->name('whatsapp.update');
+        Route::post('/whatsapp/verify', [\App\Http\Controllers\Admin\WhatsAppIntegrationController::class, 'verifyConnection'])->name('whatsapp.verify');
+        Route::post('/whatsapp/test', [\App\Http\Controllers\Admin\WhatsAppIntegrationController::class, 'testMessage'])->name('whatsapp.test');
+        
+        // WhatsApp Template Management Routes
+        Route::post('/whatsapp/templates/create', [\App\Http\Controllers\Admin\WhatsAppIntegrationController::class, 'createTemplate'])->name('whatsapp.templates.create');
+        Route::get('/whatsapp/templates/{id}', [\App\Http\Controllers\Admin\WhatsAppIntegrationController::class, 'getTemplate'])->name('whatsapp.templates.show');
+        Route::delete('/whatsapp/templates/{id}', [\App\Http\Controllers\Admin\WhatsAppIntegrationController::class, 'deleteTemplate'])->name('whatsapp.templates.delete');
+        
+        // WhatsApp Groups Routes (Optional)
+        Route::get('/whatsapp/groups', [\App\Http\Controllers\Admin\WhatsAppIntegrationController::class, 'getGroups'])->name('whatsapp.groups.index');
+        Route::post('/whatsapp/groups', [\App\Http\Controllers\Admin\WhatsAppIntegrationController::class, 'createGroup'])->name('whatsapp.groups.create');
+        Route::put('/whatsapp/groups/{id}', [\App\Http\Controllers\Admin\WhatsAppIntegrationController::class, 'updateGroup'])->name('whatsapp.groups.update');
+        Route::delete('/whatsapp/groups/{id}', [\App\Http\Controllers\Admin\WhatsAppIntegrationController::class, 'removeGroup'])->name('whatsapp.groups.delete');
+        
+        // WhatsApp Contacts Routes (Optional)
+        Route::post('/whatsapp/contacts/import', [\App\Http\Controllers\Admin\WhatsAppIntegrationController::class, 'importContact'])->name('whatsapp.contacts.import');
+        Route::put('/whatsapp/contacts/{id}', [\App\Http\Controllers\Admin\WhatsAppIntegrationController::class, 'updateContact'])->name('whatsapp.contacts.update');
+        Route::delete('/whatsapp/contacts/{id}', [\App\Http\Controllers\Admin\WhatsAppIntegrationController::class, 'removeContact'])->name('whatsapp.contacts.delete');
+        Route::post('/whatsapp/contacts/bulk', [\App\Http\Controllers\Admin\WhatsAppIntegrationController::class, 'addContacts'])->name('whatsapp.contacts.bulk');
+        
+        // WhatsApp Debug Routes
+        Route::get('/whatsapp/debug', [\App\Http\Controllers\Admin\WhatsAppDebugController::class, 'testConnection'])->name('whatsapp.debug');
+        Route::post('/whatsapp/debug/post', [\App\Http\Controllers\Admin\WhatsAppDebugController::class, 'testPostEndpoint'])->name('whatsapp.debug.post');
+        Route::post('/whatsapp/debug/curl', [\App\Http\Controllers\Admin\WhatsAppDebugController::class, 'testRawCurl'])->name('whatsapp.debug.curl');
+
+        // WhatsApp Quick Test Routes
+        Route::get('/whatsapp/quick-test', [\App\Http\Controllers\Admin\WhatsAppTestController::class, 'quickTest'])->name('whatsapp.quick-test');
+        Route::post('/whatsapp/quick-test/send', [\App\Http\Controllers\Admin\WhatsAppTestController::class, 'sendQuickTest'])->name('whatsapp.quick-test.send');
+        Route::get('/facebook', function () {
+            return view('integrations.coming-soon', ['integration' => 'Facebook Meta']);
+        })->name('facebook');
+        Route::get('/magic-bricks', function () {
+            return view('integrations.coming-soon', ['integration' => 'Magic Bricks']);
+        })->name('magic-bricks');
+        Route::get('/housing', function () {
+            return view('integrations.coming-soon', ['integration' => 'Housing']);
+        })->name('housing');
+        Route::get('/99acres', function () {
+            return view('integrations.coming-soon', ['integration' => '99acres']);
+        })->name('99acres');
+        Route::get('/configuration', function () {
+            return view('integrations.coming-soon', ['integration' => 'Configuration']);
+        })->name('configuration');
+    });
+    
+    // Dynamic Forms Management (Admin only)
+    Route::middleware(['role:admin'])->prefix('admin/forms')->name('admin.forms.')->group(function () {
+        Route::get('/test-field-type', function () {
+            return view('admin.forms.test-field-type');
+        })->name('test-field-type');
+        Route::get('/', [\App\Http\Controllers\Admin\DynamicFormController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\Admin\DynamicFormController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\Admin\DynamicFormController::class, 'store'])->name('store');
+        Route::get('/{dynamicForm}/edit', [\App\Http\Controllers\Admin\DynamicFormController::class, 'edit'])->name('edit');
+        Route::put('/{dynamicForm}', [\App\Http\Controllers\Admin\DynamicFormController::class, 'update'])->name('update');
+        Route::delete('/{dynamicForm}', [\App\Http\Controllers\Admin\DynamicFormController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/dashboard', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'dashboard'])->name('dashboard');
+        Route::get('/dashboard/data', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'getDashboardData'])->name('dashboard.data');
+        Route::get('/profile', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'profile'])->name('profile');
+        
+        // Company Settings Routes
+        Route::prefix('company-settings')->name('company-settings.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\CompanySettingsController::class, 'index'])->name('index');
+            Route::post('/company-profile', [\App\Http\Controllers\Admin\CompanySettingsController::class, 'updateCompanyProfile'])->name('company-profile.update');
+            Route::post('/branding', [\App\Http\Controllers\Admin\CompanySettingsController::class, 'updateBranding'])->name('branding.update');
+            Route::post('/apply-template', [\App\Http\Controllers\Admin\CompanySettingsController::class, 'applyTemplate'])->name('apply-template');
+            Route::post('/upload-file', [\App\Http\Controllers\Admin\CompanySettingsController::class, 'uploadFile'])->name('upload-file');
+            Route::delete('/file/{id}', [\App\Http\Controllers\Admin\CompanySettingsController::class, 'deleteFile'])->name('file.delete');
+            Route::get('/api/settings', [\App\Http\Controllers\Admin\CompanySettingsController::class, 'getSettings'])->name('api.settings');
+            Route::get('/preview', [\App\Http\Controllers\Admin\CompanySettingsController::class, 'previewBranding'])->name('preview');
+        });
+        
+        // System Settings Routes
+        Route::prefix('system-settings')->name('system-settings.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'index'])->name('index');
+            Route::post('/maintenance/toggle', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'toggleMaintenanceMode'])->name('maintenance.toggle');
+            Route::post('/files/upload', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'uploadFiles'])->name('files.upload');
+            Route::post('/files/deploy', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'deployFiles'])->name('files.deploy');
+            Route::post('/migrations/run', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'runMigrations'])->name('migrations.run');
+            Route::post('/command/run', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'runCommand'])->name('command.run');
+        });
+        
+        // Debug Routes (only for testing)
+        Route::prefix('debug')->name('debug.')->group(function () {
+            Route::get('/test-quick-login', [\App\Http\Controllers\Admin\DebugController::class, 'testQuickLogin'])->name('test-quick-login');
+            Route::get('/quick-login/{userId}', [\App\Http\Controllers\Admin\DebugController::class, 'attemptQuickLogin'])->name('quick-login');
+        });
+    });
+    
+    // Debug Routes - Accessible even during maintenance mode (for testing)
+    Route::prefix('admin/debug')->name('admin.debug.')->group(function () {
+        Route::get('/test-quick-login', [\App\Http\Controllers\Admin\DebugController::class, 'testQuickLogin'])->name('test-quick-login');
+        Route::get('/quick-login/{userId}', [\App\Http\Controllers\Admin\DebugController::class, 'attemptQuickLogin'])->name('quick-login');
+    });
+    
+    // Target Management (Admin/CRM/Sales Head)
+    Route::middleware(['role:admin,crm,sales_head'])->prefix('admin')->name('admin.')->group(function () {
+        Route::resource('targets', \App\Http\Controllers\Admin\TargetController::class);
+        Route::post('targets/bulk-set', [\App\Http\Controllers\Admin\TargetController::class, 'bulkSet'])->name('targets.bulk-set');
+        Route::get('/dead-leads', [\App\Http\Controllers\Admin\DeadLeadsController::class, 'index'])->name('dead-leads');
+    });
+    
+    // Leads Management
+    Route::resource('leads', \App\Http\Controllers\LeadController::class);
+    Route::get('/leads/{lead}/short-details', [\App\Http\Controllers\LeadController::class, 'shortDetails'])->name('leads.short-details');
+    
+    // Call Logs Routes
+    Route::prefix('calls')->name('calls.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\CallLogController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\CallLogController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\CallLogController::class, 'store'])->name('store');
+        Route::get('/{id}', [\App\Http\Controllers\CallLogController::class, 'show'])->name('show');
+        Route::get('/{id}/edit', [\App\Http\Controllers\CallLogController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [\App\Http\Controllers\CallLogController::class, 'update'])->name('update');
+        Route::delete('/{id}', [\App\Http\Controllers\CallLogController::class, 'destroy'])->name('destroy');
+        Route::get('/statistics', [\App\Http\Controllers\CallLogController::class, 'statistics'])->name('statistics');
+        Route::get('/statistics/data', [\App\Http\Controllers\CallLogController::class, 'getStatistics'])->name('statistics.data');
+        Route::get('/export/csv', [\App\Http\Controllers\CallLogController::class, 'exportCsv'])->name('export.csv');
+    });
+    
+    // Export Routes (Admin, CRM, Sales Manager, Sales Head)
+    Route::middleware(['role:admin,crm,sales_manager,sales_head'])->prefix('export')->name('export.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\ExportController::class, 'index'])->name('index');
+        Route::post('/leads', [\App\Http\Controllers\ExportController::class, 'exportLeads'])->name('leads');
+        Route::post('/prospects', [\App\Http\Controllers\ExportController::class, 'exportProspects'])->name('prospects');
+        Route::post('/meetings', [\App\Http\Controllers\ExportController::class, 'exportMeetings'])->name('meetings');
+        Route::post('/site-visits', [\App\Http\Controllers\ExportController::class, 'exportSiteVisits'])->name('site-visits');
+        Route::post('/closed-leads', [\App\Http\Controllers\ExportController::class, 'exportClosedLeads'])->name('closed-leads');
+        Route::post('/dead-leads', [\App\Http\Controllers\ExportController::class, 'exportDeadLeads'])->name('dead-leads');
+        Route::post('/by-project', [\App\Http\Controllers\ExportController::class, 'exportByProject'])->name('by-project');
+    });
+    
+    // Lead Import Routes (CRM and Admin only)
+    Route::middleware(['role:crm,admin'])->prefix('lead-import')->name('lead-import.')->group(function () {
+        // Dashboard
+        Route::get('/', [\App\Http\Controllers\LeadImportController::class, 'index'])->name('index');
+        
+        // Google Sheets Config
+        Route::get('/google-sheets/config', [\App\Http\Controllers\LeadImportController::class, 'getGoogleSheetsConfig'])->name('google-sheets.config');
+        Route::post('/google-sheets/config', [\App\Http\Controllers\LeadImportController::class, 'saveGoogleSheetsConfig'])->name('google-sheets.config.save');
+        Route::get('/google-sheets/configs', [\App\Http\Controllers\LeadImportController::class, 'getAllGoogleSheetsConfigs'])->name('google-sheets.configs');
+        Route::delete('/google-sheets/config/{id}', [\App\Http\Controllers\LeadImportController::class, 'deleteGoogleSheetsConfig'])->name('google-sheets.config.delete');
+        
+        // Sync
+        Route::post('/google-sheets/sync', [\App\Http\Controllers\LeadImportController::class, 'syncGoogleSheets'])->name('google-sheets.sync');
+        
+        // CSV Import (existing functionality moved here)
+        Route::get('/csv', [\App\Http\Controllers\LeadImportController::class, 'showCsvForm'])->name('csv');
+        Route::post('/csv', [\App\Http\Controllers\LeadImportController::class, 'importCsv'])->name('csv.import');
+        Route::post('/csv/preview', [\App\Http\Controllers\LeadImportController::class, 'previewCsv'])->name('csv.preview');
+        
+        // History
+        Route::get('/history', [\App\Http\Controllers\LeadImportController::class, 'history'])->name('history');
+    });
+    
+    // Smart Import Routes (CRM and Admin only)
+    Route::middleware(['role:crm,admin'])->prefix('smart-import')->name('smart-import.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SmartImportController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\SmartImportController::class, 'create'])->name('create');
+        Route::get('/create-simple', [\App\Http\Controllers\SmartImportController::class, 'createSimple'])->name('create-simple');
+        Route::post('/store-simple', [\App\Http\Controllers\SmartImportController::class, 'storeSimple'])->name('store-simple');
+        Route::get('/history', [\App\Http\Controllers\SmartImportController::class, 'history'])->name('history');
+        Route::get('/analytics', [\App\Http\Controllers\SmartImportAnalyticsController::class, 'index'])->name('analytics');
+    });
+});
+
+// Lead Assignment Routes
+Route::middleware(['auth', 'role:crm,admin'])->prefix('lead-assignment')->name('lead-assignment.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\LeadAssignmentController::class, 'index'])->name('index');
+    Route::get('/unassigned', [\App\Http\Controllers\LeadAssignmentController::class, 'getUnassignedLeads'])->name('unassigned');
+    Route::post('/assign', [\App\Http\Controllers\LeadAssignmentController::class, 'assignLeads'])->name('assign');
+    Route::get('/telecaller-stats', [\App\Http\Controllers\LeadAssignmentController::class, 'getTelecallerStats'])->name('telecaller-stats');
+    
+    // Telecaller Limits
+    Route::get('/telecaller-limits', [\App\Http\Controllers\TelecallerLimitController::class, 'index'])->name('telecaller-limits');
+    Route::post('/telecaller-limits/save', [\App\Http\Controllers\TelecallerLimitController::class, 'saveDailyLimit'])->name('telecaller-limits.save');
+    Route::get('/telecaller-limits/api', [\App\Http\Controllers\TelecallerLimitController::class, 'getDailyLimits'])->name('telecaller-limits.api');
+    
+    // Sheet Assignments
+    Route::get('/sheet-assignments', [\App\Http\Controllers\SheetAssignmentController::class, 'index'])->name('sheet-assignments');
+    Route::post('/sheet-assignments/assign', [\App\Http\Controllers\SheetAssignmentController::class, 'assignSheetToTelecaller'])->name('sheet-assignments.assign');
+    Route::post('/sheet-assignments/config', [\App\Http\Controllers\SheetAssignmentController::class, 'updateSheetConfig'])->name('sheet-assignments.config');
+    Route::post('/sheet-assignments/toggle-auto', [\App\Http\Controllers\SheetAssignmentController::class, 'toggleAutoAssign'])->name('sheet-assignments.toggle-auto');
+    
+    // Telecaller Status
+    Route::get('/telecaller-status', [\App\Http\Controllers\TelecallerStatusController::class, 'index'])->name('telecaller-status');
+    Route::post('/telecaller-status/update', [\App\Http\Controllers\TelecallerStatusController::class, 'updateStatus'])->name('telecaller-status.update');
+    Route::get('/telecaller-status/api', [\App\Http\Controllers\TelecallerStatusController::class, 'getStatus'])->name('telecaller-status.api');
+});
+
+// Task Routes (public - no auth required)
+Route::prefix('tasks')->name('tasks.')->middleware('auth')->group(function () {
+    Route::get('/', [\App\Http\Controllers\TaskController::class, 'index'])->name('index');
+    Route::get('/{task}', [\App\Http\Controllers\TaskController::class, 'show'])->name('show');
+    Route::put('/{task}', [\App\Http\Controllers\TaskController::class, 'update'])->name('update');
+    Route::delete('/{task}', [\App\Http\Controllers\TaskController::class, 'destroy'])->name('destroy');
+    Route::post('/{task}/complete', [\App\Http\Controllers\TaskController::class, 'complete'])->name('complete');
+    Route::post('/{task}/update-lead', [\App\Http\Controllers\TaskController::class, 'updateLeadAfterCall'])->name('update-lead');
+    Route::post('/{task}/reschedule', [\App\Http\Controllers\TaskController::class, 'reschedule'])->name('reschedule');
+    Route::post('/{task}/duplicate', [\App\Http\Controllers\TaskController::class, 'duplicate'])->name('duplicate');
+    Route::post('/{task}/cancel', [\App\Http\Controllers\TaskController::class, 'cancel'])->name('cancel');
+    Route::get('/{task}/activities', [\App\Http\Controllers\TaskController::class, 'activities'])->name('activities');
+    
+    // Attachments
+    Route::post('/{task}/attachments', [\App\Http\Controllers\TaskController::class, 'uploadAttachment'])->name('attachments.upload');
+    Route::delete('/{task}/attachments/{attachment}', [\App\Http\Controllers\TaskController::class, 'deleteAttachment'])->name('attachments.delete');
+    Route::get('/{task}/attachments/{attachment}/download', [\App\Http\Controllers\TaskController::class, 'downloadAttachment'])->name('attachments.download');
+});
+
+// API routes for tasks
+Route::prefix('api/tasks')->middleware('auth:sanctum')->group(function () {
+    Route::put('/{task}/status', [\App\Http\Controllers\Api\TaskController::class, 'updateStatus']);
+    Route::put('/{task}/reschedule', [\App\Http\Controllers\Api\TaskController::class, 'reschedule']);
+    Route::get('/kanban', [\App\Http\Controllers\Api\TaskController::class, 'kanban']);
+    Route::get('/calendar', [\App\Http\Controllers\Api\TaskController::class, 'calendar']);
+    Route::post('/bulk-action', [\App\Http\Controllers\Api\TaskController::class, 'bulkAction']);
+});
+
+// WhatsApp Chat Routes
+Route::middleware(['auth'])->prefix('chat')->name('chat.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\WhatsAppChatController::class, 'index'])->name('index');
+    Route::get('/conversations', [\App\Http\Controllers\WhatsAppChatController::class, 'getConversations'])->name('conversations.index');
+    Route::post('/conversations', [\App\Http\Controllers\WhatsAppChatController::class, 'createConversation'])->name('conversations.create');
+    Route::get('/conversations/{id}', [\App\Http\Controllers\WhatsAppChatController::class, 'getConversation'])->name('conversations.show');
+    Route::post('/messages', [\App\Http\Controllers\WhatsAppChatController::class, 'sendMessage'])->name('messages.send');
+    Route::post('/messages/template', [\App\Http\Controllers\WhatsAppChatController::class, 'sendTemplateMessage'])->name('messages.template');
+    Route::get('/templates', [\App\Http\Controllers\WhatsAppChatController::class, 'getTemplates'])->name('templates.index');
+    Route::post('/templates/sync', [\App\Http\Controllers\WhatsAppChatController::class, 'syncTemplates'])->name('templates.sync');
+    Route::post('/conversations/{id}/sync-messages', [\App\Http\Controllers\WhatsAppChatController::class, 'syncMessages'])->name('conversations.sync-messages');
+    Route::put('/conversations/{id}/read', [\App\Http\Controllers\WhatsAppChatController::class, 'markAsRead'])->name('conversations.read');
+    Route::delete('/conversations/{id}', [\App\Http\Controllers\WhatsAppChatController::class, 'deleteConversation'])->name('conversations.delete');
+});
+

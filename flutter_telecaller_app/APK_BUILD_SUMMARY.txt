@@ -1,0 +1,104 @@
+╔══════════════════════════════════════════════════════════════════╗
+║           APK BUILD - COMPLETE INSTRUCTIONS                     ║
+╚══════════════════════════════════════════════════════════════════╝
+
+📱 APK FILE बनाने के लिए:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ METHOD 1: Automatic (सबसे आसान)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. COMPLETE_SETUP.bat file को double-click करें
+2. Script automatically सब कुछ कर देगी:
+   - Flutter download करेगी (अगर नहीं है)
+   - Dependencies install करेगी
+   - APK build करेगी
+3. APK file ready हो जाएगी!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ METHOD 2: Step by Step
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1: Flutter Install करें
+   → AUTO_SETUP.bat run करें
+   या manually:
+   → https://flutter.dev/docs/get-started/install/windows से download करें
+   → C:\flutter में extract करें
+   → PATH में C:\flutter\bin add करें
+
+STEP 2: APK Build करें
+   → INSTALL_AND_BUILD.bat run करें
+   या manually:
+   → Command Prompt में:
+     cd flutter_telecaller_app
+     flutter pub get
+     flutter build apk --release
+
+STEP 3: Server Start करें
+   → START_SERVER.bat run करें
+   या manually:
+   → php artisan serve --host=0.0.0.0 --port=8000
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📂 APK FILE LOCATION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After build, APK file यहाँ मिलेगी:
+flutter_telecaller_app\build\app\outputs\flutter-apk\app-release.apk
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌐 NETWORK CONFIGURATION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current IP: 192.168.1.7
+Port: 8000
+API URL: http://192.168.1.7:8000/api
+
+अगर IP change हो, तो:
+lib/config/api_config.dart में update करें
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📱 PHONE पर INSTALL करने के लिए:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. APK file को phone में transfer करें
+2. Settings > Security में "Unknown Sources" enable करें
+3. APK file open करके install करें
+4. Same Wi-Fi network पर phone और computer connect करें
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚡ QUICK COMMANDS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Complete Setup:     COMPLETE_SETUP.bat
+Flutter Install:   AUTO_SETUP.bat
+APK Build:         INSTALL_AND_BUILD.bat
+Server Start:      START_SERVER.bat
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️ IMPORTANT NOTES:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Phone और computer same Wi-Fi पर होने चाहिए
+✓ Laravel server --host=0.0.0.0 के साथ start करें
+✓ Firewall port 8000 allow करें
+✓ Flutter install करना एक बार की requirement है
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 SIMPLEST WAY:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. COMPLETE_SETUP.bat double-click करें
+2. Wait करें (5-10 minutes)
+3. APK file ready! 🎉
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
