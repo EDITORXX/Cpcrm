@@ -102,52 +102,6 @@ class LoginController extends Controller
         return redirect()->route('login')->with('success', 'You have been logged out successfully.');
     }
 
-    /**
-     * Quick login for development/testing - logs in user by ID
-     */
-    public function quickLogin(Request $request, $userId)
-    {
-        $user = User::where('id', $userId)
-            ->where('is_active', true)
-            ->with('role')
-            ->first();
-
-        if (!$user) {
-            return redirect()->route('login')->withErrors(['error' => 'User not found or inactive.']);
-        }
-        
-        // Check maintenance mode - only allow admin to login
-        if (SystemSettings::isMaintenanceMode()) {
-            if (!$user->isAdmin()) {
-                return redirect()->route('login')->withErrors([
-                    'email' => SystemSettings::get('maintenance_message', 'System is under maintenance. Only admin can login during maintenance mode.'),
-                ])->with('maintenance_mode', true);
-            }
-        }
-        
-        // Ensure role relationship is loaded
-        if (!$user->relationLoaded('role')) {
-            $user->load('role');
-        }
-
-        Auth::login($user, false);
-        $request->session()->regenerate();
-
-        // Mark attendance for telecallers
-        if ($user->isTelecaller()) {
-            $this->markTelecallerAttendance($user);
-            $token = $user->createToken('web-login-token')->plainTextToken;
-            $request->session()->put('telecaller_api_token', $token);
-        }
-
-        // Generate API token for sales managers
-        if ($user->isSalesManager()) {
-            $token = $user->createToken('web-login-token')->plainTextToken;
-            $request->session()->put('api_token', $token);
-        }
-
-        return $this->redirectBasedOnRole($user);
-    }
 
     private function redirectBasedOnRole($user)
     {
