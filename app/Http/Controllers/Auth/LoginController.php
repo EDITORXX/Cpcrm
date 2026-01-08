@@ -16,23 +16,7 @@ class LoginController extends Controller
 {
     public function showLoginForm()
     {
-        // Get all active users grouped by role for quick login buttons
-        $users = User::where('is_active', true)
-            ->with(['role', 'manager'])
-            ->orderByRaw("
-                CASE 
-                    WHEN role_id = (SELECT id FROM roles WHERE slug = 'admin') THEN 1
-                    WHEN role_id = (SELECT id FROM roles WHERE slug = 'crm') THEN 2
-                    WHEN role_id = (SELECT id FROM roles WHERE slug = 'sales_manager') THEN 3
-                    WHEN role_id = (SELECT id FROM roles WHERE slug = 'sales_executive') THEN 4
-                    WHEN role_id = (SELECT id FROM roles WHERE slug = 'telecaller') THEN 5
-                    ELSE 6
-                END
-            ")
-            ->orderBy('name')
-            ->get();
-
-        return view('auth.login', compact('users'));
+        return view('auth.login');
     }
 
     public function login(Request $request)

@@ -525,48 +525,6 @@
 
                     <button type="submit" class="btn-signin">Sign In</button>
                 </form>
-
-                @if(isset($users) && $users->count() > 0)
-                <div style="margin-top: 32px; padding-top: 32px; border-top: 2px solid #E5DED4;">
-                    <p style="text-align: center; font-size: 14px; color: #B3B5B4; margin-bottom: 20px; font-weight: 600;">
-                        Quick Login (1-Click Access)
-                    </p>
-                    <div style="display: grid; gap: 16px;">
-                        @php
-                            $groupedUsers = $users->groupBy(function($user) {
-                                if ($user->isAdmin()) return 'Admin';
-                                if ($user->isCrm()) return 'CRM';
-                                if ($user->isSalesHead()) return 'Sales Head';
-                                if ($user->isSalesManager() && !$user->isSalesHead()) return 'Sales Manager';
-                                if ($user->isSalesExecutive()) return 'Sales Executive';
-                                if ($user->isTelecaller()) return 'Telecaller';
-                                return 'Other';
-                            });
-                        @endphp
-
-                        @foreach(['Admin', 'CRM', 'Sales Head', 'Sales Manager', 'Sales Executive', 'Telecaller'] as $roleGroup)
-                            @if(isset($groupedUsers[$roleGroup]) && $groupedUsers[$roleGroup]->count() > 0)
-                                <div style="margin-bottom: 12px;">
-                                    <div style="font-size: 11px; font-weight: 600; color: #205A44; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">
-                                        {{ $roleGroup }}
-                                    </div>
-                                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px;">
-                                        @foreach($groupedUsers[$roleGroup] as $user)
-                                            <a href="{{ route('quick-login', $user->id) }}" 
-                                               style="display: block; padding: 10px 12px; background: #f7fafc; border: 1px solid #E5DED4; border-radius: 8px; text-decoration: none; color: #2d3748; font-size: 13px; font-weight: 500; transition: all 0.2s; text-align: center;"
-                                               onmouseover="this.style.background='#205A44'; this.style.color='white'; this.style.borderColor='#205A44';"
-                                               onmouseout="this.style.background='#f7fafc'; this.style.color='#2d3748'; this.style.borderColor='#E5DED4';">
-                                                <div style="font-weight: 600;">{{ $user->name }}</div>
-                                                <div style="font-size: 11px; color: #718096; margin-top: 2px;">{{ \Illuminate\Support\Str::limit($user->email, 25) }}</div>
-                                            </a>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            @endif
-                        @endforeach
-                    </div>
-                </div>
-                @endif
             </div>
         </div>
     </div>
