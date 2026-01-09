@@ -4,13 +4,197 @@
 @section('page-title', 'WhatsApp Chat')
 
 @section('content')
-<div class="h-screen flex flex-col bg-gray-50">
+<style>
+    /* Override container padding for chat page */
+    .chat-page-wrapper {
+        margin: -20px -20px 0 -20px !important;
+        padding: 0 !important;
+        width: calc(100% + 40px) !important;
+        height: calc(100vh - 140px) !important;
+        overflow: hidden !important;
+        background: #F7F6F3;
+    }
+    
+    .chat-main-wrapper {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .chat-container {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+        min-height: 0;
+    }
+    
+    .chat-sidebar {
+        width: 320px;
+        min-width: 320px;
+        background: white;
+        border-right: 1px solid #e5e7eb;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        height: 100%;
+    }
+    
+    .chat-sidebar-header {
+        flex-shrink: 0;
+    }
+    
+    .chat-conversations-list {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        min-height: 0;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .chat-panel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 0;
+        background: #F7F6F3;
+    }
+    
+    /* WhatsApp-style background pattern */
+    .whatsapp-bg {
+        background-color: #e5ddd5;
+        /* If you have a WhatsApp background image, uncomment below and comment out the background-image */
+        /* background-image: url('/images/whatsapp-bg.png'); */
+        /* background-size: 200px 200px; */
+        /* background-repeat: repeat; */
+        background-image: 
+            /* Pattern of small dots and icons */
+            radial-gradient(circle at 25px 25px, rgba(212, 208, 201, 0.15) 1px, transparent 1px),
+            radial-gradient(circle at 75px 75px, rgba(212, 208, 201, 0.12) 1px, transparent 1px),
+            radial-gradient(circle at 50px 50px, rgba(212, 208, 201, 0.1) 1px, transparent 1px),
+            /* Additional subtle pattern */
+            repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 2px,
+                rgba(212, 208, 201, 0.03) 2px,
+                rgba(212, 208, 201, 0.03) 4px
+            );
+        background-size: 
+            100px 100px,
+            120px 120px,
+            80px 80px,
+            20px 20px;
+        background-position: 
+            0 0,
+            50px 50px,
+            25px 25px,
+            0 0;
+        position: relative;
+    }
+    
+    .whatsapp-bg::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+            radial-gradient(ellipse at 20% 30%, rgba(212, 208, 201, 0.08) 0%, transparent 60%),
+            radial-gradient(ellipse at 80% 70%, rgba(212, 208, 201, 0.08) 0%, transparent 60%);
+        pointer-events: none;
+        z-index: 0;
+    }
+    
+    .whatsapp-bg > * {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .chat-messages-container {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        min-height: 0;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Ensure message text is always visible */
+    .chat-messages-container .bg-white {
+        color: #111827 !important; /* text-gray-900 */
+    }
+    
+    .chat-messages-container .bg-gradient-to-r {
+        color: #ffffff !important; /* white text on dark background */
+    }
+    
+    .chat-messages-container p {
+        color: inherit;
+    }
+    
+    .chat-messages-container .text-xs {
+        color: inherit;
+    }
+    
+    /* Profile Picture Styles */
+    #chatProfilePicture {
+        border: 2px solid #e5e7eb;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    #chatProfileImage {
+        border-radius: 50%;
+    }
+    
+    #chatProfileIcon {
+        font-size: 18px;
+    }
+    
+    /* WhatsApp-style subtle overlay for depth */
+    .chat-messages-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+            radial-gradient(ellipse at 20% 30%, rgba(212, 208, 201, 0.08) 0%, transparent 60%),
+            radial-gradient(ellipse at 80% 70%, rgba(212, 208, 201, 0.08) 0%, transparent 60%);
+        pointer-events: none;
+        z-index: 0;
+    }
+    
+    /* Ensure messages appear above background */
+    .chat-messages-container > * {
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* Ensure proper scrolling on mobile */
+    @media (max-width: 768px) {
+        .chat-sidebar {
+            width: 100%;
+            min-width: 100%;
+        }
+        
+        .chat-page-wrapper {
+            height: calc(100vh - 120px) !important;
+        }
+    }
+</style>
+
+<div class="chat-page-wrapper">
+
+<div class="chat-main-wrapper">
     <!-- Main Chat Container -->
-    <div class="flex-1 flex overflow-hidden">
+    <div class="chat-container">
         <!-- Left Sidebar - Conversations List -->
-        <div class="w-80 bg-white border-r border-gray-200 flex flex-col">
+        <div class="chat-sidebar">
             <!-- Header -->
-            <div class="p-4 border-b border-gray-200 bg-gradient-to-r from-[#063A1C] to-[#205A44]">
+            <div class="chat-sidebar-header p-4 border-b border-gray-200 bg-gradient-to-r from-[#063A1C] to-[#205A44]">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-xl font-bold text-white">
                         <i class="fab fa-whatsapp mr-2"></i>Chats
@@ -28,7 +212,7 @@
             </div>
 
             <!-- Conversations List -->
-            <div id="conversationsList" class="flex-1 overflow-y-auto">
+            <div id="conversationsList" class="chat-conversations-list">
                 @forelse($conversations as $conversation)
                     @php
                         $latestMessage = $conversation->getLatestMessage();
@@ -101,9 +285,9 @@
         </div>
 
         <!-- Right Panel - Active Conversation -->
-        <div class="flex-1 flex flex-col" id="chatPanel">
+        <div class="chat-panel" id="chatPanel">
             <!-- Empty State -->
-            <div id="emptyState" class="flex-1 flex items-center justify-center bg-gray-50">
+            <div id="emptyState" class="flex-1 flex items-center justify-center whatsapp-bg" style="height: 100%;">
                 <div class="text-center">
                     <i class="fab fa-whatsapp text-6xl text-gray-300 mb-4"></i>
                     <h3 class="text-xl font-semibold text-gray-700 mb-2">Select a conversation</h3>
@@ -112,17 +296,19 @@
             </div>
 
             <!-- Active Chat (hidden by default) -->
-            <div id="activeChat" class="flex-1 flex flex-col hidden">
+            <div id="activeChat" class="chat-panel" style="display: none;">
                 <!-- Chat Header -->
-                <div class="bg-white border-b border-gray-200 p-4">
+                <div class="bg-white border-b border-gray-200 p-3 flex-shrink-0">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center flex-1 min-w-0">
-                            <div class="w-10 h-10 rounded-full bg-gradient-to-r from-[#063A1C] to-[#205A44] flex items-center justify-center text-white font-semibold mr-3 flex-shrink-0">
-                                <i class="fab fa-whatsapp"></i>
+                            <!-- Profile Picture / Avatar -->
+                            <div id="chatProfilePicture" class="w-10 h-10 rounded-full bg-gradient-to-r from-[#063A1C] to-[#205A44] flex items-center justify-center text-white font-semibold mr-3 flex-shrink-0 overflow-hidden">
+                                <i class="fab fa-whatsapp" id="chatProfileIcon"></i>
+                                <img id="chatProfileImage" src="" alt="" class="hidden w-full h-full object-cover">
                             </div>
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center space-x-2 flex-wrap">
-                                    <h3 id="chatContactName" class="font-semibold text-gray-900 truncate"></h3>
+                                    <h3 id="chatContactName" class="font-semibold text-gray-900 truncate text-base" style="min-height: 24px; display: block;">Loading...</h3>
                                     <span id="leadBadge" class="hidden px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
                                         <i class="fas fa-link mr-1"></i>Lead
                                     </span>
@@ -130,7 +316,7 @@
                                         <i class="fas fa-user mr-1"></i><span id="userName"></span>
                                     </span>
                                 </div>
-                                <p id="chatPhoneNumber" class="text-sm text-gray-500"></p>
+                                <p id="chatPhoneNumber" class="text-sm text-gray-500 mt-0.5" style="min-height: 20px; display: block;"></p>
                                 <div id="leadInfo" class="hidden mt-1">
                                     <a id="leadLink" href="#" class="text-xs text-blue-600 hover:text-blue-800 flex items-center">
                                         <i class="fas fa-user mr-1"></i>
@@ -153,12 +339,12 @@
                 </div>
 
                 <!-- Messages Area -->
-                <div id="messagesContainer" class="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-4">
+                <div id="messagesContainer" class="chat-messages-container whatsapp-bg p-4 space-y-4">
                     <!-- Messages will be loaded here -->
                 </div>
 
                 <!-- Message Input Area -->
-                <div class="bg-white border-t border-gray-200 p-4">
+                <div class="bg-white border-t border-gray-200 p-4 flex-shrink-0">
                     <div class="flex items-end space-x-2">
                         <button onclick="openTemplateModal()" 
                                 class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -182,6 +368,7 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 
 <!-- Add Contact Modal -->
@@ -289,8 +476,22 @@ function loadConversation(conversationId) {
     currentConversationId = conversationId;
     
     // Update UI
-    document.getElementById('emptyState').classList.add('hidden');
-    document.getElementById('activeChat').classList.remove('hidden');
+    const emptyState = document.getElementById('emptyState');
+    const activeChat = document.getElementById('activeChat');
+    
+    if (emptyState) {
+        emptyState.classList.add('hidden');
+        emptyState.style.display = 'none';
+    }
+    
+    if (activeChat) {
+        activeChat.classList.remove('hidden');
+        activeChat.style.display = 'flex';
+        activeChat.style.visibility = 'visible';
+    } else {
+        console.error('Active chat element not found');
+        return;
+    }
     
     // Mark conversation as active in list
     document.querySelectorAll('.conversation-item').forEach(item => {
@@ -309,8 +510,124 @@ function loadConversation(conversationId) {
     .then(data => {
         if (data.success) {
             const conversation = data.data.conversation;
-            document.getElementById('chatContactName').textContent = conversation.contact_name || conversation.phone_number;
-            document.getElementById('chatPhoneNumber').textContent = conversation.phone_number;
+            const contactName = conversation.contact_name || conversation.phone_number;
+            
+            // Set contact name - ensure it's always visible
+            const contactNameEl = document.getElementById('chatContactName');
+            const phoneNumberEl = document.getElementById('chatPhoneNumber');
+            
+            // Always set contact name - use contact_name or phone_number
+            const displayName = (conversation.contact_name && conversation.contact_name.trim() !== '') 
+                ? conversation.contact_name 
+                : conversation.phone_number;
+            
+            // Set contact name with error handling
+            if (contactNameEl) {
+                contactNameEl.textContent = displayName || conversation.phone_number || 'Unknown Contact';
+                contactNameEl.style.display = 'block';
+                contactNameEl.style.visibility = 'visible';
+                contactNameEl.style.opacity = '1';
+                contactNameEl.classList.remove('hidden');
+            } else {
+                console.error('Contact name element not found');
+            }
+            
+            // Set phone number with error handling
+            if (phoneNumberEl) {
+                phoneNumberEl.textContent = conversation.phone_number || '';
+                phoneNumberEl.style.display = 'block';
+                phoneNumberEl.style.visibility = 'visible';
+                phoneNumberEl.classList.remove('hidden');
+            } else {
+                console.error('Phone number element not found');
+            }
+            
+            // Set profile picture
+            const profilePictureEl = document.getElementById('chatProfilePicture');
+            const profileImageEl = document.getElementById('chatProfileImage');
+            const profileIconEl = document.getElementById('chatProfileIcon');
+            
+            // Helper function to show initials
+            function showInitials(name, iconEl, phoneNumber) {
+                if (!iconEl) return;
+                
+                // Clear any existing content
+                iconEl.innerHTML = '';
+                iconEl.className = '';
+                
+                if (name && name.trim() !== '' && name !== phoneNumber) {
+                    const words = name.trim().split(/\s+/).filter(w => w.length > 0);
+                    let initials = '';
+                    if (words.length >= 2) {
+                        initials = (words[0][0] + words[words.length - 1][0]).toUpperCase();
+                    } else if (words.length === 1 && words[0].length >= 2) {
+                        initials = words[0].substring(0, 2).toUpperCase();
+                    } else if (words.length === 1) {
+                        initials = words[0].substring(0, 1).toUpperCase() + words[0].substring(0, 1).toUpperCase();
+                    }
+                    
+                    if (initials) {
+                        iconEl.textContent = initials;
+                        iconEl.style.fontSize = '14px';
+                        iconEl.style.fontWeight = '600';
+                        iconEl.style.display = 'flex';
+                        iconEl.style.alignItems = 'center';
+                        iconEl.style.justifyContent = 'center';
+                    } else {
+                        // Fallback to WhatsApp icon
+                        iconEl.innerHTML = '<i class="fab fa-whatsapp"></i>';
+                        iconEl.style.fontSize = '18px';
+                    }
+                } else {
+                    // Show WhatsApp icon if no name
+                    iconEl.innerHTML = '<i class="fab fa-whatsapp"></i>';
+                    iconEl.style.fontSize = '18px';
+                }
+                iconEl.style.visibility = 'visible';
+                iconEl.style.display = 'flex';
+            }
+            
+            // Ensure elements exist
+            if (!profileImageEl || !profileIconEl) {
+                console.error('Profile picture elements not found');
+                return;
+            }
+            
+            // Check if profile picture URL is available
+            if (conversation.profile_picture || conversation.avatar || conversation.photo) {
+                const profilePicUrl = conversation.profile_picture || conversation.avatar || conversation.photo;
+                profileImageEl.src = profilePicUrl;
+                profileImageEl.onerror = function() {
+                    // If image fails to load, show initials
+                    profileImageEl.classList.add('hidden');
+                    profileIconEl.classList.remove('hidden');
+                    showInitials(displayName, profileIconEl, conversation.phone_number);
+                };
+                profileImageEl.onload = function() {
+                    profileImageEl.classList.remove('hidden');
+                    profileIconEl.classList.add('hidden');
+                };
+                profileImageEl.classList.remove('hidden');
+                profileIconEl.classList.add('hidden');
+            } else if (conversation.lead && conversation.lead.profile_picture) {
+                profileImageEl.src = conversation.lead.profile_picture;
+                profileImageEl.onerror = function() {
+                    profileImageEl.classList.add('hidden');
+                    profileIconEl.classList.remove('hidden');
+                    showInitials(displayName || conversation.lead.name, profileIconEl, conversation.phone_number);
+                };
+                profileImageEl.onload = function() {
+                    profileImageEl.classList.remove('hidden');
+                    profileIconEl.classList.add('hidden');
+                };
+                profileImageEl.classList.remove('hidden');
+                profileIconEl.classList.add('hidden');
+            } else {
+                // Show initials or WhatsApp icon
+                profileImageEl.classList.add('hidden');
+                profileIconEl.classList.remove('hidden');
+                showInitials(displayName, profileIconEl, conversation.phone_number);
+            }
             
             // Show user info if admin viewing other user's conversation
             if (conversation.user_name && conversation.user_id !== currentUserId) {
@@ -368,10 +685,10 @@ function loadMessages(messages) {
         }`;
         
         bubble.innerHTML = `
-            <p class="text-sm">${escapeHtml(message.message)}</p>
+            <p class="text-sm ${message.direction === 'sent' ? 'text-white' : 'text-gray-900'}">${escapeHtml(message.message)}</p>
             <div class="flex items-center justify-end mt-1 space-x-1">
-                <span class="text-xs opacity-70">${formatTime(message.created_at)}</span>
-                ${message.direction === 'sent' ? `<i class="fas fa-${getStatusIcon(message.status)} text-xs"></i>` : ''}
+                <span class="text-xs ${message.direction === 'sent' ? 'text-white opacity-90' : 'text-gray-600'}">${formatTime(message.created_at)}</span>
+                ${message.direction === 'sent' ? `<i class="fas fa-${getStatusIcon(message.status)} text-xs text-white opacity-90"></i>` : ''}
             </div>
         `;
         
@@ -773,10 +1090,10 @@ function addMessageToUI(message) {
     }`;
     
     bubble.innerHTML = `
-        <p class="text-sm">${escapeHtml(message.message)}</p>
+        <p class="text-sm ${message.direction === 'sent' ? 'text-white' : 'text-gray-900'}">${escapeHtml(message.message)}</p>
         <div class="flex items-center justify-end mt-1 space-x-1">
-            <span class="text-xs opacity-70">${formatTime(message.created_at)}</span>
-            ${message.direction === 'sent' ? `<i class="fas fa-${getStatusIcon(message.status)} text-xs"></i>` : ''}
+            <span class="text-xs ${message.direction === 'sent' ? 'text-white opacity-90' : 'text-gray-600'}">${formatTime(message.created_at)}</span>
+            ${message.direction === 'sent' ? `<i class="fas fa-${getStatusIcon(message.status)} text-xs text-white opacity-90"></i>` : ''}
         </div>
     `;
     
