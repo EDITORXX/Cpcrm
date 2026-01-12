@@ -118,6 +118,88 @@
     transition: width 0.3s ease;
 }
 
+/* Dashboard Filters */
+.dashboard-filters {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 10px 20px;
+    border: 2px solid #E5DED4;
+    border-radius: 8px;
+    background: white;
+    color: #063A1C;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-btn:hover {
+    background: #F7F6F3;
+    border-color: #063A1C;
+}
+
+.filter-btn.active {
+    background: #063A1C;
+    color: white;
+    border-color: #063A1C;
+}
+
+.custom-date-inputs {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #E5DED4;
+}
+
+.custom-date-inputs .date-input {
+    padding: 8px 12px;
+    border: 2px solid #E5DED4;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #063A1C;
+    background: white;
+}
+
+.custom-date-inputs .date-input:focus {
+    outline: none;
+    border-color: #063A1C;
+}
+
+.custom-date-inputs span {
+    color: #B3B5B4;
+    font-size: 14px;
+}
+
+.custom-date-inputs .apply-btn {
+    padding: 8px 20px;
+    background: #063A1C;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.custom-date-inputs .apply-btn:hover {
+    background: #205A44;
+}
+
 /* Urgent Tasks Section */
 .urgent-tasks-section {
     margin-bottom: 30px;

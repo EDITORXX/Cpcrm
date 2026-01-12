@@ -105,6 +105,44 @@ class SiteVisitController extends Controller
             });
         }
 
+        // Date filter
+        if ($request->has('date_filter') && $request->date_filter) {
+            $dateFilter = $request->date_filter;
+            $today = now()->startOfDay();
+            
+            switch ($dateFilter) {
+                case 'today':
+                    $query->whereDate('scheduled_at', $today);
+                    break;
+                case 'this_week':
+                    $query->whereBetween('scheduled_at', [
+                        $today->copy()->startOfWeek(),
+                        $today->copy()->endOfWeek()
+                    ]);
+                    break;
+                case 'this_month':
+                    $query->whereBetween('scheduled_at', [
+                        $today->copy()->startOfMonth(),
+                        $today->copy()->endOfMonth()
+                    ]);
+                    break;
+                case 'this_year':
+                    $query->whereBetween('scheduled_at', [
+                        $today->copy()->startOfYear(),
+                        $today->copy()->endOfYear()
+                    ]);
+                    break;
+                case 'custom':
+                    if ($request->has('date_from') && $request->has('date_to')) {
+                        $query->whereBetween('scheduled_at', [
+                            $request->date_from . ' 00:00:00',
+                            $request->date_to . ' 23:59:59'
+                        ]);
+                    }
+                    break;
+            }
+        }
+
         $visits = $query->latest('scheduled_at')->paginate($request->get('per_page', 15));
 
         return response()->json($visits);
@@ -177,8 +215,14 @@ class SiteVisitController extends Controller
             }
         }
 
-        // Fire event
-        event(new SiteVisitCreated($siteVisit));
+        // Fire event (wrap in try-catch to handle broadcasting errors)
+        try {
+            event(new SiteVisitCreated($siteVisit));
+        } catch (\Exception $e) {
+            // Broadcasting errors (like Pusher) shouldn't stop site visit creation
+            // Log but continue - the site visit is successfully created
+            \Log::warning("Broadcasting error in SiteVisitController (non-critical): " . $e->getMessage());
+        }
 
         return response()->json([
             'success' => true,

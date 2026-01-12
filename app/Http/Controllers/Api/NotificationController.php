@@ -72,11 +72,20 @@ class NotificationController extends Controller
 
         $notification->markAsClicked();
 
-        // Use action_url if available, otherwise fallback to task URL
+        // Use action_url if available, otherwise fallback based on notification type
         $url = $notification->action_url;
         
-        if (!$url && $notification->telecaller_task_id) {
-            $url = url('/telecaller/tasks?status=pending&task_id=' . $notification->telecaller_task_id);
+        if (!$url) {
+            // For verification notifications, navigate to verification-pending page
+            if ($notification->type === AppNotification::TYPE_NEW_VERIFICATION && $notification->action_type === AppNotification::ACTION_VERIFICATION) {
+                $url = url('/telecaller/verification-pending');
+            } elseif ($notification->telecaller_task_id) {
+                // For task-related notifications, navigate to tasks page
+                $url = url('/telecaller/tasks?status=pending&task_id=' . $notification->telecaller_task_id);
+            } elseif ($notification->type === AppNotification::TYPE_NEW_VERIFICATION) {
+                // Fallback for verification notifications without action_url
+                $url = url('/telecaller/verification-pending');
+            }
         }
 
         return response()->json([

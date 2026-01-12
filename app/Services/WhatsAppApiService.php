@@ -12,13 +12,125 @@ class WhatsAppApiService
     protected $endpoint;
     protected $token;
     protected $settings;
+    protected $resolvedAuthMode = null;
 
     public function __construct()
     {
         $this->settings = WhatsAppApiSettings::getSettings();
-        $this->baseUrl = rtrim($this->settings->base_url ?? $this->settings->api_endpoint ?? 'https://rengage.mcube.com', '/');
-        $this->endpoint = rtrim($this->settings->api_endpoint ?? $this->baseUrl, '/');
-        $this->token = $this->settings->api_token;
+        
+        // Normalize base URL - remove trailing slashes and fix common issues
+        $rawBaseUrl = $this->settings->base_url ?? $this->settings->api_endpoint ?? 'https://rengage.mcube.com';
+        $this->baseUrl = $this->normalizeUrl($rawBaseUrl);
+        
+        $rawEndpoint = $this->settings->api_endpoint ?? $this->baseUrl;
+        $this->endpoint = $this->normalizeUrl($rawEndpoint);
+        
+        $this->token = is_string($this->settings->api_token ?? null) ? trim($this->settings->api_token) : '';
+    }
+    
+    /**
+     * Normalize URL - fix common formatting issues
+     */
+    protected function normalizeUrl(string $url): string
+    {
+        $url = trim($url);
+        
+        if (empty($url)) {
+            return $url;
+        }
+        
+        // Remove trailing slashes first
+        $url = rtrim($url, '/');
+        
+        // Fix cases where https/http is appended incorrectly (e.g., "domain.comhttps" or "https://domain.comhttps")
+        // Pattern: remove trailing "https" or "http" if it appears after domain
+        $url = preg_replace('/(https?:\/\/)?([^\/]+?)(https?)$/i', '$1$2', $url);
+        
+        // If URL doesn't start with http:// or https://, add https://
+        if (!preg_match('/^https?:\/\//i', $url)) {
+            $url = 'https://' . $url;
+        }
+        
+        // Remove trailing slashes again after normalization
+        return rtrim($url, '/');
+    }
+
+    /**
+     * Parse stored token and infer auth mode.
+     *
+     * Supported stored formats:
+     * - "Bearer <token>" (Authorization)
+     * - "Token <token>"  (Authorization)
+     * - "Basic <token>"  (Authorization)
+     * - "X-API-KEY <token>" / "ApiKey <token>" / "api-key:<token>" (X-API-KEY header)
+     * - "<token>" (default: Bearer)
+     */
+    protected function parseToken(): array
+    {
+        $raw = is_string($this->token ?? null) ? trim($this->token) : '';
+
+        if ($raw === '') {
+            return ['mode' => null, 'token' => ''];
+        }
+
+        if (preg_match('/^(Bearer|Token|Basic)\s+(.+)$/i', $raw, $m)) {
+            return ['mode' => strtolower($m[1]), 'token' => trim($m[2])];
+        }
+
+        if (preg_match('/^(X-API-KEY|XAPIKEY|APIKEY|ApiKey|api-key)\s+(.+)$/i', $raw, $m)) {
+            return ['mode' => 'x-api-key', 'token' => trim($m[2])];
+        }
+
+        if (preg_match('/^(x-api-key|api-key)\s*:\s*(.+)$/i', $raw, $m)) {
+            return ['mode' => 'x-api-key', 'token' => trim($m[2])];
+        }
+
+        // Default for raw tokens
+        return ['mode' => 'bearer', 'token' => $raw];
+    }
+
+    protected function formatTokenForStorage(string $mode, string $token): string
+    {
+        $token = trim($token);
+        return match ($mode) {
+            'bearer' => "Bearer {$token}",
+            'token' => "Token {$token}",
+            'basic' => "Basic {$token}",
+            'raw' => $token,
+            'x-api-key' => "X-API-KEY {$token}",
+            default => $token,
+        };
+    }
+
+    protected function buildAuthHeaders(string $mode, string $token): array
+    {
+        $token = trim($token);
+
+        $headers = [
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+        ];
+
+        return match ($mode) {
+            'bearer' => $headers + ['Authorization' => 'Bearer ' . $token],
+            'token' => $headers + ['Authorization' => 'Token ' . $token],
+            'basic' => $headers + ['Authorization' => 'Basic ' . $token],
+            'raw' => $headers + ['Authorization' => $token],
+            'x-api-key' => $headers + ['X-API-KEY' => $token, 'x-api-key' => $token],
+            default => $headers,
+        };
+    }
+
+    protected function authModeCandidates(string $token): array
+    {
+        // Try the most common header styles across providers.
+        // Order matters: prefer Bearer, then Token, then raw Authorization, then X-API-KEY.
+        return [
+            ['mode' => 'bearer', 'token' => $token],
+            ['mode' => 'token', 'token' => $token],
+            ['mode' => 'raw', 'token' => $token],
+            ['mode' => 'x-api-key', 'token' => $token],
+        ];
     }
 
     /**
@@ -26,6 +138,9 @@ class WhatsAppApiService
      */
     protected function buildUrl($endpointPath, $replacements = [])
     {
+        // Normalize endpoint path - remove any full URLs, ensure it starts with /
+        $endpointPath = $this->normalizeEndpointPath($endpointPath);
+        
         $url = $this->baseUrl . $endpointPath;
         
         // Replace placeholders like {id}, {contact}, {templateID}
@@ -35,6 +150,26 @@ class WhatsAppApiService
         
         return $url;
     }
+    
+    /**
+     * Normalize endpoint path - ensure it's a relative path starting with /
+     */
+    protected function normalizeEndpointPath(string $endpointPath): string
+    {
+        $endpointPath = trim($endpointPath);
+        
+        // If endpoint path is a full URL, extract just the path part
+        if (preg_match('/^https?:\/\/[^\/]+(\/.*)$/i', $endpointPath, $matches)) {
+            $endpointPath = $matches[1];
+        }
+        
+        // Ensure it starts with /
+        if (!str_starts_with($endpointPath, '/')) {
+            $endpointPath = '/' . $endpointPath;
+        }
+        
+        return $endpointPath;
+    }
 
     /**
      * Make API request
@@ -42,24 +177,41 @@ class WhatsAppApiService
     protected function makeRequest($method, $endpointPath, $data = [], $replacements = [])
     {
         $url = $this->buildUrl($endpointPath, $replacements);
-        
-        $headers = [
-            'Authorization' => 'Bearer ' . $this->token,
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
-        ];
+
+        $parsed = $this->parseToken();
+        $primaryMode = $this->resolvedAuthMode ?? ($parsed['mode'] ?? 'bearer');
+        $primaryToken = $parsed['token'] ?? '';
+        $headers = $this->buildAuthHeaders($primaryMode, $primaryToken);
 
         try {
-            $response = Http::withHeaders($headers)->timeout(30);
-            
-            if ($method === 'GET') {
-                $response = $response->get($url, $data);
-            } elseif ($method === 'POST') {
-                $response = $response->post($url, $data);
-            } elseif ($method === 'PUT') {
-                $response = $response->put($url, $data);
-            } elseif ($method === 'DELETE') {
-                $response = $response->delete($url, $data);
+            $doRequest = function(array $hdrs) use ($method, $url, $data) {
+                $req = Http::withHeaders($hdrs)->timeout(30);
+                return match ($method) {
+                    'GET' => $req->get($url, $data),
+                    'POST' => $req->post($url, $data),
+                    'PUT' => $req->put($url, $data),
+                    'DELETE' => $req->delete($url, $data),
+                    default => $req->send($method, $url, ['json' => $data]),
+                };
+            };
+
+            $response = $doRequest($headers);
+
+            // If auth failed, try other auth modes automatically (helps when token is valid but scheme differs).
+            if (in_array($response->status(), [401, 403], true) && !empty($primaryToken)) {
+                foreach ($this->authModeCandidates($primaryToken) as $candidate) {
+                    if (($candidate['mode'] ?? null) === $primaryMode) {
+                        continue;
+                    }
+                    $candidateHeaders = $this->buildAuthHeaders($candidate['mode'], $candidate['token']);
+                    $candidateResponse = $doRequest($candidateHeaders);
+                    if ($candidateResponse->successful()) {
+                        // Cache resolved mode for this request lifecycle to avoid repeated retries.
+                        $this->resolvedAuthMode = $candidate['mode'];
+                        $response = $candidateResponse;
+                        break;
+                    }
+                }
             }
 
             if ($response->successful()) {
@@ -72,8 +224,21 @@ class WhatsAppApiService
 
             $errorMsg = null;
             $responseJson = $response->json();
+            $responseBody = $response->body();
+            
             if ($responseJson) {
                 $errorMsg = $responseJson['message'] ?? $responseJson['error'] ?? $responseJson['msg'] ?? null;
+            }
+            
+            // Handle 405 Method Not Allowed errors specifically
+            if ($response->status() === 405) {
+                // If error mentions wrong method, provide helpful message
+                if (str_contains($errorMsg ?? $responseBody, 'POST method is not supported') || 
+                    str_contains($errorMsg ?? $responseBody, 'GET, HEAD')) {
+                    $errorMsg = 'Invalid endpoint configuration: The endpoint does not support ' . $method . ' method. Please check your WhatsApp API endpoint settings.';
+                } else {
+                    $errorMsg = $errorMsg ?? 'HTTP method not allowed for this endpoint. Please check your WhatsApp API endpoint configuration.';
+                }
             }
             
             return [
@@ -81,6 +246,7 @@ class WhatsAppApiService
                 'error' => $errorMsg ?? "HTTP {$response->status()}",
                 'status' => $response->status(),
                 'endpoint_used' => $endpointPath,
+                'method_used' => $method,
             ];
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             Log::error('WhatsApp API Connection Error: ' . $e->getMessage(), [
@@ -245,48 +411,81 @@ class WhatsAppApiService
             $lastError = null;
             $lastStatus = null;
             $lastResponse = null;
+            $lastAuthError = null;
+
+            $parsed = $this->parseToken();
+            $rawToken = $parsed['token'] ?? '';
+            if ($rawToken === '') {
+                return [
+                    'success' => false,
+                    'error' => 'API token is missing',
+                ];
+            }
 
             foreach ($testEndpoints as $endpoint) {
                 try {
                     $url = $this->baseUrl . $endpoint;
-                    
-                    $response = Http::withHeaders([
-                        'Authorization' => 'Bearer ' . $this->token,
-                        'Content-Type' => 'application/json',
-                        'Accept' => 'application/json',
-                    ])->timeout(10)->get($url);
 
-                    $lastStatus = $response->status();
-                    $lastResponse = $response->body();
-
-                    if ($response->successful()) {
-                        return [
-                            'success' => true,
-                            'data' => $response->json() ?? $response->body(),
-                            'message' => 'Connection verified successfully',
-                            'endpoint' => $endpoint,
-                        ];
+                    // Try multiple auth header formats (different providers use different schemes)
+                    $candidates = $this->authModeCandidates($rawToken);
+                    // Prefer stored explicit scheme first (if token was saved like "Token xxx" / "X-API-KEY xxx")
+                    if (!empty($parsed['mode']) && $parsed['mode'] !== 'bearer') {
+                        array_unshift($candidates, ['mode' => $parsed['mode'], 'token' => $rawToken]);
                     }
 
-                    // If we get a 401/403, it means endpoint exists but auth failed
-                    if (in_array($response->status(), [401, 403])) {
-                        return [
-                            'success' => false,
-                            'error' => 'Authentication failed. Please check your API token.',
-                            'status' => $response->status(),
-                            'endpoint' => $endpoint,
-                            'response' => $response->json() ?? $response->body(),
-                        ];
-                    }
+                    $response = null;
+                    foreach ($candidates as $candidate) {
+                        $headers = $this->buildAuthHeaders($candidate['mode'], $candidate['token']);
+                        $response = Http::withHeaders($headers)->timeout(10)->get($url);
 
-                    // If we get 404, try next endpoint
-                    if ($response->status() === 404) {
-                        $lastError = "Endpoint {$endpoint} not found (404)";
-                        continue;
-                    }
+                        $lastStatus = $response->status();
+                        $lastResponse = $response->body();
 
-                    // For other errors, save and continue
-                    $lastError = $response->json()['message'] ?? $response->body() ?? "HTTP {$response->status()}";
+                        if ($response->successful()) {
+                            $this->resolvedAuthMode = $candidate['mode'];
+
+                            // Persist working auth mode by normalizing token format in DB
+                            try {
+                                $normalized = $this->formatTokenForStorage($candidate['mode'], $rawToken);
+                                if (trim((string) $this->settings->api_token) !== $normalized) {
+                                    WhatsAppApiSettings::updateSettings(['api_token' => $normalized]);
+                                    $this->token = $normalized;
+                                }
+                            } catch (\Exception $e) {
+                                // Non-fatal; verification still succeeded.
+                                Log::warning('WhatsApp token normalization failed: ' . $e->getMessage());
+                            }
+
+                            return [
+                                'success' => true,
+                                'data' => $response->json() ?? $response->body(),
+                                'message' => 'Connection verified successfully',
+                                'endpoint' => $endpoint,
+                                'auth_mode' => $candidate['mode'],
+                            ];
+                        }
+
+                        // 404 means endpoint likely doesn't exist; try next endpoint (no need to try other auth modes)
+                        if ($response->status() === 404) {
+                            $lastError = "Endpoint {$endpoint} not found (404)";
+                            break;
+                        }
+
+                        // 401/403: auth failed for this auth mode, try next candidate
+                        if (in_array($response->status(), [401, 403], true)) {
+                            $lastAuthError = [
+                                'status' => $response->status(),
+                                'endpoint' => $endpoint,
+                                'auth_mode' => $candidate['mode'],
+                                'response' => $response->json() ?? $response->body(),
+                            ];
+                            continue;
+                        }
+
+                        // Other errors: keep last error and try next endpoint
+                        $lastError = $response->json()['message'] ?? $response->body() ?? "HTTP {$response->status()}";
+                        break;
+                    }
                     
                 } catch (\Illuminate\Http\Client\ConnectionException $e) {
                     $lastError = "Connection failed: " . $e->getMessage();
@@ -300,9 +499,11 @@ class WhatsAppApiService
             // If all endpoints failed, return the last error
             return [
                 'success' => false,
-                'error' => $lastError ?? 'All endpoints failed. Please check the API endpoint URL.',
+                'error' => $lastError
+                    ?? ($lastAuthError ? 'Authentication failed. Please check your API token.' : 'All endpoints failed. Please check the API endpoint URL.'),
                 'status' => $lastStatus,
                 'response' => $lastResponse,
+                'auth_error' => $lastAuthError,
                 'suggestion' => 'Please check the debug page for detailed error information.',
             ];
         } catch (\Exception $e) {
@@ -323,7 +524,7 @@ class WhatsAppApiService
      */
     public function isConfigured(): bool
     {
-        return !empty($this->token) && (!empty($this->baseUrl) || !empty($this->endpoint));
+        return !empty(trim((string) $this->token)) && (!empty($this->baseUrl) || !empty($this->endpoint));
     }
 
     /**

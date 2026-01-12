@@ -4,12 +4,16 @@
         $user->load('role');
     }
 @endphp
-@if($user && ($user->isAdmin() || $user->isCrm()))
+@if($user && $user->isSalesManager())
+    @extends('sales-manager.layout')
+@elseif($user && ($user->isAdmin() || $user->isCrm()))
     @extends('layouts.app')
 @elseif($user && $user->isSalesHead() && !$user->isAdmin() && !$user->isCrm())
     @extends('sales-head.layout')
-@elseif($user && $user->isSalesManager())
-    @extends('sales-manager.layout')
+@elseif($user && $user->isSalesExecutive())
+    @extends('sales-head.layout')
+@elseif($user && $user->isTelecaller())
+    @extends('telecaller.layout')
 @else
     @extends('layouts.app')
 @endif
@@ -80,6 +84,20 @@
                     <i class="fas fa-handshake"></i>
                     <span>Meeting</span>
                 </button>
+                
+                <!-- Schedule Call Task Button -->
+                <button onclick="openScheduleCallTaskModal()" class="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-all duration-200 shadow-sm font-medium">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Schedule Call Task</span>
+                </button>
+                
+                <!-- Edit Requirements Button - Show for roles that can use centralized form -->
+                @if($user && ($user->isTelecaller() || $user->isSalesManager() || $user->isSalesHead() || $user->isAdmin() || $user->isCrm()))
+                    <a href="{{ route('leads.edit', $lead->id) }}" class="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-sm font-medium">
+                        <i class="fas fa-edit"></i>
+                        <span>Edit Requirements</span>
+                    </a>
+                @endif
             </div>
         </div>
     </div>
@@ -157,6 +175,7 @@
                             }
                         }
                         $uniqueProjects = $allInterestedProjects->unique('id');
+                        $uniqueProjectNames = $uniqueProjects->pluck('name')->toArray();
                     @endphp
                     
                     @if($uniqueProjects->count() > 0)
@@ -195,8 +214,120 @@
                         <p class="text-gray-900 whitespace-pre-wrap">{{ $lead->notes }}</p>
                     </div>
                     @endif
+                    
+                    <!-- Source Information -->
+                    @php
+                        $sourceInfo = [];
+                        $sheetAssignment = $lead->activeAssignments->firstWhere('sheet_config_id', '!=', null);
+                        if ($sheetAssignment && $sheetAssignment->sheetConfig) {
+                            $sourceInfo['type'] = 'Google Sheets';
+                            $sourceInfo['sheet_name'] = $sheetAssignment->sheetConfig->sheet_name;
+                            $sourceInfo['sheet_id'] = $sheetAssignment->sheetConfig->sheet_id;
+                            $sourceInfo['row_number'] = $sheetAssignment->sheet_row_number;
+                        } elseif ($lead->source === 'google_sheets') {
+                            $sourceInfo['type'] = 'Google Sheets';
+                        } elseif ($lead->source === 'pabbly') {
+                            $sourceInfo['type'] = 'Meta/Facebook (via Pabbly)';
+                        } elseif ($lead->source === 'csv') {
+                            $sourceInfo['type'] = 'CSV Import';
+                        } else {
+                            $sourceInfo['type'] = ucfirst(str_replace('_', ' ', $lead->source ?? 'Other'));
+                        }
+                        
+                        // Get form field values for source tracking
+                        $sourceFields = $lead->formFieldValues()->whereIn('field_key', [
+                            'source_sheet_name',
+                            'source_sheet_id',
+                            'source_row_number'
+                        ])->get()->keyBy('field_key');
+                        
+                        if ($sourceFields->has('source_sheet_name')) {
+                            $sourceInfo['sheet_name'] = $sourceFields['source_sheet_name']->field_value;
+                        }
+                        if ($sourceFields->has('source_sheet_id')) {
+                            $sourceInfo['sheet_id'] = $sourceFields['source_sheet_id']->field_value;
+                        }
+                        if ($sourceFields->has('source_row_number')) {
+                            $sourceInfo['row_number'] = $sourceFields['source_row_number']->field_value;
+                        }
+                    @endphp
+                    
+                    @if(!empty($sourceInfo))
+                    <div class="mt-4 pt-4 border-t">
+                        <label class="text-sm font-medium text-gray-500 mb-2 block">Source Information</label>
+                        <div class="space-y-1">
+                            <p class="text-sm text-gray-900">
+                                <span class="font-medium">Type:</span> {{ $sourceInfo['type'] ?? 'N/A' }}
+                            </p>
+                            @if(isset($sourceInfo['sheet_name']))
+                            <p class="text-sm text-gray-900">
+                                <span class="font-medium">Sheet:</span> {{ $sourceInfo['sheet_name'] }}
+                            </p>
+                            @endif
+                            @if(isset($sourceInfo['row_number']))
+                            <p class="text-sm text-gray-900">
+                                <span class="font-medium">Row:</span> {{ $sourceInfo['row_number'] }}
+                            </p>
+                            @endif
+                            @if(isset($sourceInfo['sheet_id']))
+                            <p class="text-sm text-gray-600">
+                                <a href="https://docs.google.com/spreadsheets/d/{{ $sourceInfo['sheet_id'] }}" 
+                                   target="_blank" 
+                                   class="text-blue-600 hover:underline">
+                                    <i class="fas fa-external-link-alt mr-1"></i>View Sheet
+                                </a>
+                            </p>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </div>
+
+            <!-- Form Data / Custom Fields -->
+            @php
+                $formFieldValues = $lead->formFieldValues()
+                    ->whereNotIn('field_key', ['source_sheet_name', 'source_sheet_id', 'source_row_number'])
+                    ->orderBy('created_at')
+                    ->get()
+                    ->groupBy(function($fv) {
+                        // Group by source: meta_* for Meta/Facebook, custom_* for custom, etc.
+                        if (str_starts_with($fv->field_key, 'meta_')) {
+                            return 'Meta/Facebook Form';
+                        } elseif (str_starts_with($fv->field_key, 'custom_')) {
+                            return 'Custom Fields';
+                        } else {
+                            return 'Other Fields';
+                        }
+                    });
+            @endphp
+            
+            @if($formFieldValues->isNotEmpty())
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Form Data / Additional Information</h2>
+                <div class="space-y-6">
+                    @foreach($formFieldValues as $groupName => $fields)
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-700 mb-3">{{ $groupName }}</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            @foreach($fields as $fieldValue)
+                            <div>
+                                <label class="text-sm font-medium text-gray-500">
+                                    @php
+                                        $fieldConfig = $fieldValue->fieldConfig();
+                                        $displayLabel = $fieldConfig ? $fieldConfig->field_label : str_replace('_', ' ', ucfirst(str_replace(['meta_', 'custom_'], '', $fieldValue->field_key)));
+                                    @endphp
+                                    {{ $displayLabel }}
+                                </label>
+                                <p class="text-gray-900 mt-1">{{ $fieldValue->field_value ?? 'N/A' }}</p>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
 
             <!-- Quick Stats -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -442,16 +573,20 @@
             <form id="siteVisitForm" onsubmit="submitSiteVisit(event)">
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Property Name</label>
-                        <input type="text" name="property_name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Property Address</label>
-                        <textarea name="property_address" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"></textarea>
-                    </div>
-                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Scheduled Date & Time *</label>
                         <input type="datetime-local" name="scheduled_at" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Project</label>
+                        <div id="siteVisitProjectTagsContainer" class="flex flex-wrap gap-2 p-2 border border-gray-300 rounded-lg min-h-[42px] bg-white">
+                            <!-- Tags will be dynamically added here -->
+                        </div>
+                        <input type="text" 
+                               id="siteVisitProjectInput" 
+                               placeholder="Type project name and press Enter"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 mt-2">
+                        <input type="hidden" name="project" id="siteVisitProjectHidden">
+                        <small class="text-xs text-gray-500 mt-1 block">Press Enter to add project</small>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Visit Notes</label>
@@ -460,7 +595,38 @@
                 </div>
                 <div class="flex justify-end gap-3 mt-6">
                     <button type="button" onclick="closeSiteVisitModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">Schedule</button>
+                    <button type="submit" class="px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#052814] hover:to-[#1a4936] transition-all duration-200">Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Schedule Call Task Modal -->
+<div id="scheduleCallTaskModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Schedule Call Task</h3>
+                <button onclick="closeScheduleCallTaskModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="scheduleCallTaskForm" onsubmit="submitScheduleCallTask(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Scheduled Date & Time *</label>
+                        <input type="datetime-local" name="scheduled_at" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                        <small class="text-xs text-gray-500 mt-1 block">Select when you want to make the call</small>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Task Notes (Optional)</label>
+                        <textarea name="notes" rows="3" placeholder="Add any notes or reminders for this call task..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"></textarea>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeScheduleCallTaskModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-all duration-200">Schedule Task</button>
                 </div>
             </form>
         </div>
@@ -580,11 +746,37 @@
 </style>
 @endpush
 
+@push('styles')
+<style>
+    .site-visit-project-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background-color: #10b981;
+        color: white;
+        border-radius: 9999px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+    .site-visit-project-tag-remove {
+        cursor: pointer;
+        margin-left: 4px;
+        opacity: 0.8;
+        font-size: 12px;
+    }
+    .site-visit-project-tag-remove:hover {
+        opacity: 1;
+    }
+</style>
+@endpush
+
 @push('scripts')
 <script>
     const API_BASE_URL = '{{ url("/api") }}';
     const API_TOKEN = '{{ auth()->check() ? (session("api_token") ?? auth()->user()->createToken("web-token")->plainTextToken) : "" }}';
     const LEAD_ID = {{ $lead->id }};
+    const LEAD_INTERESTED_PROJECTS = @json($uniqueProjectNames ?? []);
 
     // Modal open/close functions
     function openCallModal() {
@@ -620,12 +812,119 @@
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         tomorrow.setMinutes(tomorrow.getMinutes() - tomorrow.getTimezoneOffset());
+        // Initialize project tags
+        initializeSiteVisitProjectTags();
         document.querySelector('#siteVisitForm input[name="scheduled_at"]').value = tomorrow.toISOString().slice(0, 16);
     }
 
     function closeSiteVisitModal() {
         document.getElementById('siteVisitModal').classList.add('hidden');
         document.getElementById('siteVisitForm').reset();
+        // Clear project tags
+        const container = document.getElementById('siteVisitProjectTagsContainer');
+        if (container) {
+            container.innerHTML = '';
+        }
+        const hiddenInput = document.getElementById('siteVisitProjectHidden');
+        if (hiddenInput) {
+            hiddenInput.value = '';
+        }
+    }
+
+    // Initialize project tags with lead's interested projects
+    function initializeSiteVisitProjectTags() {
+        const container = document.getElementById('siteVisitProjectTagsContainer');
+        const hiddenInput = document.getElementById('siteVisitProjectHidden');
+        
+        if (!container || !hiddenInput) return;
+        
+        // Clear existing tags
+        container.innerHTML = '';
+        
+        // Add lead's interested projects as tags
+        if (LEAD_INTERESTED_PROJECTS && Array.isArray(LEAD_INTERESTED_PROJECTS)) {
+            LEAD_INTERESTED_PROJECTS.forEach(projectName => {
+                if (projectName && projectName.trim()) {
+                    addSiteVisitProjectTag(projectName.trim());
+                }
+            });
+        }
+        
+        // Add Enter key handler to input
+        const input = document.getElementById('siteVisitProjectInput');
+        if (input) {
+            // Remove any existing event listeners by cloning the input
+            const newInput = input.cloneNode(true);
+            input.parentNode.replaceChild(newInput, input);
+            
+            newInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const value = this.value.trim();
+                    if (value) {
+                        addSiteVisitProjectTag(value);
+                        this.value = '';
+                    }
+                }
+            });
+        }
+    }
+
+    // Add a project tag
+    function addSiteVisitProjectTag(tagName) {
+        const container = document.getElementById('siteVisitProjectTagsContainer');
+        const hiddenInput = document.getElementById('siteVisitProjectHidden');
+        
+        if (!container || !hiddenInput) return;
+        
+        // Check if tag already exists
+        const existingTags = Array.from(container.querySelectorAll('.site-visit-project-tag-text'));
+        const tagExists = existingTags.some(tag => tag.textContent.trim() === tagName.trim());
+        
+        if (tagExists) {
+            return; // Don't add duplicate
+        }
+        
+        // Create tag element
+        const tagElement = document.createElement('span');
+        tagElement.className = 'site-visit-project-tag';
+        tagElement.innerHTML = `
+            <span class="site-visit-project-tag-text">${escapeHtml(tagName)}</span>
+            <span class="site-visit-project-tag-remove" onclick="removeSiteVisitProjectTag(this)">×</span>
+        `;
+        
+        container.appendChild(tagElement);
+        
+        // Update hidden input with comma-separated values
+        updateSiteVisitProjectHiddenInput();
+    }
+
+    // Remove a project tag
+    function removeSiteVisitProjectTag(element) {
+        const tagElement = element.closest('.site-visit-project-tag');
+        if (tagElement) {
+            tagElement.remove();
+            updateSiteVisitProjectHiddenInput();
+        }
+    }
+
+    // Update hidden input with comma-separated project names
+    function updateSiteVisitProjectHiddenInput() {
+        const container = document.getElementById('siteVisitProjectTagsContainer');
+        const hiddenInput = document.getElementById('siteVisitProjectHidden');
+        
+        if (!container || !hiddenInput) return;
+        
+        const tags = Array.from(container.querySelectorAll('.site-visit-project-tag-text'));
+        const projectNames = tags.map(tag => tag.textContent.trim()).filter(name => name);
+        hiddenInput.value = projectNames.join(', ');
+    }
+
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     function openMeetingModal() {
@@ -644,6 +943,20 @@
     function closeMeetingModal() {
         document.getElementById('meetingModal').classList.add('hidden');
         document.getElementById('meetingForm').reset();
+    }
+
+    function openScheduleCallTaskModal() {
+        document.getElementById('scheduleCallTaskModal').classList.remove('hidden');
+        // Set default scheduled time to tomorrow same time
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setMinutes(tomorrow.getMinutes() - tomorrow.getTimezoneOffset());
+        document.querySelector('#scheduleCallTaskForm input[name="scheduled_at"]').value = tomorrow.toISOString().slice(0, 16);
+    }
+
+    function closeScheduleCallTaskModal() {
+        document.getElementById('scheduleCallTaskModal').classList.add('hidden');
+        document.getElementById('scheduleCallTaskForm').reset();
     }
 
     // Form submission functions
@@ -730,9 +1043,8 @@
         const formData = new FormData(form);
         const data = {
             lead_id: LEAD_ID,
-            property_name: formData.get('property_name') || null,
-            property_address: formData.get('property_address') || null,
             scheduled_at: new Date(formData.get('scheduled_at')).toISOString(),
+            project: document.getElementById('siteVisitProjectHidden').value || null,
             visit_notes: formData.get('visit_notes') || null,
         };
 
@@ -750,11 +1062,21 @@
             const result = await response.json();
 
             if (response.ok && result.success) {
-                alert('Site visit scheduled successfully!');
+                if (typeof showNotification === 'function') {
+                    showNotification('Site visit scheduled successfully!', 'success', 3000);
+                } else {
+                    alert('Site visit scheduled successfully!');
+                }
                 closeSiteVisitModal();
-                location.reload(); // Reload to show in timeline
+                setTimeout(() => {
+                    location.reload(); // Reload to show in timeline
+                }, 1500);
             } else {
-                alert(result.message || 'Failed to schedule site visit');
+                if (typeof showNotification === 'function') {
+                    showNotification(result.message || 'Failed to schedule site visit', 'error', 3000);
+                } else {
+                    alert(result.message || 'Failed to schedule site visit');
+                }
             }
         } catch (error) {
             console.error('Error:', error);
@@ -807,12 +1129,63 @@
         }
     }
 
+    async function submitScheduleCallTask(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        const data = {
+            lead_id: LEAD_ID,
+            scheduled_at: new Date(formData.get('scheduled_at')).toISOString(),
+            notes: formData.get('notes') || null,
+        };
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/tasks/schedule-call`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${API_TOKEN}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                if (typeof showNotification === 'function') {
+                    showNotification('Call task scheduled successfully!', 'success', 3000);
+                } else {
+                    alert('Call task scheduled successfully!');
+                }
+                closeScheduleCallTaskModal();
+                setTimeout(() => {
+                    location.reload(); // Reload to show in timeline
+                }, 1500);
+            } else {
+                if (typeof showNotification === 'function') {
+                    showNotification(result.message || 'Failed to schedule call task', 'error', 3000);
+                } else {
+                    alert(result.message || 'Failed to schedule call task');
+                }
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            if (typeof showNotification === 'function') {
+                showNotification('An error occurred while scheduling the call task', 'error', 3000);
+            } else {
+                alert('An error occurred while scheduling the call task');
+            }
+        }
+    }
+
     // Close modals when clicking outside
     window.onclick = function(event) {
         const callModal = document.getElementById('callModal');
         const followupModal = document.getElementById('followupModal');
         const siteVisitModal = document.getElementById('siteVisitModal');
         const meetingModal = document.getElementById('meetingModal');
+        const scheduleCallTaskModal = document.getElementById('scheduleCallTaskModal');
 
         if (event.target === callModal) {
             closeCallModal();
@@ -825,6 +1198,9 @@
         }
         if (event.target === meetingModal) {
             closeMeetingModal();
+        }
+        if (event.target === scheduleCallTaskModal) {
+            closeScheduleCallTaskModal();
         }
     }
 </script>

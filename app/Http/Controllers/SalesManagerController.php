@@ -56,7 +56,10 @@ class SalesManagerController extends Controller
             abort(403, 'Unauthorized. Only Sales Managers can access this page.');
         }
         
-        return view('sales-manager.dashboard');
+        // Generate API token for the session
+        $token = $user->createToken('sales-manager-web-token')->plainTextToken;
+        
+        return view('sales-manager.dashboard', ['api_token' => $token]);
     }
 
     /**
@@ -64,7 +67,12 @@ class SalesManagerController extends Controller
      */
     public function team()
     {
-        return view('sales-manager.team');
+        $user = auth()->user();
+        
+        // Generate API token for the session
+        $token = $user->createToken('sales-manager-web-token')->plainTextToken;
+        
+        return view('sales-manager.team', ['api_token' => $token]);
     }
 
     /**
@@ -100,6 +108,36 @@ class SalesManagerController extends Controller
         }
         
         return view('sales-manager.prospects', ['api_token' => $token, 'dynamicForm' => $dynamicForm]);
+    }
+
+    /**
+     * Show prospect details page
+     */
+    public function showProspect($id)
+    {
+        $user = auth()->user();
+        
+        $prospect = \App\Models\Prospect::with([
+            'telecaller',
+            'manager',
+            'lead',
+            'createdBy',
+            'verifiedBy',
+            'interestedProjects'
+        ])->findOrFail($id);
+        
+        // If prospect is verified and has a lead, redirect to lead detail page
+        if ($prospect->lead_id) {
+            return redirect()->route('leads.show', $prospect->lead_id);
+        }
+        
+        // Generate API token for the session (only needed if showing prospect-details)
+        $token = $user->createToken('sales-manager-web-token')->plainTextToken;
+        
+        return view('sales-manager.prospect-details', [
+            'prospect' => $prospect,
+            'api_token' => $token
+        ]);
     }
 
     /**

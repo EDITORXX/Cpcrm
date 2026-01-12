@@ -3,7 +3,7 @@
 /public/hot
 /public/storage
 /storage/*.key
-/storage/logs/*.log
+/storage/logs/*
 /vendor
 .env
 .env.backup
@@ -24,3 +24,19 @@ config/google-service-account.json
 *.json
 !package.json
 !composer.json
+
+# Laravel runtime/cache files (must not be committed)
+/bootstrap/cache/*
+!/bootstrap/cache/.gitignore
+
+/storage/app/public/*
+!/storage/app/public/.gitignore
+
+/storage/framework/cache/*
+!/storage/framework/cache/.gitignore
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitignore
+/storage/framework/views/*
+!/storage/framework/views/.gitignore
+
+!/storage/logs/.gitignore

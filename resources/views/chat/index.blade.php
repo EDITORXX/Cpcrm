@@ -466,7 +466,13 @@
 </div>
 
 <script>
-const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+// Function to get CSRF token dynamically (in case it changes)
+function getCsrfToken() {
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    return metaTag ? metaTag.getAttribute('content') : '';
+}
+
+const csrfToken = getCsrfToken();
 const currentUserId = {{ auth()->id() }};
 let currentConversationId = null;
 let messagePollingInterval = null;
@@ -502,9 +508,10 @@ function loadConversation(conversationId) {
     // Fetch conversation details
     fetch(`{{ route('chat.conversations.show', '') }}/${conversationId}`, {
         headers: {
-            'X-CSRF-TOKEN': csrfToken,
+            'X-CSRF-TOKEN': getCsrfToken(),
             'Accept': 'application/json'
-        }
+        },
+        credentials: 'same-origin'
     })
     .then(response => response.json())
     .then(data => {
@@ -721,16 +728,22 @@ function sendMessage() {
     fetch('{{ route("chat.messages.send") }}', {
         method: 'POST',
         headers: {
-            'X-CSRF-TOKEN': csrfToken,
+            'X-CSRF-TOKEN': getCsrfToken(),
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         },
+        credentials: 'same-origin',
         body: JSON.stringify({
             conversation_id: currentConversationId,
             message: message
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok && response.status === 419) {
+            throw new Error('Token mismatch. Please refresh the page and try again.');
+        }
+        return response.json();
+    })
     .then(data => {
         messageInput.value = '';
         messageInput.style.height = 'auto';
@@ -760,10 +773,11 @@ function createConversation() {
     fetch('{{ route("chat.conversations.create") }}', {
         method: 'POST',
         headers: {
-            'X-CSRF-TOKEN': csrfToken,
+            'X-CSRF-TOKEN': getCsrfToken(),
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         },
+        credentials: 'same-origin',
         body: JSON.stringify({
             phone_number: phone,
             contact_name: name || null
@@ -804,9 +818,10 @@ let selectedTemplateId = null;
 function loadTemplates() {
     fetch('{{ route("chat.templates.index") }}', {
         headers: {
-            'X-CSRF-TOKEN': csrfToken,
+            'X-CSRF-TOKEN': getCsrfToken(),
             'Accept': 'application/json'
-        }
+        },
+        credentials: 'same-origin'
     })
     .then(response => response.json())
     .then(data => {
@@ -922,30 +937,53 @@ function confirmSendTemplate() {
 function sendTemplate(templateId) {
     closeTemplateModal();
     
+    // Get fresh CSRF token
+    const freshCsrfToken = getCsrfToken();
+    
+    if (!freshCsrfToken) {
+        alert('CSRF token not found. Please refresh the page and try again.');
+        return;
+    }
+    
     fetch('{{ route("chat.messages.template") }}', {
         method: 'POST',
         headers: {
-            'X-CSRF-TOKEN': csrfToken,
+            'X-CSRF-TOKEN': freshCsrfToken,
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         },
+        credentials: 'same-origin',
         body: JSON.stringify({
             conversation_id: currentConversationId,
             template_id: templateId,
             parameters: {}
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        // Check if response is ok
+        if (!response.ok) {
+            // Handle CSRF token mismatch (419)
+            if (response.status === 419) {
+                throw new Error('Token mismatch. Please refresh the page and try again.');
+            }
+            return response.json().then(data => {
+                throw new Error(data.message || data.error || 'Failed to send template');
+            }).catch(() => {
+                throw new Error('Failed to send template (Status: ' + response.status + ')');
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             loadConversation(currentConversationId);
         } else {
-            alert('Failed to send template: ' + (data.error || data.message));
+            alert('Failed to send template: ' + (data.error || data.message || 'Unknown error'));
         }
     })
     .catch(error => {
         console.error('Error sending template:', error);
-        alert('Error sending template');
+        alert('Failed to send template: ' + error.message);
     });
 }
 
@@ -968,9 +1006,10 @@ function deleteCurrentConversation() {
     fetch(`{{ route('chat.conversations.delete', '') }}/${currentConversationId}`, {
         method: 'DELETE',
         headers: {
-            'X-CSRF-TOKEN': csrfToken,
+            'X-CSRF-TOKEN': getCsrfToken(),
             'Accept': 'application/json'
-        }
+        },
+        credentials: 'same-origin'
     })
     .then(response => response.json())
     .then(data => {
@@ -1041,9 +1080,10 @@ function syncMessagesFromAPI(conversationId) {
     fetch(`{{ route('chat.conversations.sync-messages', '') }}/${conversationId}`, {
         method: 'POST',
         headers: {
-            'X-CSRF-TOKEN': csrfToken,
+            'X-CSRF-TOKEN': getCsrfToken(),
             'Accept': 'application/json'
-        }
+        },
+        credentials: 'same-origin'
     })
     .then(response => response.json())
     .then(data => {

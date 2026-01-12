@@ -40,17 +40,18 @@ class TaskController extends Controller
         if ($request->has('status') && $request->status) {
             $statuses = is_array($request->status) ? $request->status : explode(',', $request->status);
             if (in_array('overdue', $statuses)) {
-                // Overdue tasks: scheduled_at < now() and status is pending/in_progress
-                $query->where(function($q) use ($statuses) {
+                // Overdue tasks: scheduled_at more than 15 minutes ago and status is pending/in_progress
+                $fifteenMinutesAgo = now()->subMinutes(15);
+                $query->where(function($q) use ($statuses, $fifteenMinutesAgo) {
                     $statuses = array_diff($statuses, ['overdue']);
                     if (!empty($statuses)) {
                         $q->whereIn('status', $statuses)
-                          ->orWhere(function($oq) {
-                              $oq->where('scheduled_at', '<', now())
+                          ->orWhere(function($oq) use ($fifteenMinutesAgo) {
+                              $oq->where('scheduled_at', '<', $fifteenMinutesAgo)
                                  ->whereIn('status', ['pending', 'in_progress']);
                           });
                     } else {
-                        $q->where('scheduled_at', '<', now())
+                        $q->where('scheduled_at', '<', $fifteenMinutesAgo)
                           ->whereIn('status', ['pending', 'in_progress']);
                     }
                 });

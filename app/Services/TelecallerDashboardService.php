@@ -7,6 +7,7 @@ use App\Models\LeadAssignment;
 use App\Models\TelecallerTask;
 use App\Models\TelecallerDailyLimit;
 use App\Models\Target;
+use App\Models\Prospect;
 use App\Models\FollowUp;
 use App\Models\SiteVisit;
 use App\Models\ActivityLog;
@@ -26,11 +27,12 @@ class TelecallerDashboardService
     /**
      * Get complete dashboard data for telecaller
      */
-    public function getDashboardData(int $userId): array
+    public function getDashboardData(int $userId, string $dateRange = 'today', $startDate = null, $endDate = null): array
     {
+        [$startDate, $endDate] = $this->getDateRange($dateRange, $startDate, $endDate);
 
         return [
-            'today_stats' => $this->getTodayStats($userId),
+            'today_stats' => $this->getTodayStats($userId, $startDate, $endDate),
             'urgent_tasks' => $this->getUrgentTasks($userId),
             'today_schedule' => $this->getTodaySchedule($userId),
             'lead_breakdown' => $this->getLeadBreakdown($userId),
@@ -43,56 +45,103 @@ class TelecallerDashboardService
     }
 
     /**
-     * Get today's key performance indicators
+     * Get date range based on filter type
      */
-    public function getTodayStats(int $userId): array
+    private function getDateRange(string $dateRange, $startDate = null, $endDate = null): array
     {
         $today = Carbon::today();
-        $todayEnd = Carbon::today()->endOfDay();
 
-        // Get assigned leads count
-        $assignedLeadsQuery = Lead::whereHas('activeAssignments', function ($q) use ($userId) {
-            $q->where('assigned_to', $userId);
-        });
+        // If custom dates provided, use them
+        if ($startDate && $endDate) {
+            return [
+                Carbon::parse($startDate)->startOfDay(),
+                Carbon::parse($endDate)->endOfDay(),
+            ];
+        }
 
-        $totalAssigned = $assignedLeadsQuery->count();
+        // Calculate based on filter type
+        switch ($dateRange) {
+            case 'today':
+                return [
+                    $today->copy()->startOfDay(),
+                    $today->copy()->endOfDay(),
+                ];
+            case 'this_week':
+                return [
+                    $today->copy()->startOfWeek(),
+                    $today->copy()->endOfWeek(),
+                ];
+            case 'this_month':
+                return [
+                    $today->copy()->startOfMonth(),
+                    $today->copy()->endOfMonth(),
+                ];
+            default:
+                return [
+                    $today->copy()->startOfDay(),
+                    $today->copy()->endOfDay(),
+                ];
+        }
+    }
+
+    /**
+     * Get today's key performance indicators
+     */
+    public function getTodayStats(int $userId, $startDate = null, $endDate = null): array
+    {
+        $startDate = $startDate ?? Carbon::today()->startOfDay();
+        $endDate = $endDate ?? Carbon::today()->endOfDay();
+
+        // Ensure Carbon instances
+        if (!$startDate instanceof Carbon) {
+            $startDate = Carbon::parse($startDate)->startOfDay();
+        }
+        if (!$endDate instanceof Carbon) {
+            $endDate = Carbon::parse($endDate)->endOfDay();
+        }
+
+        // Get assigned leads count - filter by assigned_at date range
+        $totalAssigned = LeadAssignment::where('assigned_to', $userId)
+            ->where('is_active', true)
+            ->whereBetween('assigned_at', [$startDate, $endDate])
+            ->count();
 
         // Get daily limit
         $dailyLimit = TelecallerDailyLimit::where('user_id', $userId)->first();
         $dailyLimitCount = $dailyLimit ? $dailyLimit->assigned_count_today : 0;
         $dailyLimitMax = $dailyLimit ? $dailyLimit->overall_daily_limit : 0;
 
-        // Calls made today (completed tasks)
+        // Calls made in date range (completed tasks)
         $callsMadeToday = TelecallerTask::where('assigned_to', $userId)
             ->where('task_type', 'call')
             ->whereNotNull('completed_at')
-            ->whereDate('completed_at', $today)
+            ->whereBetween('completed_at', [$startDate, $endDate])
             ->count();
 
         // Connected calls (outcome = connected or interested)
         $connectedCalls = TelecallerTask::where('assigned_to', $userId)
             ->where('task_type', 'call')
             ->whereNotNull('completed_at')
-            ->whereDate('completed_at', $today)
+            ->whereBetween('completed_at', [$startDate, $endDate])
             ->whereIn('outcome', ['connected', 'interested', 'qualified'])
             ->count();
 
-        // Lead status updates today
+        // Lead status updates in date range
         $statusUpdates = ActivityLog::where('user_id', $userId)
             ->where('action', 'like', '%status%')
-            ->whereDate('created_at', $today)
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->count();
 
-        // Site visits scheduled today
+        // Site visits scheduled in date range
         $siteVisitsScheduled = SiteVisit::where('assigned_to', $userId)
             ->where('status', 'scheduled')
-            ->whereDate('scheduled_at', $today)
+            ->whereBetween('scheduled_at', [$startDate, $endDate])
             ->count();
 
-        // Follow-ups completed today
+        // Follow-ups completed in date range
         $followUpsCompleted = FollowUp::where('created_by', $userId)
             ->where('status', 'completed')
-            ->whereDate('completed_at', $today)
+            ->whereBetween('completed_at', [$startDate, $endDate])
             ->count();
 
         return [
@@ -357,11 +406,12 @@ class TelecallerDashboardService
             ];
         }
 
-        // Calculate achievements
+        // Calculate achievements - Use TelecallerTask with task_type='calling' and status='completed'
         $callsMade = TelecallerTask::where('assigned_to', $userId)
-            ->where('task_type', 'call')
-            ->whereNotNull('completed_at')
-            ->whereBetween('completed_at', [$currentMonth, $currentMonthEnd])
+            ->where('task_type', 'calling')
+            ->where('status', 'completed')
+            ->whereYear('completed_at', $currentMonth->year)
+            ->whereMonth('completed_at', $currentMonth->month)
             ->count();
 
         $siteVisitsCompleted = SiteVisit::where('assigned_to', $userId)
@@ -382,22 +432,44 @@ class TelecallerDashboardService
             ->whereBetween('completed_at', [$currentMonth, $currentMonthEnd])
             ->count();
 
+        // Get verified prospects count (only verified prospects count for telecaller)
+        $verifiedProspects = Prospect::where('telecaller_id', $userId)
+            ->where('verification_status', 'verified')
+            ->whereYear('verified_at', $currentMonth->year)
+            ->whereMonth('verified_at', $currentMonth->month)
+            ->count();
+        
+        // Get calls count using TelecallerTask with task_type='calling' and status='completed'
+        $callsMade = TelecallerTask::where('assigned_to', $userId)
+            ->where('task_type', 'calling')
+            ->where('status', 'completed')
+            ->whereYear('completed_at', $currentMonth->year)
+            ->whereMonth('completed_at', $currentMonth->month)
+            ->count();
+        
+        // Get targets
+        $targetCalls = $target->target_calls ?? 0;
+        $targetProspects = $target->target_prospects_verified ?? 0;
+        
         return [
             'has_target' => true,
             'targets' => [
-                'calls' => $target->target_meetings ?? 0,
+                'calls' => $targetCalls,
+                'prospects_verified' => $targetProspects,
                 'visits' => $target->target_visits ?? 0,
                 'closers' => $target->target_closers ?? 0,
                 'followups' => 0, // Not in target model, but tracking
             ],
             'achievements' => [
                 'calls' => $callsMade,
+                'prospects_verified' => $verifiedProspects,
                 'visits' => $siteVisitsCompleted,
                 'closers' => $closedWon,
                 'followups' => $followUpsDone,
             ],
             'percentages' => [
-                'calls' => $target->target_meetings > 0 ? round(($callsMade / $target->target_meetings) * 100, 1) : 0,
+                'calls' => $targetCalls > 0 ? round(($callsMade / $targetCalls) * 100, 1) : 0,
+                'prospects_verified' => $targetProspects > 0 ? round(($verifiedProspects / $targetProspects) * 100, 1) : 0,
                 'visits' => $target->target_visits > 0 ? round(($siteVisitsCompleted / $target->target_visits) * 100, 1) : 0,
                 'closers' => $target->target_closers > 0 ? round(($closedWon / $target->target_closers) * 100, 1) : 0,
                 'followups' => 0, // No target for this

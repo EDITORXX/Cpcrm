@@ -10,7 +10,7 @@ class TelecallerController extends Controller
     /**
      * Show telecaller dashboard
      */
-    public function dashboard(TelecallerDashboardService $service)
+    public function dashboard(Request $request, TelecallerDashboardService $service)
     {
         $userId = auth()->id();
         
@@ -18,8 +18,12 @@ class TelecallerController extends Controller
             return redirect()->route('login')->with('error', 'Please login to access the dashboard.');
         }
         
-        $data = $service->getDashboardData($userId);
-        return view('telecaller.sections.dashboard', compact('data'));
+        $dateRange = $request->get('date_range', 'today');
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
+        
+        $data = $service->getDashboardData($userId, $dateRange, $startDate, $endDate);
+        return view('telecaller.sections.dashboard', compact('data', 'dateRange', 'startDate', 'endDate'));
     }
 
     /**

@@ -42,7 +42,7 @@ class Prospect extends Model
     ];
 
     protected $casts = [
-        'budget' => 'decimal:2',
+        'budget' => 'string', // Changed to string to support descriptive budget ranges like "75 Lacs-1 Cr"
         'verified_at' => 'datetime',
     ];
 

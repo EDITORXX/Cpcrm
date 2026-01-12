@@ -239,6 +239,31 @@
     line-height: 1.4;
 }
 
+.chatbot-notification-action {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.chatbot-view-lead-btn {
+    width: 100%;
+    padding: 8px 12px;
+    background: linear-gradient(to right, #063A1C, #205A44);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.chatbot-view-lead-btn:hover {
+    background: linear-gradient(to right, #205A44, #15803d);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
 .chatbot-notification-icon {
     width: 20px;
     height: 20px;

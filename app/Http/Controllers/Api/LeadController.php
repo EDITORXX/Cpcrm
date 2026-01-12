@@ -25,12 +25,25 @@ class LeadController extends Controller
             });
         } elseif ($user->isSalesManager()) {
             $teamMemberIds = $user->teamMembers()->pluck('id');
+            $allUserIds = $teamMemberIds->merge([$user->id])->toArray();
             
-            // ONLY show leads that came from verified prospects of team members
-            // This ensures only verified prospect leads are shown, not all leads
-            $query->whereHas('prospects', function ($subQ) use ($teamMemberIds) {
-                $subQ->whereIn('telecaller_id', $teamMemberIds)
-                     ->whereIn('verification_status', ['verified', 'approved']);
+            // Show leads that are:
+            // 1. Directly assigned to this sales manager (active or inactive - to show all historical leads)
+            // 2. OR assigned to any team member (active or inactive - to show all historical leads)
+            // 3. OR came from verified prospects of team members
+            $query->where(function ($q) use ($user, $teamMemberIds, $allUserIds) {
+                // Leads assigned to manager or any team member (include both active and inactive assignments)
+                $q->whereHas('assignments', function ($assignmentQ) use ($allUserIds) {
+                    $assignmentQ->whereIn('assigned_to', $allUserIds);
+                });
+                
+                // OR leads from verified prospects of team members
+                if ($teamMemberIds->isNotEmpty()) {
+                    $q->orWhereHas('prospects', function ($subQ) use ($teamMemberIds) {
+                        $subQ->whereIn('telecaller_id', $teamMemberIds)
+                             ->whereIn('verification_status', ['verified', 'approved']);
+                    });
+                }
             });
         }
 
@@ -48,7 +61,9 @@ class LeadController extends Controller
             });
         }
 
-        $leads = $query->latest()->paginate($request->get('per_page', 15));
+        // Increase default per_page to show all leads (was 15, now 50)
+        $perPage = $request->get('per_page', 50);
+        $leads = $query->latest()->paginate($perPage);
 
         return response()->json($leads);
     }

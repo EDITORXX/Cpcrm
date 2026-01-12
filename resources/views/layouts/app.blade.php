@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>@yield('title', 'Base CRM')</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="api-token" content="{{ session('api_token') ?? (auth()->check() ? auth()->user()->createToken('web-token')->plainTextToken : '') }}">
@@ -415,6 +418,10 @@
                     <i class="fas fa-wpforms" style="margin-right: 10px; width: 20px;"></i>
                     Forms
                 </a>
+                <a href="{{ route('admin.lead-form-builder.index') }}" class="sidebar-link {{ request()->routeIs('admin.lead-form-builder.*') ? 'active' : '' }}">
+                    <i class="fas fa-list-alt" style="margin-right: 10px; width: 20px;"></i>
+                    Lead Form Builder
+                </a>
                 <a href="{{ route('admin.company-settings.index') }}" class="sidebar-link {{ request()->routeIs('admin.company-settings.*') ? 'active' : '' }}">
                     <i class="fas fa-cog" style="margin-right: 10px; width: 20px;"></i>
                     Company Settings
@@ -556,6 +563,11 @@
                         @hasSection('header-actions')
                             @yield('header-actions')
                         @endif
+                        <!-- Date/Time Clock -->
+                        <div id="datetimeClock" style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px 12px; font-family: 'Courier New', monospace; font-weight: 600; font-size: 14px; color: #063A1C; min-width: 160px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            <div id="clockTime" style="font-size: 16px; color: #205A44;">--:--:--</div>
+                            <div id="clockDate" style="font-size: 11px; color: #B3B5B4; margin-top: 2px;">-- -- ----</div>
+                        </div>
                         <span style="color: #B3B5B4; font-size: 14px;">{{ auth()->user()->name }}</span>
                         <form action="{{ route('logout') }}" method="POST" style="display: inline;">
                             @csrf
@@ -575,6 +587,33 @@
     @stack('scripts')
     <script src="{{ asset('js/branding-update.js') }}"></script>
     <script>
+        // Live Clock Functionality
+        function updateClock() {
+            const now = new Date();
+            const timeElement = document.getElementById('clockTime');
+            const dateElement = document.getElementById('clockDate');
+            
+            if (timeElement && dateElement) {
+                // Format time: HH:MM:SS
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                timeElement.textContent = `${hours}:${minutes}:${seconds}`;
+                
+                // Format date: DD MMM YYYY
+                const date = now.toLocaleDateString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                });
+                dateElement.textContent = date;
+            }
+        }
+        
+        // Update clock immediately and then every second
+        updateClock();
+        setInterval(updateClock, 1000);
+        
         // Sidebar Toggle Functionality - Make it globally accessible
         window.toggleSidebar = function() {
             const sidebar = document.getElementById('sidebar');

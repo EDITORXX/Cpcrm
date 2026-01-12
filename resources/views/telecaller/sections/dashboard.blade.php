@@ -9,9 +9,33 @@
 
 @section('content')
 <div class="dashboard-container">
+    <!-- Date Filter Section -->
+    <div class="dashboard-filters mb-6">
+        <div class="filter-buttons">
+            <button class="filter-btn {{ ($dateRange ?? 'today') === 'today' ? 'active' : '' }}" data-filter="today" onclick="applyDateFilter('today')">
+                Today
+            </button>
+            <button class="filter-btn {{ ($dateRange ?? 'today') === 'this_week' ? 'active' : '' }}" data-filter="this_week" onclick="applyDateFilter('this_week')">
+                This Week
+            </button>
+            <button class="filter-btn {{ ($dateRange ?? 'today') === 'this_month' ? 'active' : '' }}" data-filter="this_month" onclick="applyDateFilter('this_month')">
+                This Month
+            </button>
+            <button class="filter-btn {{ ($dateRange ?? 'today') === 'custom' ? 'active' : '' }}" data-filter="custom" id="custom-filter-btn" onclick="toggleCustomDateInputs()">
+                Custom Date
+            </button>
+        </div>
+        <div class="custom-date-inputs" id="custom-date-inputs" style="display: {{ ($dateRange ?? 'today') === 'custom' ? 'flex' : 'none' }}; align-items: center; gap: 10px; margin-top: 15px;">
+            <input type="date" id="start-date" name="start_date" value="{{ $startDate ?? '' }}" class="date-input">
+            <span>to</span>
+            <input type="date" id="end-date" name="end_date" value="{{ $endDate ?? '' }}" class="date-input">
+            <button onclick="applyCustomDate()" class="apply-btn">Apply</button>
+        </div>
+    </div>
+
     <!-- Hero Section - Today's KPIs -->
     <div class="kpi-section">
-        <h2 class="section-title">Today's Performance</h2>
+        <h2 class="section-title">Performance</h2>
         <div class="kpi-grid">
             <div class="kpi-card kpi-primary">
                 <div class="kpi-icon">
@@ -243,7 +267,7 @@
             <i class="fas fa-bullseye"></i>
             Target vs Achievement (This Month)
         </h2>
-        <div class="performance-grid">
+        <div class="performance-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
             <div class="performance-item">
                 <div class="performance-header">
                     <span class="performance-label">Calls Target</span>
@@ -258,27 +282,42 @@
             </div>
             <div class="performance-item">
                 <div class="performance-header">
-                    <span class="performance-label">Site Visits</span>
+                    <span class="performance-label">Verified Prospects</span>
                     <span class="performance-value">
-                        {{ $data['performance_metrics']['achievements']['visits'] ?? 0 }} / {{ $data['performance_metrics']['targets']['visits'] ?? 0 }}
+                        {{ $data['performance_metrics']['achievements']['prospects_verified'] ?? 0 }} / {{ $data['performance_metrics']['targets']['prospects_verified'] ?? 0 }}
                     </span>
                 </div>
                 <div class="progress-container">
-                    <div class="progress-bar-custom" style="width: {{ min($data['performance_metrics']['percentages']['visits'] ?? 0, 100) }}%"></div>
+                    <div class="progress-bar-custom" style="width: {{ min($data['performance_metrics']['percentages']['prospects_verified'] ?? 0, 100) }}%"></div>
                 </div>
-                <div class="performance-percentage">{{ $data['performance_metrics']['percentages']['visits'] ?? 0 }}%</div>
+                <div class="performance-percentage">{{ $data['performance_metrics']['percentages']['prospects_verified'] ?? 0 }}%</div>
             </div>
-            <div class="performance-item">
-                <div class="performance-header">
-                    <span class="performance-label">Conversions</span>
-                    <span class="performance-value">
-                        {{ $data['performance_metrics']['achievements']['closers'] ?? 0 }} / {{ $data['performance_metrics']['targets']['closers'] ?? 0 }}
-                    </span>
+        </div>
+        
+        <!-- Pie Charts Section -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 30px; margin-top: 30px;">
+            <!-- Calls Target vs Achievement Pie Chart -->
+            <div style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h3 style="font-size: 18px; font-weight: 600; color: #333; margin-bottom: 20px; text-align: center;">
+                    <i class="fas fa-phone"></i> Calls Target vs Achievement
+                </h3>
+                <canvas id="callsTargetChart" style="max-height: 300px;"></canvas>
+                <div style="margin-top: 15px; text-align: center; font-size: 14px; color: #666;">
+                    <strong>Achieved:</strong> {{ $data['performance_metrics']['achievements']['calls'] ?? 0 }} / 
+                    <strong>Target:</strong> {{ $data['performance_metrics']['targets']['calls'] ?? 0 }}
                 </div>
-                <div class="progress-container">
-                    <div class="progress-bar-custom" style="width: {{ min($data['performance_metrics']['percentages']['closers'] ?? 0, 100) }}%"></div>
+            </div>
+            
+            <!-- Prospects Target vs Achievement Pie Chart -->
+            <div style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h3 style="font-size: 18px; font-weight: 600; color: #333; margin-bottom: 20px; text-align: center;">
+                    <i class="fas fa-check-circle"></i> Verified Prospects Target vs Achievement
+                </h3>
+                <canvas id="prospectsTargetChart" style="max-height: 300px;"></canvas>
+                <div style="margin-top: 15px; text-align: center; font-size: 14px; color: #666;">
+                    <strong>Achieved:</strong> {{ $data['performance_metrics']['achievements']['prospects_verified'] ?? 0 }} / 
+                    <strong>Target:</strong> {{ $data['performance_metrics']['targets']['prospects_verified'] ?? 0 }}
                 </div>
-                <div class="performance-percentage">{{ $data['performance_metrics']['percentages']['closers'] ?? 0 }}%</div>
             </div>
         </div>
     </div>
@@ -587,6 +626,165 @@
         });
     });
     @endif
+    
+    // Date Filter Functions
+    function applyDateFilter(filter) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('date_range', filter);
+        url.searchParams.delete('start_date');
+        url.searchParams.delete('end_date');
+        window.location.href = url.toString();
+    }
+
+    function toggleCustomDateInputs() {
+        const customInputs = document.getElementById('custom-date-inputs');
+        const customBtn = document.getElementById('custom-filter-btn');
+        
+        if (customInputs.style.display === 'none' || !customInputs.style.display) {
+            customInputs.style.display = 'flex';
+            customBtn.classList.add('active');
+            // Update active state for buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                if (btn !== customBtn) {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+    }
+
+    function applyCustomDate() {
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+
+        if (!startDate || !endDate) {
+            alert('Please select both start and end dates');
+            return;
+        }
+
+        if (new Date(startDate) > new Date(endDate)) {
+            alert('Start date cannot be after end date');
+            return;
+        }
+
+        const url = new URL(window.location.href);
+        url.searchParams.set('date_range', 'custom');
+        url.searchParams.set('start_date', startDate);
+        url.searchParams.set('end_date', endDate);
+        window.location.href = url.toString();
+    }
+
+    // Initialize Target vs Achievement Pie Charts
+    document.addEventListener('DOMContentLoaded', function() {
+        @if(isset($data['performance_metrics']) && $data['performance_metrics']['has_target'])
+        const performanceData = @json($data['performance_metrics']);
+        
+        // Calls Target vs Achievement Pie Chart
+        const callsCtx = document.getElementById('callsTargetChart');
+        if (callsCtx) {
+            const callsTarget = performanceData.targets?.calls ?? 0;
+            const callsAchieved = performanceData.achievements?.calls ?? 0;
+            const callsRemaining = Math.max(0, callsTarget - callsAchieved);
+            
+            new Chart(callsCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Achieved', 'Remaining'],
+                    datasets: [{
+                        data: [callsAchieved, callsRemaining],
+                        backgroundColor: [
+                            'rgba(32, 90, 68, 0.8)', // Green for achieved
+                            'rgba(220, 220, 220, 0.8)' // Gray for remaining
+                        ],
+                        borderColor: [
+                            'rgba(32, 90, 68, 1)',
+                            'rgba(220, 220, 220, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = callsTarget || 1;
+                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    return label + ': ' + value + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Prospects Target vs Achievement Pie Chart
+        const prospectsCtx = document.getElementById('prospectsTargetChart');
+        if (prospectsCtx) {
+            const prospectsTarget = performanceData.targets?.prospects_verified ?? 0;
+            const prospectsAchieved = performanceData.achievements?.prospects_verified ?? 0;
+            const prospectsRemaining = Math.max(0, prospectsTarget - prospectsAchieved);
+            
+            new Chart(prospectsCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Achieved (Verified)', 'Remaining'],
+                    datasets: [{
+                        data: [prospectsAchieved, prospectsRemaining],
+                        backgroundColor: [
+                            'rgba(21, 128, 61, 0.8)', // Darker green for verified prospects
+                            'rgba(220, 220, 220, 0.8)' // Gray for remaining
+                        ],
+                        borderColor: [
+                            'rgba(21, 128, 61, 1)',
+                            'rgba(220, 220, 220, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = prospectsTarget || 1;
+                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    return label + ': ' + value + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        @endif
+    });
 </script>
 @endpush
 

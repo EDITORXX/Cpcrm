@@ -13,6 +13,7 @@ use App\Models\ActivityLog;
 use App\Models\Lead;
 use App\Models\TelecallerTask;
 use App\Models\Prospect;
+use App\Models\LeadFormField;
 use App\Models\AppNotification;
 use App\Services\TelecallerTaskService;
 use Illuminate\Http\Request;
@@ -213,10 +214,14 @@ class TelecallerController extends Controller
         try {
             $telecallerId = $request->user()->id;
             $status = $request->input('status', 'pending'); // pending, approved, rejected, all
+            $dateRange = $request->input('date_range', 'today');
+            $startDate = $request->input('start_date');
+            $endDate = $request->input('end_date');
+            
+            [$startDate, $endDate] = $this->getDateRange($dateRange, $startDate, $endDate);
             
             $query = Prospect::where('telecaller_id', $telecallerId)
-                ->with(['lead', 'manager', 'verifiedBy', 'telecaller'])
-                ->latest('created_at');
+                ->with(['lead', 'manager', 'verifiedBy', 'telecaller']);
 
             // Filter by verification status
             if ($status && $status !== 'all') {
@@ -235,6 +240,26 @@ class TelecallerController extends Controller
                     $query->where('verification_status', $dbStatus);
                 }
             }
+
+            // Filter by date range
+            if ($startDate && $endDate) {
+                if ($status === 'pending') {
+                    // Filter by created_at for pending prospects
+                    $query->whereBetween('created_at', [$startDate, $endDate]);
+                } elseif (in_array($status, ['approved', 'rejected', 'verified'])) {
+                    // Filter by verified_at for approved/rejected prospects
+                    $query->whereBetween('verified_at', [$startDate, $endDate])
+                          ->whereNotNull('verified_at');
+                } elseif ($status === 'all') {
+                    // Filter by either created_at or verified_at for all status
+                    $query->where(function($q) use ($startDate, $endDate) {
+                        $q->whereBetween('created_at', [$startDate, $endDate])
+                          ->orWhereBetween('verified_at', [$startDate, $endDate]);
+                    });
+                }
+            }
+
+            $query->latest('created_at');
 
             $perPage = $request->get('per_page', 20);
             $prospects = $query->paginate($perPage);
@@ -280,6 +305,46 @@ class TelecallerController extends Controller
                 'message' => 'Failed to load prospects: ' . $e->getMessage(),
                 'data' => [],
             ], 500);
+        }
+    }
+
+    /**
+     * Get date range based on filter type
+     */
+    private function getDateRange(string $dateRange, $startDate = null, $endDate = null): array
+    {
+        $today = Carbon::today();
+
+        // If custom dates provided, use them
+        if ($startDate && $endDate) {
+            return [
+                Carbon::parse($startDate)->startOfDay(),
+                Carbon::parse($endDate)->endOfDay(),
+            ];
+        }
+
+        // Calculate based on filter type
+        switch ($dateRange) {
+            case 'today':
+                return [
+                    $today->copy()->startOfDay(),
+                    $today->copy()->endOfDay(),
+                ];
+            case 'this_week':
+                return [
+                    $today->copy()->startOfWeek(),
+                    $today->copy()->endOfWeek(),
+                ];
+            case 'this_month':
+                return [
+                    $today->copy()->startOfMonth(),
+                    $today->copy()->endOfMonth(),
+                ];
+            default:
+                return [
+                    $today->copy()->startOfDay(),
+                    $today->copy()->endOfDay(),
+                ];
         }
     }
 
@@ -484,6 +549,12 @@ class TelecallerController extends Controller
             $status = $request->input('status', 'pending'); // pending, completed, rescheduled, all
             $taskType = $request->input('task_type', ''); // calling, follow_up, cnp_retry
 
+            \Log::info('Telecaller getTasks - Starting', [
+                'telecaller_id' => $telecallerId,
+                'status_filter' => $status,
+                'task_type_filter' => $taskType,
+            ]);
+
             $query = TelecallerTask::where('assigned_to', $telecallerId)
                 ->with(['lead' => function($q) {
                     $q->with(['activeAssignments' => function($q2) {
@@ -491,7 +562,14 @@ class TelecallerController extends Controller
                             $q3->with('manager');
                         }]);
                     }]);
-                }, 'assignedTo']);
+                }, 'assignedTo', 'createdBy']);
+                
+            // Debug: Log total tasks before filters
+            $totalTasksBeforeFilter = (clone $query)->count();
+            \Log::info('Telecaller getTasks - Total tasks before filters', [
+                'telecaller_id' => $telecallerId,
+                'total_tasks' => $totalTasksBeforeFilter,
+            ]);
 
             // Filter by status
             if ($status && $status !== 'all') {
@@ -508,6 +586,13 @@ class TelecallerController extends Controller
             $tasks = $query->orderByRaw('CASE WHEN scheduled_at < NOW() THEN 0 ELSE 1 END')
                 ->orderBy('scheduled_at', 'asc')
                 ->paginate($perPage);
+                
+            \Log::info('Telecaller getTasks - Tasks found', [
+                'telecaller_id' => $telecallerId,
+                'tasks_count' => $tasks->count(),
+                'total' => $tasks->total(),
+                'status_filter' => $status,
+            ]);
 
             $formattedTasks = $tasks->map(function($task) {
                 $lead = $task->lead;
@@ -584,30 +669,42 @@ class TelecallerController extends Controller
     /**
      * Initiate call from task
      */
-    public function initiateCall(Request $request, Task $task)
+    public function initiateCall(Request $request, $task)
     {
+        // Resolve TelecallerTask manually since route uses {task} parameter
+        $telecallerTask = TelecallerTask::find($task);
+        
+        if (!$telecallerTask) {
+            return response()->json([
+                'error' => 'Task not found',
+                'message' => 'Resource not found.',
+            ], 404);
+        }
+        
         // Verify task belongs to user
-        if ($task->assigned_to !== $request->user()->id) {
+        if ($telecallerTask->assigned_to !== $request->user()->id) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        if ($task->status !== 'pending') {
+        if ($telecallerTask->status !== 'pending') {
             return response()->json([
                 'error' => 'Task is not in pending status',
             ], 400);
         }
 
-        $task->markAsInProgress();
+        $telecallerTask->update([
+            'status' => 'in_progress',
+        ]);
 
         // Get CrmAssignment if exists
-        $assignment = CrmAssignment::where('lead_id', $task->lead_id)
-            ->where('assigned_to', $task->assigned_to)
+        $assignment = CrmAssignment::where('lead_id', $telecallerTask->lead_id)
+            ->where('assigned_to', $telecallerTask->assigned_to)
             ->first();
 
         return response()->json([
             'success' => true,
             'message' => 'Call initiated',
-            'task' => $task->fresh(['lead']),
+            'task' => $telecallerTask->fresh(['lead']),
             'assignment_id' => $assignment ? $assignment->id : null,
         ]);
     }
@@ -615,16 +712,29 @@ class TelecallerController extends Controller
     /**
      * Handle call outcome from task
      */
-    public function callOutcome(Request $request, Task $task)
+    public function callOutcome(Request $request, $task)
     {
+        // Resolve TelecallerTask manually since route uses {task} parameter
+        $telecallerTask = TelecallerTask::find($task);
+        
+        if (!$telecallerTask) {
+            return response()->json([
+                'error' => 'Task not found',
+                'message' => 'Resource not found.',
+            ], 404);
+        }
+        
         // Verify task belongs to user
-        if ($task->assigned_to !== $request->user()->id) {
+        if ($telecallerTask->assigned_to !== $request->user()->id) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        if ($task->status !== 'in_progress') {
+        // Allow both 'pending' and 'in_progress' status for call outcomes
+        // If task is pending, auto-update to in_progress when marking outcome
+        if (!in_array($telecallerTask->status, ['pending', 'in_progress'])) {
             return response()->json([
-                'error' => 'Task must be in progress',
+                'error' => 'Task must be pending or in progress',
+                'current_status' => $telecallerTask->status,
             ], 400);
         }
 
@@ -634,9 +744,14 @@ class TelecallerController extends Controller
 
         $telecallerId = $request->user()->id;
         $outcome = $request->input('outcome');
+        
+        // If task is pending, mark it as in_progress first (since telecaller is now working on it)
+        if ($telecallerTask->status === 'pending') {
+            $telecallerTask->update(['status' => 'in_progress']);
+        }
 
         // Get CrmAssignment
-        $assignment = CrmAssignment::where('lead_id', $task->lead_id)
+        $assignment = CrmAssignment::where('lead_id', $telecallerTask->lead_id)
             ->where('assigned_to', $telecallerId)
             ->first();
 
@@ -650,14 +765,39 @@ class TelecallerController extends Controller
         try {
             switch ($outcome) {
                 case 'interested':
-                    // Return success with flag to show form
+                    // Don't complete the task yet - it will be completed when form is submitted
+                    // Just mark as in_progress if it's pending, so user can fill the form
+                    if ($telecallerTask->status === 'pending') {
+                        $telecallerTask->update([
+                            'status' => 'in_progress',
+                            'outcome' => 'interested',
+                            'notes' => $request->notes ?? 'Marked as interested - filling form',
+                        ]);
+                    } else {
+                        $telecallerTask->update([
+                            'outcome' => 'interested',
+                            'notes' => $request->notes ?? 'Marked as interested - filling form',
+                        ]);
+                    }
+                    
+                    // Update lead status to connected
+                    $lead = Lead::find($telecallerTask->lead_id);
+                    if ($lead) {
+                        $lead->updateStatusIfAllowed('connected');
+                    }
+                    
+                    DB::commit();
+                    
+                    // Return success with lead_id for modal (no redirect)
+                    // Task will be completed when form is submitted in submitLeadFormForVerification
                     return response()->json([
                         'success' => true,
                         'outcome' => 'interested',
-                        'message' => 'Please fill the interested lead form',
-                        'task_id' => $task->id,
-                        'assignment_id' => $assignment->id,
-                        'lead_data' => $this->telecallerService->getLeadDataForTask($task),
+                        'message' => 'Lead marked as interested. Please fill the centralized form.',
+                        'lead_id' => $telecallerTask->lead_id,
+                        'lead_name' => $lead->name ?? '',
+                        'lead_phone' => $lead->phone ?? '',
+                        'task_id' => $telecallerTask->id,
                     ]);
 
                 case 'not_interested':
@@ -666,11 +806,16 @@ class TelecallerController extends Controller
                     ]);
                     $this->telecallerService->markNotInterested($assignment->id, $telecallerId, $request->input('remark'));
                     // Update lead status to connected
-                    $lead = Lead::find($task->lead_id);
+                    $lead = Lead::find($telecallerTask->lead_id);
                     if ($lead) {
                         $lead->updateStatusIfAllowed('connected');
                     }
-                    $task->markAsCompleted();
+                    $telecallerTask->update([
+                        'status' => 'completed',
+                        'completed_at' => now(),
+                        'outcome' => 'not_interested',
+                        'notes' => $request->input('remark'),
+                    ]);
                     break;
 
                 case 'cnp':
@@ -680,9 +825,17 @@ class TelecallerController extends Controller
                     $this->telecallerService->markCnp($assignment->id, $telecallerId, $request->input('remark'));
                     // Don't complete task if CNP count < 2, task should remain pending for next call
                     if ($assignment->fresh()->cnp_count >= 2) {
-                        $task->markAsCompleted();
+                        $telecallerTask->update([
+                            'status' => 'completed',
+                            'completed_at' => now(),
+                            'outcome' => 'cnp',
+                            'notes' => $request->input('remark'),
+                        ]);
                     } else {
-                        $task->update(['status' => 'pending']); // Reset to pending for next call
+                        $telecallerTask->update([
+                            'status' => 'pending',
+                            'notes' => $request->input('remark'),
+                        ]); // Reset to pending for next call
                     }
                     break;
 
@@ -700,11 +853,16 @@ class TelecallerController extends Controller
                         $request->input('follow_up_notes')
                     );
                     // Update lead status to connected
-                    $lead = Lead::find($task->lead_id);
+                    $lead = Lead::find($telecallerTask->lead_id);
                     if ($lead) {
                         $lead->updateStatusIfAllowed('connected');
                     }
-                    $task->markAsCompleted();
+                    $telecallerTask->update([
+                        'status' => 'completed',
+                        'completed_at' => now(),
+                        'outcome' => 'call_later',
+                        'notes' => $request->input('follow_up_notes'),
+                    ]);
                     break;
 
                 case 'broker':
@@ -713,11 +871,16 @@ class TelecallerController extends Controller
                     ]);
                     $this->telecallerService->markAsBroker($assignment->id, $telecallerId, $request->input('remark'));
                     // Update lead status to connected
-                    $lead = Lead::find($task->lead_id);
+                    $lead = Lead::find($telecallerTask->lead_id);
                     if ($lead) {
                         $lead->updateStatusIfAllowed('connected');
                     }
-                    $task->markAsCompleted();
+                    $telecallerTask->update([
+                        'status' => 'completed',
+                        'completed_at' => now(),
+                        'outcome' => 'broker',
+                        'notes' => $request->input('remark'),
+                    ]);
                     break;
             }
 
@@ -726,7 +889,7 @@ class TelecallerController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Call outcome processed successfully',
-                'task' => $task->fresh(),
+                'task' => $telecallerTask->fresh(),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -1051,12 +1214,17 @@ class TelecallerController extends Controller
             $request->validate([
                 'outcome' => 'required|in:interested,not_interested,cnp,call_again,block',
                 'scheduled_at' => 'nullable|date',
+                'retry_at' => 'nullable|date|after:now',
+                'retry_minutes' => 'nullable|integer|min:1|max:10080', // Max 1 week (10080 minutes)
                 'notes' => 'nullable|string',
+            ], [
+                'retry_at.after' => 'Retry time must be in the future',
+                'retry_minutes.max' => 'Retry time cannot be more than 1 week in the future',
             ]);
 
             $task = TelecallerTask::where('id', $taskId)
                 ->where('assigned_to', $telecallerId)
-                ->with('lead')
+                ->with(['lead', 'assignedTo'])
                 ->firstOrFail();
 
             $outcome = $request->outcome;
@@ -1079,9 +1247,39 @@ class TelecallerController extends Controller
                     $lead->increment('cnp_count');
                     $cnpCount = $lead->fresh()->cnp_count;
                     
-                    // If CNP count is less than 2, create a retry task
+                    // If CNP count is less than 2, create a retry task at selected time
                     if ($cnpCount < 2) {
-                        $this->taskService->createCnpRetryTask($lead, $task->assignedTo, $telecallerId);
+                        // Calculate scheduled time based on selection
+                        $retryScheduledAt = null;
+                        
+                        if ($request->has('retry_at') && $request->retry_at) {
+                            // Custom datetime provided
+                            $retryScheduledAt = \Carbon\Carbon::parse($request->retry_at);
+                        } elseif ($request->has('retry_minutes') && $request->retry_minutes) {
+                            // Quick option (minutes) provided
+                            $retryScheduledAt = now()->addMinutes($request->retry_minutes);
+                        } else {
+                            // Default: tomorrow (backward compatibility)
+                            $retryScheduledAt = now()->addDay();
+                        }
+                        
+                        // Get telecaller user (ensure relationship is loaded)
+                        $telecallerUser = $task->assignedTo;
+                        if (!$telecallerUser) {
+                            $telecallerUser = User::find($telecallerId);
+                        }
+                        
+                        // Ensure scheduled time is in future
+                        if ($retryScheduledAt && $retryScheduledAt->isFuture()) {
+                            if ($telecallerUser) {
+                                $this->taskService->createCnpRetryTask($lead, $telecallerUser, $retryScheduledAt, $telecallerId);
+                            }
+                        } else {
+                            // Fallback to default (tomorrow) if invalid time
+                            if ($telecallerUser) {
+                                $this->taskService->createCnpRetryTask($lead, $telecallerUser, now()->addDay(), $telecallerId);
+                            }
+                        }
                     }
                     // If CNP count reaches 2, task is completed automatically (no new task created)
                     
@@ -1142,16 +1340,48 @@ class TelecallerController extends Controller
                     break;
 
                 case 'interested':
+                    // Update task status
                     $task->update([
                         'status' => 'completed',
                         'outcome' => 'interested',
                         'completed_at' => now(),
                         'notes' => $request->notes,
                     ]);
+                    
+                    // Update lead status to connected
+                    $lead->updateStatusIfAllowed('connected');
+                    
+                    // Create a new task for filling the centralized form
+                    try {
+                        $newTask = $this->taskService->createCallingTask(
+                            $lead,
+                            $task->assignedTo,
+                            $telecallerId
+                        );
+                        
+                        // Mark this task with a special note for form filling
+                        $newTask->update([
+                            'notes' => 'Fill centralized lead requirement form',
+                            'task_type' => 'calling',
+                        ]);
+                    } catch (\Exception $e) {
+                        \Log::warning("Failed to create form task for interested lead: " . $e->getMessage());
+                    }
                     break;
             }
 
             DB::commit();
+
+            // If interested, redirect to centralized form
+            if ($outcome === 'interested') {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Lead marked as interested. Please fill the centralized form.',
+                    'redirect' => route('leads.edit', $lead->id),
+                    'lead_id' => $lead->id,
+                    'task' => $task->fresh(),
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
@@ -1207,6 +1437,43 @@ class TelecallerController extends Controller
                     'success' => false,
                     'message' => 'Manager not found for this lead.',
                 ], 400);
+            }
+
+            // Check if a prospect already exists for this lead
+            $existingProspect = Prospect::where('lead_id', $lead->id)
+                ->whereIn('verification_status', ['pending_verification', 'verified', 'rejected'])
+                ->latest()
+                ->first();
+            
+            if ($existingProspect) {
+                \Log::warning('Duplicate prospect creation attempted in createProspectFromTask', [
+                    'telecaller_id' => $telecallerId,
+                    'lead_id' => $lead->id,
+                    'existing_prospect_id' => $existingProspect->id,
+                    'existing_prospect_status' => $existingProspect->verification_status,
+                ]);
+                
+                $statusMessage = '';
+                if ($existingProspect->verification_status === 'pending_verification') {
+                    $statusMessage = 'This prospect is already pending verification';
+                } elseif ($existingProspect->verification_status === 'verified') {
+                    $statusMessage = 'This prospect has already been verified';
+                } elseif ($existingProspect->verification_status === 'rejected') {
+                    $statusMessage = 'This prospect was previously rejected';
+                }
+                
+                return response()->json([
+                    'success' => false,
+                    'error' => 'duplicate',
+                    'message' => 'A prospect already exists for this lead. ' . $statusMessage,
+                    'existing_prospect' => [
+                        'id' => $existingProspect->id,
+                        'customer_name' => $existingProspect->customer_name,
+                        'phone' => $existingProspect->phone,
+                        'verification_status' => $existingProspect->verification_status,
+                        'created_at' => $existingProspect->created_at ? $existingProspect->created_at->format('Y-m-d H:i:s') : null,
+                    ],
+                ], 409); // 409 Conflict status code
             }
 
             $prospect = Prospect::create([
@@ -1442,6 +1709,397 @@ class TelecallerController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to load statistics: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get lead form data for modal when telecaller marks interested
+     */
+    public function getLeadFormForModal(Request $request, $task)
+    {
+        try {
+            $telecallerId = $request->user()->id;
+            \Log::info('getLeadFormForModal called', ['task_id' => $task, 'telecaller_id' => $telecallerId]);
+            
+            // Resolve TelecallerTask manually since route uses {task} parameter
+            $telecallerTask = TelecallerTask::find($task);
+            
+            if (!$telecallerTask) {
+                \Log::warning('TelecallerTask not found', ['task_id' => $task]);
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Task not found',
+                    'message' => 'Resource not found.',
+                ], 404);
+            }
+            
+            // Verify task belongs to user
+            if ($telecallerTask->assigned_to !== $telecallerId) {
+                \Log::warning('Unauthorized access to task', ['task_id' => $task, 'task_assigned_to' => $telecallerTask->assigned_to, 'user_id' => $telecallerId]);
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Unauthorized access to this task',
+                ], 403);
+            }
+            
+            $lead = $telecallerTask->lead;
+            if (!$lead) {
+                \Log::warning('Lead not found for task', ['task_id' => $task, 'lead_id' => $telecallerTask->lead_id]);
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Lead not found for this task',
+                ], 404);
+            }
+            
+            // Load form field values
+            $lead->load('formFieldValues');
+            
+            // Get existing field values
+            $existingValues = $lead->getFormFieldsArray();
+            
+            // Get visible fields for telecaller role (with full config)
+            $visibleFields = LeadFormField::active()
+                ->visibleToRole('telecaller')
+                ->orderBy('display_order')
+                ->get()
+                ->map(function($field) {
+                    return [
+                        'key' => $field->field_key,
+                        'label' => $field->field_label,
+                        'type' => $field->field_type,
+                        'required' => $field->is_required,
+                        'options' => $field->options ?? [],
+                        'dependent_field' => $field->dependent_field,
+                        'dependent_conditions' => $field->dependent_conditions,
+                        'placeholder' => $field->placeholder,
+                        'help_text' => $field->help_text,
+                        'display_order' => $field->display_order,
+                    ];
+                });
+            
+            \Log::info('Lead form data retrieved successfully', [
+                'lead_id' => $lead->id,
+                'fields_count' => $visibleFields->count(),
+                'form_values_count' => count($existingValues)
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'lead_id' => $lead->id,
+                'lead_name' => $lead->name,
+                'lead_phone' => $lead->phone,
+                'lead_email' => $lead->email,
+                'task_id' => $telecallerTask->id,
+                'form_values' => $existingValues,
+                'form_fields' => $visibleFields,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Get Lead Form Error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'task_id' => $task ?? null,
+                'telecaller_id' => $request->user()->id ?? null
+            ]);
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to load lead form: ' . $e->getMessage(),
+                'message' => 'An error occurred while loading the form. Please try again.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Submit lead form for verification (create prospect and send to manager)
+     */
+    public function submitLeadFormForVerification(Request $request, $taskId)
+    {
+        try {
+            $telecallerId = $request->user()->id;
+            
+            // Resolve TelecallerTask
+            $telecallerTask = TelecallerTask::find($taskId);
+            
+            if (!$telecallerTask) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Task not found',
+                    'message' => 'Resource not found.',
+                ], 404);
+            }
+            
+            // Verify task belongs to user
+            if ($telecallerTask->assigned_to !== $telecallerId) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+            
+            $lead = $telecallerTask->lead;
+            if (!$lead) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Lead not found',
+                ], 404);
+            }
+            
+            // Validate basic fields (name and phone - always required)
+            $validationRules = [
+                'name' => 'required|string|max:255',
+                'phone' => 'required|string|max:20',
+            ];
+            
+            // Get visible fields for telecaller role
+            $visibleFields = LeadFormField::active()
+                ->visibleToRole('telecaller')
+                ->orderBy('display_order')
+                ->get();
+            
+            // Add dynamic field validation
+            foreach ($visibleFields as $field) {
+                if ($field->is_required) {
+                    $rule = ['required'];
+                } else {
+                    $rule = ['nullable'];
+                }
+                
+                // Add field type validation
+                switch ($field->field_type) {
+                    case 'email':
+                        $rule[] = 'email';
+                        break;
+                    case 'number':
+                        $rule[] = 'numeric';
+                        break;
+                    case 'date':
+                        $rule[] = 'date';
+                        break;
+                    case 'time':
+                        $rule[] = 'date_format:H:i';
+                        break;
+                }
+                
+                $validationRules[$field->field_key] = $rule;
+            }
+            
+            // Special validation for conditional fields (follow-up date/time)
+            if ($request->has('final_status') && $request->final_status === 'Follow Up') {
+                // Note: final_status is sales_executive field, so won't be in telecaller fields
+                // But handle it if it comes through
+                if ($request->has('follow_up_date')) {
+                    $validationRules['follow_up_date'] = ['required', 'date'];
+                    $validationRules['follow_up_time'] = ['required', 'date_format:H:i'];
+                }
+            }
+            
+            $validated = $request->validate($validationRules);
+            
+            DB::beginTransaction();
+            
+            try {
+                // Update basic lead fields (name and phone)
+                $lead->name = $validated['name'];
+                $lead->phone = $validated['phone'];
+                $lead->save();
+                
+                // Save dynamic form field values
+                foreach ($visibleFields as $field) {
+                    if ($request->has($field->field_key)) {
+                        $value = $request->input($field->field_key);
+                        // Only save if value is not empty or if it's a required field
+                        if (!empty($value) || $field->is_required) {
+                            $lead->setFormFieldValue($field->field_key, $value ?? '', $telecallerId);
+                        }
+                    }
+                }
+                
+                // Mark form as filled by telecaller
+                $lead->form_filled_by_telecaller = true;
+                $lead->save();
+                
+                // Get manager for prospect assignment
+                // Priority: assignment's assigned user's manager > telecaller's manager
+                $assignment = $lead->activeAssignments->first();
+                $telecaller = $request->user();
+                
+                // Load manager relationship if not loaded
+                if (!$telecaller->relationLoaded('manager')) {
+                    $telecaller->load('manager');
+                }
+                
+                $manager = null;
+                if ($assignment && $assignment->assignedTo) {
+                    $assignedUser = $assignment->assignedTo;
+                    if (!$assignedUser->relationLoaded('manager')) {
+                        $assignedUser->load('manager');
+                    }
+                    $manager = $assignedUser->manager;
+                }
+                
+                // Fallback to telecaller's manager
+                if (!$manager) {
+                    $manager = $telecaller->manager;
+                }
+                
+                if (!$manager) {
+                    \Log::error('Manager not found for prospect creation', [
+                        'telecaller_id' => $telecallerId,
+                        'lead_id' => $lead->id,
+                        'assignment_id' => $assignment?->id,
+                    ]);
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Manager not found for this lead. Please ensure the telecaller has a manager assigned.',
+                    ], 400);
+                }
+                
+                \Log::info('Prospect creation - Manager assigned', [
+                    'telecaller_id' => $telecallerId,
+                    'manager_id' => $manager->id,
+                    'manager_name' => $manager->name,
+                    'lead_id' => $lead->id,
+                ]);
+                
+                // Check if a prospect already exists for this lead
+                $existingProspect = Prospect::where('lead_id', $lead->id)
+                    ->whereIn('verification_status', ['pending_verification', 'verified', 'rejected'])
+                    ->latest()
+                    ->first();
+                
+                if ($existingProspect) {
+                    DB::rollBack();
+                    \Log::warning('Duplicate prospect creation attempted', [
+                        'telecaller_id' => $telecallerId,
+                        'lead_id' => $lead->id,
+                        'existing_prospect_id' => $existingProspect->id,
+                        'existing_prospect_status' => $existingProspect->verification_status,
+                    ]);
+                    
+                    $statusMessage = '';
+                    if ($existingProspect->verification_status === 'pending_verification') {
+                        $statusMessage = 'This prospect is already pending verification';
+                    } elseif ($existingProspect->verification_status === 'verified') {
+                        $statusMessage = 'This prospect has already been verified';
+                    } elseif ($existingProspect->verification_status === 'rejected') {
+                        $statusMessage = 'This prospect was previously rejected';
+                    }
+                    
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'duplicate',
+                        'message' => 'A prospect already exists for this lead. ' . $statusMessage,
+                        'existing_prospect' => [
+                            'id' => $existingProspect->id,
+                            'customer_name' => $existingProspect->customer_name,
+                            'phone' => $existingProspect->phone,
+                            'verification_status' => $existingProspect->verification_status,
+                            'created_at' => $existingProspect->created_at ? $existingProspect->created_at->format('Y-m-d H:i:s') : null,
+                        ],
+                    ], 409); // 409 Conflict status code
+                }
+                
+                // Map form field values to prospect fields
+                $category = $request->input('category');
+                $preferredLocation = $request->input('preferred_location');
+                $type = $request->input('type');
+                $purposeRaw = $request->input('purpose');
+                $possession = $request->input('possession');
+                $budget = $request->input('budget');
+                
+                // Map purpose form values to prospect format
+                // Form: 'End Use', 'Short Term Investment', 'Long Term Investment', 'Rental Income', 'Investment + End Use', 'N.A'
+                // Prospect: stores as string (no strict enum, but prefer 'end_user' or 'investment' format for consistency)
+                $purpose = $purposeRaw;
+                if ($purposeRaw === 'End Use') {
+                    $purpose = 'end_user';
+                } elseif (in_array($purposeRaw, ['Short Term Investment', 'Long Term Investment', 'Rental Income', 'Investment + End Use'])) {
+                    $purpose = 'investment';
+                } elseif ($purposeRaw === 'N.A' || empty($purposeRaw)) {
+                    $purpose = null;
+                }
+                
+                // Create prospect with mapped values
+                $prospect = Prospect::create([
+                    'lead_id' => $lead->id,
+                    'telecaller_id' => $telecallerId,
+                    'manager_id' => $manager->id,
+                    'assigned_manager' => $manager->id,
+                    'customer_name' => $validated['name'],
+                    'phone' => $validated['phone'],
+                    'budget' => $budget,
+                    'preferred_location' => $preferredLocation,
+                    'purpose' => $purpose,
+                    'possession' => $possession,
+                    'remark' => $request->input('remark') ?? 'Sent for verification via centralized form',
+                    'verification_status' => 'pending_verification',
+                    'created_by' => $telecallerId,
+                ]);
+                
+                \Log::info('Prospect created successfully', [
+                    'prospect_id' => $prospect->id,
+                    'telecaller_id' => $telecallerId,
+                    'manager_id' => $manager->id,
+                    'assigned_manager' => $manager->id,
+                    'verification_status' => $prospect->verification_status,
+                    'lead_id' => $lead->id,
+                ]);
+                
+                // Complete the TelecallerTask - this will remove it from pending/in_progress lists
+                $telecallerTask->update([
+                    'status' => 'completed',
+                    'completed_at' => now(),
+                    'outcome' => 'interested',
+                    'notes' => 'Sent for verification via centralized form',
+                ]);
+                
+                \Log::info('TelecallerTask completed after form submission', [
+                    'task_id' => $telecallerTask->id,
+                    'lead_id' => $lead->id,
+                    'telecaller_id' => $telecallerId,
+                    'prospect_id' => $prospect->id,
+                ]);
+                
+                // Update lead status to connected when prospect is created
+                $lead->updateStatusIfAllowed('connected');
+                
+                // Fire ProspectSentForVerification event - this will auto-create manager calling task
+                try {
+                    event(new \App\Events\ProspectSentForVerification($prospect));
+                } catch (\Exception $e) {
+                    \Log::warning("Broadcasting error in ProspectSentForVerification (non-critical): " . $e->getMessage());
+                }
+                
+                DB::commit();
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Lead requirements saved and prospect sent for manager verification',
+                    'prospect' => $prospect->load('manager', 'telecaller'),
+                    'lead_id' => $lead->id,
+                    'task_id' => $telecallerTask->id,
+                    'task_status' => 'completed', // Indicate task is now completed
+                    'task_completed' => true, // Flag for frontend to refresh list
+                ], 200);
+                
+            } catch (\Exception $e) {
+                DB::rollBack();
+                \Log::error('Submit Lead Form for Verification Error', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                throw $e;
+            }
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Submit Lead Form for Verification Error', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to submit form: ' . $e->getMessage(),
             ], 500);
         }
     }

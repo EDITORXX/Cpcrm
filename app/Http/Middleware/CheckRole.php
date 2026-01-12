@@ -10,11 +10,13 @@ class CheckRole
 {
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
-        if (!auth()->check()) {
+        // Try multiple ways to get the authenticated user (for Sanctum stateful auth)
+        // $request->user() is set by Sanctum middleware, auth()->user() uses default guard
+        $user = $request->user() ?? auth()->user();
+        
+        if (!$user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
-
-        $user = auth()->user();
         
         // Ensure role is loaded
         if (!$user->relationLoaded('role')) {

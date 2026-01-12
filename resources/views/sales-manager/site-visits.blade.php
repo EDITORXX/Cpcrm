@@ -5,13 +5,34 @@
 
 @push('styles')
 <style>
+    #visitsContainer {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.25rem;
+    }
+    @media (max-width: 1024px) {
+        #visitsContainer {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    @media (max-width: 768px) {
+        #visitsContainer {
+            grid-template-columns: 1fr;
+        }
+    }
     .visit-card {
         background: white;
         padding: 20px;
         border-radius: 12px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin-bottom: 16px;
         border-left: 4px solid #3b82f6;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .visit-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     }
     .visit-card.completed {
         border-left-color: #10b981;
@@ -24,9 +45,19 @@
     }
     .visit-header {
         display: flex;
-        justify-content: space-between;
-        align-items: start;
+        flex-direction: column;
         margin-bottom: 12px;
+    }
+    .visit-actions {
+        margin-top: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .visit-actions .btn {
+        width: 100%;
+        margin-left: 0;
+        margin-top: 0;
     }
     .visit-info h3 {
         font-size: 18px;
@@ -128,12 +159,25 @@
         border-radius: 6px;
         font-size: 14px;
     }
+    .filters input[type="date"] {
+        padding: 8px 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+    #customDateInputs {
+        display: none;
+        gap: 8px;
+    }
+    #customDateInputs.show {
+        display: flex;
+    }
 </style>
 @endpush
 
 @section('content')
-<div class="max-w-7xl mx-auto">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
         <h2 class="text-2xl font-bold" style="color: #063A1C;">Site Visits</h2>
         <a href="{{ route('sales-manager.site-visits.create') }}" class="btn btn-primary">
             <i class="fas fa-plus mr-2"></i>Schedule Site Visit
@@ -162,6 +206,19 @@
             <option value="verified">Verified</option>
             <option value="rejected">Rejected</option>
         </select>
+        <label>Date:</label>
+        <select id="dateFilter" class="filter-select" onchange="toggleCustomDate(); loadSiteVisits();">
+            <option value="">All Dates</option>
+            <option value="today">Today</option>
+            <option value="this_week">This Week</option>
+            <option value="this_month">This Month</option>
+            <option value="this_year">This Year</option>
+            <option value="custom">Custom Date</option>
+        </select>
+        <div id="customDateInputs">
+            <input type="date" id="dateFrom" class="filter-select" onchange="loadSiteVisits()">
+            <input type="date" id="dateTo" class="filter-select" onchange="loadSiteVisits()">
+        </div>
     </div>
 
     <div id="visitsContainer">
@@ -230,6 +287,30 @@
         }
     }
 
+    function toggleCustomDate() {
+        const dateFilter = document.getElementById('dateFilter').value;
+        const customDateInputs = document.getElementById('customDateInputs');
+        if (dateFilter === 'custom') {
+            customDateInputs.classList.add('show');
+        } else {
+            customDateInputs.classList.remove('show');
+        }
+    }
+
+    // Helper function to format budget from lead
+    function formatBudget(budget) {
+        if (!budget) return 'N/A';
+        const budgetNum = parseFloat(budget);
+        if (isNaN(budgetNum)) return budget;
+        
+        const budgetInLacs = budgetNum / 100000;
+        if (budgetInLacs < 50) return 'Under 50 Lac';
+        if (budgetInLacs < 100) return '50 Lac – 1 Cr';
+        if (budgetInLacs < 200) return '1 Cr – 2 Cr';
+        if (budgetInLacs < 300) return '2 Cr – 3 Cr';
+        return 'Above 3 Cr';
+    }
+
     async function loadSiteVisits() {
         const container = document.getElementById('visitsContainer');
         container.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>';
@@ -238,18 +319,28 @@
             const status = document.getElementById('statusFilter').value;
             const verification = document.getElementById('verificationFilter').value;
             const closer = document.getElementById('closerFilter').value;
+            const dateFilter = document.getElementById('dateFilter').value;
             
             let url = '/site-visits?';
             if (status) url += `status=${status}&`;
             if (verification) url += `verification_status=${verification}&`;
             if (closer) url += `closer_status=${closer}&`;
+            if (dateFilter) {
+                url += `date_filter=${dateFilter}&`;
+                if (dateFilter === 'custom') {
+                    const dateFrom = document.getElementById('dateFrom').value;
+                    const dateTo = document.getElementById('dateTo').value;
+                    if (dateFrom) url += `date_from=${dateFrom}&`;
+                    if (dateTo) url += `date_to=${dateTo}&`;
+                }
+            }
 
             const response = await apiCall(url);
             const visits = response?.data || [];
 
             if (visits.length === 0) {
                 container.innerHTML = `
-                    <div class="empty-state">
+                    <div class="empty-state" style="grid-column: 1 / -1;">
                         <i class="fas fa-map-marker-alt"></i>
                         <h3 style="font-size: 18px; font-weight: 600; color: #333; margin: 16px 0 8px;">No Site Visits Found</h3>
                         <p>Schedule your first site visit to get started.</p>
@@ -273,54 +364,73 @@
                 const closerBadge = visit.closer_status === 'verified' ? 'badge-closer-verified' :
                                   visit.closer_status === 'pending' ? 'badge-closer-pending' : '';
 
+                // Field fallback logic: site visit → lead → 'N/A'
+                const customerName = visit.customer_name || (visit.lead && visit.lead.name) || visit.property_name || 'N/A';
+                const phone = visit.phone || (visit.lead && visit.lead.phone) || 'N/A';
+                const budget = visit.budget_range || (visit.lead && visit.lead.budget ? formatBudget(visit.lead.budget) : null) || 'N/A';
+                const propertyType = visit.property_type || (visit.lead && visit.lead.property_type) || 'N/A';
+                const project = visit.property_name || visit.project || (visit.lead && visit.lead.preferred_projects) || 'N/A';
+
                 return `
                     <div class="visit-card ${statusClass}">
                         <div class="visit-header">
                             <div class="visit-info">
-                                <h3>${visit.customer_name || visit.property_name || 'N/A'}</h3>
-                                <p><i class="fas fa-phone mr-2"></i>${visit.phone || 'N/A'}</p>
-                                <p><i class="fas fa-calendar mr-2"></i>Scheduled: ${new Date(visit.scheduled_at).toLocaleString()}</p>
-                                ${visit.completed_at ? `<p><i class="fas fa-check-circle mr-2"></i>Completed: ${new Date(visit.completed_at).toLocaleString()}</p>` : ''}
-                                <p><i class="fas fa-tag mr-2"></i>Budget: ${visit.budget_range || 'N/A'}</p>
-                                <p><i class="fas fa-building mr-2"></i>Property: ${visit.property_type || 'N/A'}</p>
-                                <div style="margin-top: 8px;">
+                                <h3>${customerName}</h3>
+                                <p><i class="fas fa-phone mr-2"></i>${phone}</p>
+                                <p><i class="fas fa-calendar mr-2"></i>Scheduled: ${new Date(visit.scheduled_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                                ${visit.completed_at ? `<p><i class="fas fa-check-circle mr-2"></i>Completed: ${new Date(visit.completed_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>` : ''}
+                                <p><i class="fas fa-tag mr-2"></i>Budget: ${budget}</p>
+                                ${propertyType !== 'N/A' ? `<p><i class="fas fa-building mr-2"></i>Property: ${propertyType}</p>` : ''}
+                                ${project !== 'N/A' ? `<p><i class="fas fa-map-marker-alt mr-2"></i>Project: ${project}</p>` : ''}
+                                <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px;">
                                     <span class="badge ${statusBadge}">${visit.status}</span>
                                     ${visit.verification_status ? `<span class="badge ${verificationBadge}">${visit.verification_status}</span>` : ''}
                                     ${visit.closer_status ? `<span class="badge ${closerBadge}">Closer: ${visit.closer_status}</span>` : ''}
                                 </div>
                             </div>
-                            <div>
-                                ${visit.status === 'scheduled' ? `
-                                    <button class="btn btn-success" onclick="showCompleteSiteVisitModal(${visit.id})">
-                                        <i class="fas fa-check mr-2"></i>Complete
-                                    </button>
-                                    <button class="btn" style="background: #f59e0b; color: white; margin-top: 8px;" onclick="showRescheduleSiteVisitModal(${visit.id})">
-                                        <i class="fas fa-calendar-alt mr-2"></i>Reschedule
-                                    </button>
-                                    <button class="btn btn-danger" onclick="showMarkDeadModal('site-visit', ${visit.id})" style="margin-top: 8px;">
-                                        <i class="fas fa-skull mr-2"></i>Mark as Dead
-                                    </button>
-                                ` : ''}
-                                ${visit.status === 'completed' && visit.verification_status === 'pending' ? `
+                        </div>
+                        <div class="visit-actions">
+                            ${visit.status === 'scheduled' ? `
+                                <button class="btn btn-success" onclick="showCompleteSiteVisitModal(${visit.id})">
+                                    <i class="fas fa-check mr-2"></i>Complete
+                                </button>
+                                <button class="btn" style="background: #f59e0b; color: white;" onclick="showRescheduleSiteVisitModal(${visit.id})">
+                                    <i class="fas fa-calendar-alt mr-2"></i>Reschedule
+                                </button>
+                                <button class="btn btn-danger" onclick="showMarkDeadModal('site-visit', ${visit.id})">
+                                    <i class="fas fa-skull mr-2"></i>Mark as Dead
+                                </button>
+                            ` : ''}
+                            ${visit.status === 'completed' && visit.verification_status === 'pending' ? `
+                                <div style="text-align: center; padding: 8px;">
                                     <span class="badge badge-pending">Awaiting Verification</span>
-                                ` : ''}
-                                ${visit.verification_status === 'verified' && !visit.closer_status ? `
-                                    <button class="btn btn-primary" onclick="showRequestCloserModal(${visit.id})" style="margin-bottom: 8px;">
-                                        <i class="fas fa-handshake mr-2"></i>Request for Closer
-                                    </button>
-                                ` : ''}
-                                ${visit.closer_status === 'pending' ? `
+                                </div>
+                            ` : ''}
+                            ${visit.verification_status === 'verified' && !visit.closer_status ? `
+                                <button class="btn btn-primary" onclick="showRequestCloserModal(${visit.id})">
+                                    <i class="fas fa-handshake mr-2"></i>Request for Closer
+                                </button>
+                            ` : ''}
+                            ${visit.closer_status === 'pending' ? `
+                                <div style="text-align: center; padding: 8px;">
                                     <span class="badge badge-closer-pending">Closer Awaiting Verification</span>
-                                ` : ''}
-                                ${visit.closer_status === 'verified' ? `
+                                </div>
+                            ` : ''}
+                            ${visit.closer_status === 'verified' ? `
+                                <div style="text-align: center; padding: 8px;">
                                     <span class="badge badge-closer-verified">Closer Verified ✓</span>
-                                ` : ''}
-                                ${visit.status === 'completed' ? `
-                                    <button class="btn btn-danger" onclick="showMarkDeadModal('site-visit', ${visit.id})" style="margin-top: 8px;">
-                                        <i class="fas fa-skull mr-2"></i>Mark as Dead
-                                    </button>
-                                ` : ''}
-                            </div>
+                                </div>
+                            ` : ''}
+                            ${visit.status === 'completed' ? `
+                                <button class="btn btn-danger" onclick="showMarkDeadModal('site-visit', ${visit.id})">
+                                    <i class="fas fa-skull mr-2"></i>Mark as Dead
+                                </button>
+                            ` : ''}
+                            ${visit.lead_id ? `
+                                <a href="/leads/${visit.lead_id}" target="_blank" class="btn btn-primary" style="width: 100%; margin-top: 8px; text-align: center; text-decoration: none;">
+                                    <i class="fas fa-eye mr-2"></i>View Detail
+                                </a>
+                            ` : ''}
                         </div>
                     </div>
                 `;

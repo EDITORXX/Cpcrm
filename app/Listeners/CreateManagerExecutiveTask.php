@@ -60,11 +60,11 @@ class CreateManagerExecutiveTask
                 return;
             }
 
-            // Check if task already exists for this prospect and assignee
+            // Check if task already exists for this prospect and assignee (using Task model)
             $existingTaskQuery = \App\Models\Task::where('assigned_to', $verificationAssigneeId)
                 ->where('type', 'phone_call')
-                ->where('title', 'like', '%prospect verification%')
-                ->where('status', 'pending');
+                ->where('status', 'pending')
+                ->where('title', 'like', '%prospect verification%');
             
             // Only filter by lead_id if prospect has one
             if ($prospect->lead_id) {

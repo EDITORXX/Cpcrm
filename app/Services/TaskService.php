@@ -81,7 +81,15 @@ class TaskService
             $phone = $prospect->phone ?? '';
             $leadId = $prospect->lead_id;
             
-            // If prospect has lead, use lead_id, otherwise create task without lead_id
+            // Cancel existing pending/in_progress tasks for this lead and user
+            // This ensures only one active task per lead at any time
+            Task::where('lead_id', $leadId)
+                ->where('assigned_to', $assignedToUserId)
+                ->where('type', 'phone_call')
+                ->whereIn('status', ['pending', 'in_progress'])
+                ->update(['status' => 'cancelled']);
+            
+            // Create Task in tasks table for manager verification
             $task = Task::create([
                 'lead_id' => $leadId,
                 'assigned_to' => $assignedToUserId,
@@ -118,7 +126,7 @@ class TaskService
             $phone = $prospect->phone ?? '';
             $leadId = $prospect->lead_id ?? null;
             
-            // Create task with scheduled_at set to 10 minutes from now
+            // Create Task in tasks table with scheduled_at set to 10 minutes from now
             $task = Task::create([
                 'lead_id' => $leadId,
                 'assigned_to' => $assignedToUserId,

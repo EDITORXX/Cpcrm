@@ -5,13 +5,24 @@
 
 @push('styles')
 <style>
+    #meetingsContainer {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1.25rem;
+    }
     .meeting-card {
         background: white;
         padding: 20px;
         border-radius: 12px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin-bottom: 16px;
         border-left: 4px solid #3b82f6;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .meeting-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     }
     .meeting-card.completed {
         border-left-color: #10b981;
@@ -24,9 +35,18 @@
     }
     .meeting-header {
         display: flex;
-        justify-content: space-between;
-        align-items: start;
+        flex-direction: column;
         margin-bottom: 12px;
+    }
+    .meeting-actions {
+        margin-top: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .meeting-actions .btn {
+        width: 100%;
+        margin-top: 0;
     }
     .meeting-info h3 {
         font-size: 18px;
@@ -115,18 +135,115 @@
         gap: 12px;
         flex-wrap: wrap;
     }
+    
+    @media (max-width: 768px) {
+        #meetingsContainer {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .meeting-card {
+            padding: 16px;
+        }
+        
+        .meeting-info h3 {
+            font-size: 16px;
+        }
+        
+        .meeting-info p {
+            font-size: 13px;
+        }
+        
+        .filters {
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .filters label {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .filters select,
+        .filters input[type="date"] {
+            width: 100%;
+            padding: 10px;
+        }
+        
+        #customDateInputs {
+            width: 100%;
+            flex-direction: column;
+        }
+        
+        .filters > div:first-child {
+            flex-direction: column;
+            width: 100%;
+        }
+        
+        /* Header responsive */
+        div[style*="display: flex"][style*="justify-content: space-between"] {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        
+        div[style*="display: flex"][style*="justify-content: space-between"] .btn {
+            width: 100%;
+        }
+        
+        /* Modal responsive */
+        .modal-content {
+            width: 95% !important;
+            max-width: 95% !important;
+            padding: 16px !important;
+        }
+        
+        .form-group {
+            margin-bottom: 14px;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+        }
+        
+        .form-group > div[style*="display: flex"] {
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .form-group > div[style*="display: flex"] button {
+            width: 100%;
+        }
+    }
     .filter-select {
         padding: 8px 12px;
         border: 2px solid #e0e0e0;
         border-radius: 6px;
         font-size: 14px;
     }
+    .filters input[type="date"] {
+        padding: 8px 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+    #customDateInputs {
+        display: none;
+        gap: 8px;
+    }
+    #customDateInputs.show {
+        display: flex;
+    }
 </style>
 @endpush
 
 @section('content')
 <div class="mb-6">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
         <h2 class="text-2xl font-bold text-gray-900">My Meetings</h2>
         <a href="{{ route('sales-manager.meetings.create') }}" class="btn btn-primary">
             <i class="fas fa-plus mr-2"></i>Schedule New Meeting
@@ -146,6 +263,19 @@
             <option value="verified">Verified</option>
             <option value="rejected">Rejected</option>
         </select>
+        <label>Date:</label>
+        <select id="dateFilter" class="filter-select" onchange="toggleCustomDate(); loadMeetings();">
+            <option value="">All Dates</option>
+            <option value="today">Today</option>
+            <option value="this_week">This Week</option>
+            <option value="this_month">This Month</option>
+            <option value="this_year">This Year</option>
+            <option value="custom">Custom Date</option>
+        </select>
+        <div id="customDateInputs">
+            <input type="date" id="dateFrom" class="filter-select" onchange="loadMeetings()">
+            <input type="date" id="dateTo" class="filter-select" onchange="loadMeetings()">
+        </div>
     </div>
 
     <div id="meetingsContainer">
@@ -214,6 +344,16 @@
         }
     }
 
+    function toggleCustomDate() {
+        const dateFilter = document.getElementById('dateFilter').value;
+        const customDateInputs = document.getElementById('customDateInputs');
+        if (dateFilter === 'custom') {
+            customDateInputs.classList.add('show');
+        } else {
+            customDateInputs.classList.remove('show');
+        }
+    }
+
     async function loadMeetings() {
         const container = document.getElementById('meetingsContainer');
         container.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>';
@@ -221,17 +361,27 @@
         try {
             const status = document.getElementById('statusFilter').value;
             const verification = document.getElementById('verificationFilter').value;
+            const dateFilter = document.getElementById('dateFilter').value;
             
             let url = '/meetings?';
             if (status) url += `status=${status}&`;
             if (verification) url += `verification_status=${verification}&`;
+            if (dateFilter) {
+                url += `date_filter=${dateFilter}&`;
+                if (dateFilter === 'custom') {
+                    const dateFrom = document.getElementById('dateFrom').value;
+                    const dateTo = document.getElementById('dateTo').value;
+                    if (dateFrom) url += `date_from=${dateFrom}&`;
+                    if (dateTo) url += `date_to=${dateTo}&`;
+                }
+            }
 
             const response = await apiCall(url);
             const meetings = response?.data || [];
 
             if (meetings.length === 0) {
                 container.innerHTML = `
-                    <div class="empty-state">
+                    <div class="empty-state" style="grid-column: 1 / -1;">
                         <i class="fas fa-calendar-times"></i>
                         <h3 style="font-size: 18px; font-weight: 600; color: #333; margin: 16px 0 8px;">No Meetings Found</h3>
                         <p>Schedule your first meeting to get started.</p>
@@ -258,44 +408,46 @@
                             <div class="meeting-info">
                                 <h3>${meeting.customer_name || 'N/A'}</h3>
                                 <p><i class="fas fa-phone mr-2"></i>${meeting.phone || 'N/A'}</p>
-                                <p><i class="fas fa-calendar mr-2"></i>Scheduled: ${new Date(meeting.scheduled_at).toLocaleString()}</p>
-                                ${meeting.completed_at ? `<p><i class="fas fa-check-circle mr-2"></i>Completed: ${new Date(meeting.completed_at).toLocaleString()}</p>` : ''}
+                                <p><i class="fas fa-calendar mr-2"></i>Scheduled: ${new Date(meeting.scheduled_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                                ${meeting.completed_at ? `<p><i class="fas fa-check-circle mr-2"></i>Completed: ${new Date(meeting.completed_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>` : ''}
                                 <p><i class="fas fa-tag mr-2"></i>Budget: ${meeting.budget_range || 'N/A'}</p>
-                                <p><i class="fas fa-building mr-2"></i>Property: ${meeting.property_type || 'N/A'}</p>
-                                <div style="margin-top: 8px;">
+                                ${meeting.property_type ? `<p><i class="fas fa-building mr-2"></i>Property: ${meeting.property_type}</p>` : ''}
+                                <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px;">
                                     <span class="badge ${statusBadge}">${meeting.status}</span>
                                     ${meeting.verification_status ? `<span class="badge ${verificationBadge}">${meeting.verification_status}</span>` : ''}
                                 </div>
                             </div>
-                            <div>
-                                ${meeting.status === 'scheduled' ? `
-                                    <button class="btn btn-success" onclick="showCompleteMeetingModal(${meeting.id})">
-                                        <i class="fas fa-check mr-2"></i>Complete
-                                    </button>
-                                    <button class="btn" style="background: #f59e0b; color: white; margin-top: 8px;" onclick="showRescheduleMeetingModal(${meeting.id})">
-                                        <i class="fas fa-calendar-alt mr-2"></i>Reschedule
-                                    </button>
-                                    <button class="btn btn-danger" onclick="showMarkDeadModal('meeting', ${meeting.id})" style="margin-top: 8px;">
-                                        <i class="fas fa-skull mr-2"></i>Mark as Dead
-                                    </button>
-                                    <button class="btn btn-danger" onclick="cancelMeeting(${meeting.id})" style="margin-top: 8px;">
-                                        <i class="fas fa-times mr-2"></i>Cancel
-                                    </button>
-                                ` : ''}
-                                ${meeting.status === 'completed' ? `
-                                    ${meeting.verification_status === 'verified' ? `
-                                        <button class="btn btn-primary" onclick="showConvertToSiteVisitModal(${meeting.id})" style="margin-bottom: 8px;">
-                                            <i class="fas fa-exchange-alt mr-2"></i>Convert to Site Visit
-                                        </button>
-                                    ` : ''}
-                                    ${meeting.verification_status === 'pending' ? `
-                                        <div><span class="badge badge-pending">Awaiting Verification</span></div>
-                                    ` : ''}
-                                    <button class="btn btn-danger" onclick="showMarkDeadModal('meeting', ${meeting.id})" style="margin-top: 8px;">
-                                        <i class="fas fa-skull mr-2"></i>Mark as Dead
+                        </div>
+                        <div class="meeting-actions">
+                            ${meeting.status === 'scheduled' ? `
+                                <button class="btn btn-success" onclick="showCompleteMeetingModal(${meeting.id})">
+                                    <i class="fas fa-check mr-2"></i>Complete
+                                </button>
+                                <button class="btn" style="background: #f59e0b; color: white;" onclick="showRescheduleMeetingModal(${meeting.id})">
+                                    <i class="fas fa-calendar-alt mr-2"></i>Reschedule
+                                </button>
+                                <button class="btn btn-danger" onclick="showMarkDeadModal('meeting', ${meeting.id})">
+                                    <i class="fas fa-skull mr-2"></i>Mark as Dead
+                                </button>
+                                <button class="btn btn-danger" onclick="cancelMeeting(${meeting.id})">
+                                    <i class="fas fa-times mr-2"></i>Cancel
+                                </button>
+                            ` : ''}
+                            ${meeting.status === 'completed' ? `
+                                ${meeting.verification_status === 'verified' ? `
+                                    <button class="btn btn-primary" onclick="showConvertToSiteVisitModal(${meeting.id})">
+                                        <i class="fas fa-exchange-alt mr-2"></i>Convert to Site Visit
                                     </button>
                                 ` : ''}
-                            </div>
+                                ${meeting.verification_status === 'pending' ? `
+                                    <div style="text-align: center; padding: 8px;">
+                                        <span class="badge badge-pending">Awaiting Verification</span>
+                                    </div>
+                                ` : ''}
+                                <button class="btn btn-danger" onclick="showMarkDeadModal('meeting', ${meeting.id})">
+                                    <i class="fas fa-skull mr-2"></i>Mark as Dead
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
                 `;

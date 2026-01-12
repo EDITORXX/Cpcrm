@@ -44,6 +44,11 @@
         <form method="POST" action="{{ route('crm.automation.leads.store') }}" class="card">
             @csrf
 
+            <div class="info-box" style="margin-bottom: 30px; padding: 15px; background: #e3f2fd; border-left: 4px solid #2196f3; border-radius: 4px;">
+                <strong>📝 Note:</strong> Only <strong>Name</strong> and <strong>Phone Number</strong> are required for initial creation. 
+                After creating the lead, you will be redirected to fill all detailed requirement fields (Category, Location, Type, Purpose, Budget, Status, etc.) using the centralized form.
+            </div>
+
             <h2 class="section-title">Basic Information</h2>
             
             <div class="form-row">
@@ -56,136 +61,6 @@
                     <label>Phone/Number <span class="required">*</span></label>
                     <input type="text" name="phone" value="{{ old('phone') }}" required placeholder="Enter phone number">
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" name="email" value="{{ old('email') }}" placeholder="Enter email address">
-            </div>
-
-            <h2 class="section-title">Location Details</h2>
-
-            <div class="form-group">
-                <label>Address</label>
-                <textarea name="address" rows="2" placeholder="Enter full address">{{ old('address') }}</textarea>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label>City</label>
-                    <input type="text" name="city" value="{{ old('city') }}" placeholder="Enter city">
-                </div>
-
-                <div class="form-group">
-                    <label>State</label>
-                    <input type="text" name="state" value="{{ old('state') }}" placeholder="Enter state">
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Pincode</label>
-                    <input type="text" name="pincode" value="{{ old('pincode') }}" placeholder="Enter pincode">
-                </div>
-
-                <div class="form-group">
-                    <label>Preferred Location</label>
-                    <input type="text" name="preferred_location" value="{{ old('preferred_location') }}" placeholder="e.g., South Mumbai, Bandra">
-                </div>
-            </div>
-
-            <h2 class="section-title">Property Requirements</h2>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Preferred Size</label>
-                    <input type="text" name="preferred_size" value="{{ old('preferred_size') }}" placeholder="e.g., 2 BHK, 1200 sqft">
-                </div>
-
-                <div class="form-group">
-                    <label>Property Type</label>
-                    <select name="property_type">
-                        <option value="">-- Select Type --</option>
-                        <option value="apartment" {{ old('property_type') == 'apartment' ? 'selected' : '' }}>Apartment</option>
-                        <option value="villa" {{ old('property_type') == 'villa' ? 'selected' : '' }}>Villa</option>
-                        <option value="plot" {{ old('property_type') == 'plot' ? 'selected' : '' }}>Plot</option>
-                        <option value="commercial" {{ old('property_type') == 'commercial' ? 'selected' : '' }}>Commercial</option>
-                        <option value="other" {{ old('property_type') == 'other' ? 'selected' : '' }}>Other</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Budget Min</label>
-                    <input type="number" name="budget_min" value="{{ old('budget_min') }}" min="0" step="0.01" placeholder="Minimum budget">
-                </div>
-
-                <div class="form-group">
-                    <label>Budget Max</label>
-                    <input type="number" name="budget_max" value="{{ old('budget_max') }}" min="0" step="0.01" placeholder="Maximum budget">
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Investment</label>
-                    <input type="number" name="investment" value="{{ old('investment') }}" min="0" step="0.01" placeholder="Investment amount">
-                </div>
-
-                <div class="form-group">
-                    <label>Source</label>
-                    <select name="source">
-                        <option value="other" {{ old('source') == 'other' ? 'selected' : '' }}>Other</option>
-                        <option value="website" {{ old('source') == 'website' ? 'selected' : '' }}>Website</option>
-                        <option value="referral" {{ old('source') == 'referral' ? 'selected' : '' }}>Referral</option>
-                        <option value="walk_in" {{ old('source') == 'walk_in' ? 'selected' : '' }}>Walk In</option>
-                        <option value="call" {{ old('source') == 'call' ? 'selected' : '' }}>Call</option>
-                        <option value="social_media" {{ old('source') == 'social_media' ? 'selected' : '' }}>Social Media</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>Use/End Use</label>
-                <textarea name="use_end_use" rows="3" placeholder="e.g., Residential, Investment, Commercial use">{{ old('use_end_use') }}</textarea>
-            </div>
-
-            <div class="form-group">
-                <label>Requirements</label>
-                <textarea name="requirements" rows="3" placeholder="Additional requirements or preferences">{{ old('requirements') }}</textarea>
-            </div>
-
-            <div class="form-group">
-                <label>Notes</label>
-                <textarea name="notes" rows="3" placeholder="Any additional notes">{{ old('notes') }}</textarea>
-            </div>
-
-            <h2 class="section-title">Assignment</h2>
-
-            <div class="form-group">
-                <label>Assign To User (Optional)</label>
-                <select name="assigned_to">
-                    <option value="">-- Don't Assign Now --</option>
-                    @foreach($users as $user)
-                        <option value="{{ $user->id }}" {{ old('assigned_to') == $user->id ? 'selected' : '' }}>
-                            {{ $user->name }} ({{ $user->role->name }})
-                        </option>
-                    @endforeach
-                </select>
-                <p style="color: #666; font-size: 12px; margin-top: 5px;">You can assign this lead to a user now or assign later</p>
-            </div>
-
-            <div class="form-group" style="margin-top: 15px;">
-                <label style="display: flex; align-items: center; cursor: pointer;">
-                    <input type="checkbox" name="create_calling_task" value="1" 
-                           {{ old('create_calling_task', '1') == '1' ? 'checked' : '' }} 
-                           style="width: auto; margin-right: 8px; cursor: pointer;">
-                    <span>Create calling task for assigned user</span>
-                </label>
-                <p style="color: #666; font-size: 12px; margin-top: 5px; margin-left: 28px;">
-                    If checked, a calling task will be automatically created for the assigned user when lead is created
-                </p>
             </div>
 
             <div style="margin-top: 30px; display: flex; gap: 10px;">

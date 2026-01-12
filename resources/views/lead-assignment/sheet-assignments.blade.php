@@ -81,17 +81,23 @@
             <form id="config-form">
                 <input type="hidden" id="config-sheet-id">
                 
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Link to Telecaller (Optional)</label>
+                <div class="mb-4 hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Link to User (Optional)</label>
                     <select id="config-telecaller" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
                         <option value="">None</option>
-                        @foreach($telecallers as $telecaller)
-                            <option value="{{ $telecaller->id }}">{{ $telecaller->name }}</option>
-                        @endforeach
+                        @if(isset($eligibleUsers))
+                            @foreach($eligibleUsers as $roleName => $users)
+                                <optgroup label="{{ $roleName }}">
+                                    @foreach($users as $user)
+                                        <option value="{{ $user->id }}">{{ $user->name }}</option>
+                                    @endforeach
+                                </optgroup>
+                            @endforeach
+                        @endif
                     </select>
                 </div>
 
-                <div class="mb-4">
+                <div class="mb-4 hidden">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Per-Sheet Daily Limit</label>
                     <input type="number" id="config-per-sheet-limit" min="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Leave empty for no limit">
                 </div>
@@ -118,7 +124,15 @@
                     <div id="percentage-list" class="space-y-2">
                         <!-- Will be populated dynamically -->
                     </div>
-                    <button type="button" onclick="addPercentageRow()" class="mt-2 text-sm text-indigo-600 hover:text-indigo-800">+ Add Telecaller</button>
+                    <button type="button" onclick="addPercentageRow()" class="mt-2 text-sm text-indigo-600 hover:text-indigo-800">+ Add User</button>
+                </div>
+
+                <div id="round-robin-config" class="hidden mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Users for Round Robin</label>
+                    <div id="round-robin-list" class="space-y-2">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                    <button type="button" onclick="addRoundRobinRow()" class="mt-2 text-sm text-indigo-600 hover:text-indigo-800">+ Add User</button>
                 </div>
 
                 <div class="flex justify-end gap-3">
@@ -133,8 +147,9 @@
     <script>
         axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         
-        const telecallers = @json($telecallers);
+        const eligibleUsers = @json($eligibleUsers ?? []);
         let percentageRows = [];
+        let roundRobinRows = [];
 
         function editSheetConfig(sheetId) {
             document.getElementById('config-sheet-id').value = sheetId;
@@ -156,16 +171,35 @@
                         document.getElementById('config-auto-assign').checked = config.auto_assign_enabled || false;
                         
                         // Load percentage configs if method is percentage
-                        if (config.assignment_method === 'percentage' && config.percentage_configs) {
+                        if (config.assignment_method === 'percentage' && config.percentage_configs && config.percentage_configs.length > 0) {
                             percentageRows = [];
                             document.getElementById('percentage-list').innerHTML = '';
                             config.percentage_configs.forEach(pc => {
                                 addPercentageRow();
                                 const lastRow = document.querySelector('#percentage-list > div:last-child');
                                 if (lastRow) {
-                                    lastRow.querySelector('.telecaller-select').value = pc.user_id;
-                                    lastRow.querySelector('.percentage-input').value = pc.percentage;
+                                    lastRow.querySelector('.telecaller-select').value = pc.user_id || '';
+                                    lastRow.querySelector('.percentage-input').value = pc.percentage || '';
                                     lastRow.querySelector('.limit-input').value = pc.daily_limit || '';
+                                }
+                            });
+                        } else if (config.assignment_method === 'percentage') {
+                            // If percentage method but no configs, add one empty row
+                            percentageRows = [];
+                            document.getElementById('percentage-list').innerHTML = '';
+                            addPercentageRow();
+                        }
+                        
+                        // Load round robin configs if method is round_robin
+                        if (config.assignment_method === 'round_robin' && config.round_robin_configs) {
+                            roundRobinRows = [];
+                            document.getElementById('round-robin-list').innerHTML = '';
+                            config.round_robin_configs.forEach(rc => {
+                                addRoundRobinRow();
+                                const lastRow = document.querySelector('#round-robin-list > div:last-child');
+                                if (lastRow) {
+                                    lastRow.querySelector('.round-robin-select').value = rc.user_id;
+                                    lastRow.querySelector('.round-robin-limit-input').value = rc.daily_limit || '';
                                 }
                             });
                         }
@@ -178,8 +212,11 @@
                         document.getElementById('config-method').value = 'manual';
                         document.getElementById('config-auto-assign').checked = false;
                         percentageRows = [];
+                        roundRobinRows = [];
                         document.getElementById('percentage-list').innerHTML = '';
+                        document.getElementById('round-robin-list').innerHTML = '';
                         document.getElementById('percentage-config').classList.add('hidden');
+                        document.getElementById('round-robin-config').classList.add('hidden');
                     }
                 })
                 .catch(error => {
@@ -201,29 +238,51 @@
         function closeConfigModal() {
             document.getElementById('config-modal').classList.add('hidden');
             percentageRows = [];
+            roundRobinRows = [];
             document.getElementById('percentage-list').innerHTML = '';
+            document.getElementById('round-robin-list').innerHTML = '';
         }
 
         function togglePercentageConfig() {
             const method = document.getElementById('config-method').value;
-            const configDiv = document.getElementById('percentage-config');
+            const percentageDiv = document.getElementById('percentage-config');
+            const roundRobinDiv = document.getElementById('round-robin-config');
+            
             if (method === 'percentage') {
-                configDiv.classList.remove('hidden');
+                percentageDiv.classList.remove('hidden');
+                roundRobinDiv.classList.add('hidden');
                 if (percentageRows.length === 0) {
                     addPercentageRow();
                 }
+            } else if (method === 'round_robin') {
+                percentageDiv.classList.add('hidden');
+                roundRobinDiv.classList.remove('hidden');
+                if (document.getElementById('round-robin-list').children.length === 0) {
+                    addRoundRobinRow();
+                }
             } else {
-                configDiv.classList.add('hidden');
+                percentageDiv.classList.add('hidden');
+                roundRobinDiv.classList.add('hidden');
             }
         }
 
         function addPercentageRow() {
             const row = document.createElement('div');
             row.className = 'flex gap-2 items-end';
+            
+            // Build options grouped by role
+            let optionsHtml = '<option value="">Select User</option>';
+            Object.keys(eligibleUsers).forEach(roleName => {
+                optionsHtml += `<optgroup label="${roleName}">`;
+                eligibleUsers[roleName].forEach(user => {
+                    optionsHtml += `<option value="${user.id}">${user.name}</option>`;
+                });
+                optionsHtml += '</optgroup>';
+            });
+            
             row.innerHTML = `
                 <select class="flex-1 px-4 py-2 border border-gray-300 rounded-lg telecaller-select">
-                    <option value="">Select Telecaller</option>
-                    ${telecallers.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
+                    ${optionsHtml}
                 </select>
                 <input type="number" step="0.01" min="0" max="100" placeholder="%" class="w-24 px-4 py-2 border border-gray-300 rounded-lg percentage-input">
                 <input type="number" min="0" placeholder="Daily Limit" class="w-32 px-4 py-2 border border-gray-300 rounded-lg limit-input">
@@ -231,6 +290,31 @@
             `;
             document.getElementById('percentage-list').appendChild(row);
             percentageRows.push(row);
+        }
+
+        function addRoundRobinRow() {
+            const row = document.createElement('div');
+            row.className = 'flex gap-2 items-end';
+            
+            // Build options grouped by role
+            let optionsHtml = '<option value="">Select User</option>';
+            Object.keys(eligibleUsers).forEach(roleName => {
+                optionsHtml += `<optgroup label="${roleName}">`;
+                eligibleUsers[roleName].forEach(user => {
+                    optionsHtml += `<option value="${user.id}">${user.name}</option>`;
+                });
+                optionsHtml += '</optgroup>';
+            });
+            
+            row.innerHTML = `
+                <select class="flex-1 px-4 py-2 border border-gray-300 rounded-lg round-robin-select">
+                    ${optionsHtml}
+                </select>
+                <input type="number" min="0" placeholder="Daily Limit" class="w-32 px-4 py-2 border border-gray-300 rounded-lg round-robin-limit-input">
+                <button type="button" onclick="this.parentElement.remove()" class="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200">Remove</button>
+            `;
+            document.getElementById('round-robin-list').appendChild(row);
+            roundRobinRows.push(row);
         }
 
         document.getElementById('config-form').addEventListener('submit', function(e) {
@@ -255,15 +339,34 @@
                     const telecallerId = row.querySelector('.telecaller-select').value;
                     const percentage = row.querySelector('.percentage-input').value;
                     const limit = row.querySelector('.limit-input').value;
-                    if (telecallerId && percentage) {
+                    if (telecallerId && percentage && !isNaN(parseFloat(percentage))) {
                         percentageConfig.push({
-                            user_id: telecallerId,
+                            user_id: parseInt(telecallerId),
                             percentage: parseFloat(percentage),
+                            daily_limit: limit ? parseInt(limit) : null
+                        });
+                    }
+                });
+                
+                if (percentageConfig.length === 0) {
+                    alert('Please add at least one user with percentage for percentage-based assignment.');
+                    return;
+                }
+                
+                data.percentage_config = percentageConfig;
+            } else if (method === 'round_robin') {
+                const roundRobinConfig = [];
+                document.querySelectorAll('#round-robin-list > div').forEach(row => {
+                    const userId = row.querySelector('.round-robin-select').value;
+                    const limit = row.querySelector('.round-robin-limit-input').value;
+                    if (userId) {
+                        roundRobinConfig.push({
+                            user_id: userId,
                             daily_limit: limit || null
                         });
                     }
                 });
-                data.percentage_config = percentageConfig;
+                data.round_robin_config = roundRobinConfig;
             }
 
             // First update sheet assignment
@@ -278,11 +381,23 @@
             // Then update config
             axios.post('{{ route("lead-assignment.sheet-assignments.config") }}', data)
                 .then(response => {
-                    alert(response.data.message);
-                    window.location.reload();
+                    if (response.data.success) {
+                        alert(response.data.message || 'Configuration saved successfully!');
+                        closeConfigModal();
+                        // Reload after a short delay to ensure data is saved
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 500);
+                    } else {
+                        alert('Error: ' + (response.data.message || 'Failed to update config'));
+                    }
                 })
                 .catch(error => {
-                    alert('Error: ' + (error.response?.data?.message || 'Failed to update config'));
+                    console.error('Config update error:', error);
+                    const errorMsg = error.response?.data?.message 
+                        || error.response?.data?.errors 
+                        || 'Failed to update config. Please try again.';
+                    alert('Error: ' + (typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg)));
                 });
         });
     </script>

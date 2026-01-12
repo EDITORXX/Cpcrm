@@ -111,6 +111,44 @@ class MeetingController extends Controller
             });
         }
 
+        // Date filter
+        if ($request->has('date_filter') && $request->date_filter) {
+            $dateFilter = $request->date_filter;
+            $today = now()->startOfDay();
+            
+            switch ($dateFilter) {
+                case 'today':
+                    $query->whereDate('scheduled_at', $today);
+                    break;
+                case 'this_week':
+                    $query->whereBetween('scheduled_at', [
+                        $today->copy()->startOfWeek(),
+                        $today->copy()->endOfWeek()
+                    ]);
+                    break;
+                case 'this_month':
+                    $query->whereBetween('scheduled_at', [
+                        $today->copy()->startOfMonth(),
+                        $today->copy()->endOfMonth()
+                    ]);
+                    break;
+                case 'this_year':
+                    $query->whereBetween('scheduled_at', [
+                        $today->copy()->startOfYear(),
+                        $today->copy()->endOfYear()
+                    ]);
+                    break;
+                case 'custom':
+                    if ($request->has('date_from') && $request->has('date_to')) {
+                        $query->whereBetween('scheduled_at', [
+                            $request->date_from . ' 00:00:00',
+                            $request->date_to . ' 23:59:59'
+                        ]);
+                    }
+                    break;
+            }
+        }
+
         $perPage = $request->get('per_page', 15);
         $meetings = $query->latest('scheduled_at')->paginate($perPage);
 

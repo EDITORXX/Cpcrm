@@ -47,12 +47,13 @@ class TelecallerTask extends Model
     }
 
     /**
-     * Scope to get overdue tasks
+     * Scope to get overdue tasks (more than 15 minutes old)
      */
     public function scopeOverdue($query)
     {
+        $fifteenMinutesAgo = now()->subMinutes(15);
         return $query->where('status', '!=', 'completed')
-            ->where('scheduled_at', '<', now());
+            ->where('scheduled_at', '<', $fifteenMinutesAgo);
     }
 
     /**

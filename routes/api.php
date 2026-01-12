@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\Crm\TargetController as CrmTargetController;
 use App\Http\Controllers\Api\Crm\VerificationController as CrmVerificationController;
 use App\Http\Controllers\Api\TargetController;
 use App\Http\Controllers\Api\InterestedProjectNameController;
+use App\Http\Controllers\Api\PabblyWebhookController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -39,6 +40,9 @@ use Illuminate\Http\Request;
 
 // Public routes
 Route::post('/login', [AuthController::class, 'login']);
+
+// Pabbly Webhook (public - no auth required)
+Route::post('/pabbly/webhook', [PabblyWebhookController::class, 'store']);
 
 // Telecaller public routes
 Route::post('/telecaller/login', [TelecallerController::class, 'login']);
@@ -112,6 +116,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
 
+    // Notifications (for all authenticated roles - used by chatbot/notification bell)
+    Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index']);
+    Route::get('/notifications/unread', [\App\Http\Controllers\Api\NotificationController::class, 'getUnread']);
+    Route::post('/notifications/{notification}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/{notification}/click', [\App\Http\Controllers\Api\NotificationController::class, 'markAsClicked']);
+    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead']);
+
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
@@ -165,9 +176,12 @@ Route::middleware('auth:sanctum')->group(function () {
         // Tasks
         Route::get('/tasks', [TelecallerController::class, 'getTasks']);
         Route::get('/tasks/stats', [TelecallerController::class, 'getTaskStats']);
+        Route::post('/tasks/schedule-call', [\App\Http\Controllers\Api\SalesManagerController::class, 'scheduleCallTask']);
         Route::post('/tasks/{task}/initiate-call', [TelecallerController::class, 'initiateCall']);
         Route::post('/tasks/{task}/call-outcome', [TelecallerController::class, 'callOutcome']);
         Route::post('/tasks/{taskId}/outcome', [TelecallerController::class, 'recordOutcome']);
+        Route::get('/tasks/{task}/lead-form', [TelecallerController::class, 'getLeadFormForModal']);
+        Route::post('/tasks/{taskId}/submit-for-verification', [TelecallerController::class, 'submitLeadFormForVerification']);
         
         // Notifications
         Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index']);
@@ -248,7 +262,13 @@ Route::middleware('auth:sanctum')->group(function () {
         // Tasks
         Route::get('/tasks', [\App\Http\Controllers\Api\SalesManagerController::class, 'getTasks']);
         Route::get('/tasks/{task}', [\App\Http\Controllers\Api\SalesManagerController::class, 'getTask']);
+        Route::post('/tasks/schedule-call', [\App\Http\Controllers\Api\SalesManagerController::class, 'scheduleCallTask']);
         Route::post('/tasks/{task}/update-lead', [\App\Http\Controllers\Api\SalesManagerController::class, 'updateLeadFromTask']);
+        Route::get('/tasks/{task}/lead-requirement-form', [\App\Http\Controllers\Api\SalesManagerController::class, 'getLeadRequirementFormForTask']);
+        Route::post('/tasks/{task}/verify', [\App\Http\Controllers\Api\SalesManagerController::class, 'verifyProspectFromTask']);
+        Route::post('/tasks/{task}/reject', [\App\Http\Controllers\Api\SalesManagerController::class, 'rejectProspectFromTask']);
+        Route::post('/tasks/{task}/cnp', [\App\Http\Controllers\Api\SalesManagerController::class, 'markAsCNP']);
+        Route::post('/tasks/remove-all-overdue', [\App\Http\Controllers\Api\SalesManagerController::class, 'removeAllOverdueTasks']);
         
         // Meetings
         Route::get('/meetings', [\App\Http\Controllers\Api\MeetingController::class, 'index']);
@@ -264,6 +284,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/meetings/{meeting}/reject', [\App\Http\Controllers\Api\MeetingController::class, 'reject']);
         
         // Site Visits
+        Route::get('/site-visits', [\App\Http\Controllers\Api\SiteVisitController::class, 'index']);
         Route::post('/site-visits', [\App\Http\Controllers\Api\SiteVisitController::class, 'store']);
         Route::post('/site-visits/{siteVisit}/complete', [\App\Http\Controllers\Api\SiteVisitController::class, 'complete']);
         Route::post('/site-visits/{siteVisit}/reschedule', [\App\Http\Controllers\Api\SiteVisitController::class, 'reschedule']);

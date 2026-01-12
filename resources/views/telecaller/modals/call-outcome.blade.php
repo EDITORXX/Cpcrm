@@ -128,52 +128,41 @@ function handleCallOutcome(outcome) {
     closeCallOutcomeModal();
     
     if (outcome === 'interested') {
-        // Get task details to get assignment_id and lead data
+        // Mark as interested and redirect to centralized form
         apiCall(`/tasks/${currentTaskId}/call-outcome`, {
             method: 'POST',
             body: JSON.stringify({ outcome: 'interested' })
         }).then(response => {
             if (response && response.success) {
-                // Load users for assignment dropdown
-                apiCall('/users').then(data => {
-                    if (data && data.users) {
-                        const select = document.getElementById('prospectAssignTo');
-                        if (select) {
-                            select.innerHTML = '<option value="">Select Manager</option>' + 
-                                data.users.map(u => `<option value="${u.id}">${u.name} (${u.role})</option>`).join('');
-                        }
-                    }
-                });
-                // Get lead data from response
-                const leadData = response.lead_data || {};
-                if (document.getElementById('prospectAssignmentId')) {
-                    document.getElementById('prospectAssignmentId').value = response.assignment_id;
-                }
-                if (document.getElementById('prospectCustomerName')) {
-                    document.getElementById('prospectCustomerName').value = leadData.name || '';
-                }
-                if (document.getElementById('prospectCustomerPhone')) {
-                    document.getElementById('prospectCustomerPhone').value = leadData.phone || '';
-                }
-                // Store task ID for later use
-                if (document.getElementById('prospectTaskId')) {
-                    document.getElementById('prospectTaskId').value = currentTaskId;
+                // Show success message
+                if (typeof showAlert === 'function') {
+                    showAlert(response.message || 'Lead marked as interested. Redirecting to form...', 'success', 2000);
                 } else {
-                    // Create hidden input if doesn't exist
-                    const form = document.getElementById('prospectDetailsForm');
-                    if (form) {
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.id = 'prospectTaskId';
-                        input.name = 'task_id';
-                        input.value = currentTaskId;
-                        form.appendChild(input);
-                    }
+                    alert(response.message || 'Lead marked as interested. Redirecting to form...');
                 }
-                if (document.getElementById('prospectDetailsModal')) {
-                    document.getElementById('prospectDetailsModal').classList.add('show');
+                
+                // Redirect to centralized form after a short delay
+                if (response.redirect) {
+                    setTimeout(() => {
+                        window.location.href = response.redirect;
+                    }, 1500);
+                } else if (response.lead_id) {
+                    // Fallback: construct URL manually
+                    setTimeout(() => {
+                        window.location.href = `/leads/${response.lead_id}/edit`;
+                    }, 1500);
                 }
+                
+                // Refresh tasks list if available
+                if (typeof loadTasks === 'function') {
+                    setTimeout(() => loadTasks(), 1000);
+                }
+            } else {
+                alert('Error: ' + (response?.error || 'Failed to mark as interested'));
             }
+        }).catch(error => {
+            console.error('Error marking as interested:', error);
+            alert('Error: Failed to mark as interested. Please try again.');
         });
     } else if (outcome === 'not_interested') {
         document.getElementById('notInterestedModal').classList.add('show');

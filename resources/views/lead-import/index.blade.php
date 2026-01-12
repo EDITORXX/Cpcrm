@@ -171,6 +171,73 @@
         @endif
     </div>
 
+    <!-- Recent Imported Leads -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold text-gray-800">Recent Imported Leads</h2>
+        </div>
+        
+        @if(isset($recentImportedLeads) && $recentImportedLeads->count() > 0)
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Imported At</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @foreach($recentImportedLeads as $importedLead)
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ $importedLead->lead->name ?? 'N/A' }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <a href="tel:{{ $importedLead->lead->phone ?? '' }}" class="text-blue-600 hover:underline">
+                                        {{ $importedLead->lead->phone ?? 'N/A' }}
+                                    </a>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                        {{ strtoupper($importedLead->importBatch->source_type ?? 'N/A') }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    @php
+                                        // Check actual assignment from LeadAssignment table (most accurate)
+                                        $actualAssignment = $importedLead->lead->activeAssignments()->first();
+                                        $assignedUser = $actualAssignment ? $actualAssignment->assignedTo : ($importedLead->assignedTo ?? null);
+                                    @endphp
+                                    {{ $assignedUser ? $assignedUser->name : 'Unassigned' }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ $importedLead->created_at->format('M d, Y H:i') }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    @if($importedLead->lead)
+                                        <a href="{{ route('leads.show', $importedLead->lead->id) }}" class="text-indigo-600 hover:text-indigo-900 font-medium">
+                                            View
+                                        </a>
+                                    @else
+                                        <span class="text-gray-400">N/A</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @else
+            <div class="text-center py-12">
+                <p class="text-gray-500">No imported leads yet</p>
+            </div>
+        @endif
+    </div>
+
     <!-- Google Sheets Config Modal -->
     @include('lead-import.google-sheets-config-modal')
 
@@ -209,12 +276,21 @@
                     document.getElementById('range').value = config.range;
                     document.getElementById('name_column').value = config.name_column;
                     document.getElementById('phone_column').value = config.phone_column;
-                    document.getElementById('notes_column').value = config.notes_column || 'C';
-                    document.getElementById('status_column').value = config.status_column || 'D';
-                    document.getElementById('notes_column_sync').value = config.notes_column_sync || 'E';
                     document.getElementById('auto_sync_enabled').checked = config.auto_sync_enabled;
-                    document.getElementById('sync_interval_minutes').value = config.sync_interval_minutes || 5;
-                    document.getElementById('automation_id').value = config.automation_id || '';
+                    if (config.auto_sync_enabled) {
+                        document.querySelector('input[name="auto_sync_enabled"][type="hidden"]').value = '1';
+                    }
+                    document.getElementById('sync_interval_minutes').value = config.sync_interval_minutes || 2;
+                    
+                    // Load custom column mappings
+                    if (config.column_mappings && config.column_mappings.length > 0) {
+                        customColumnRows = [];
+                        document.getElementById('custom-columns-list').innerHTML = '';
+                        config.column_mappings.forEach(mapping => {
+                            addCustomColumnRow(mapping);
+                        });
+                    }
+                    
                     openGoogleSheetsModal();
                 })
                 .catch(error => {

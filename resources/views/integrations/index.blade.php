@@ -171,6 +171,109 @@
                 </button>
             </div>
         </div>
+
+        <!-- Pabbly Integration -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200 cursor-pointer" onclick="window.location.href='{{ route('integrations.pabbly') }}'">
+            <div class="p-6">
+                <div class="flex items-center justify-center mb-4">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-r from-[#063A1C] to-[#205A44] flex items-center justify-center">
+                        <i class="fas fa-plug text-white text-2xl"></i>
+                    </div>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Pabbly</h3>
+                <p class="text-sm text-gray-500 mb-4">Pabbly webhook integration for lead automation</p>
+                @php
+                    try {
+                        $pabblySettings = \App\Models\PabblyIntegrationSettings::getSettings();
+                        $pabblyIsActive = $pabblySettings->is_active ?? false;
+                    } catch (\Exception $e) {
+                        $pabblyIsActive = false;
+                    }
+                @endphp
+                <div class="flex items-center mb-4">
+                    @if($pabblyIsActive)
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                    @else
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">Inactive</span>
+                    @endif
+                </div>
+                <button onclick="event.stopPropagation(); window.location.href='{{ route('integrations.pabbly') }}'" 
+                        class="w-full px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 text-sm font-medium">
+                    <i class="fas fa-cog mr-2"></i>
+                    Configuration
+                </button>
+            </div>
+        </div>
+
+        <!-- Google Sheets Integration -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200 cursor-pointer" onclick="window.location.href='{{ route('integrations.google-sheets') }}'">
+            <div class="p-6">
+                <div class="flex items-center justify-center mb-4">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-r from-[#063A1C] to-[#205A44] flex items-center justify-center">
+                        <i class="fab fa-google-drive text-white text-2xl"></i>
+                    </div>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Google Sheets</h3>
+                <p class="text-sm text-gray-500 mb-4">Automatically import and sync leads from Google Sheets</p>
+                @php
+                    try {
+                        $googleSheetsCount = \App\Models\GoogleSheetsConfig::where('is_active', true)->count();
+                        $googleSheetsActive = $googleSheetsCount > 0;
+                    } catch (\Exception $e) {
+                        $googleSheetsActive = false;
+                        $googleSheetsCount = 0;
+                    }
+                @endphp
+                <div class="flex items-center mb-4">
+                    @if($googleSheetsActive)
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{{ $googleSheetsCount }} Active</span>
+                    @else
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">Not Configured</span>
+                    @endif
+                </div>
+                <button onclick="event.stopPropagation(); window.location.href='{{ route('integrations.google-sheets') }}'" 
+                        class="w-full px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 text-sm font-medium">
+                    <i class="fas fa-cog mr-2"></i>
+                    Configuration
+                </button>
+            </div>
+        </div>
+
+        <!-- Lead Assignment System -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200 cursor-pointer" onclick="window.location.href='{{ route('lead-assignment.index') }}'">
+            <div class="p-6">
+                <div class="flex items-center justify-center mb-4">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-r from-[#063A1C] to-[#205A44] flex items-center justify-center">
+                        <i class="fas fa-users-cog text-white text-2xl"></i>
+                    </div>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Lead Assignment</h3>
+                <p class="text-sm text-gray-500 mb-4">Manage lead assignments and telecaller configurations</p>
+                @php
+                    try {
+                        $telecallerCount = \App\Models\User::whereHas('role', function($q) {
+                            $q->where('name', 'telecaller');
+                        })->count();
+                        $leadAssignmentActive = $telecallerCount > 0;
+                    } catch (\Exception $e) {
+                        $leadAssignmentActive = false;
+                        $telecallerCount = 0;
+                    }
+                @endphp
+                <div class="flex items-center mb-4">
+                    @if($leadAssignmentActive)
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{{ $telecallerCount }} Telecallers</span>
+                    @else
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">No Telecallers</span>
+                    @endif
+                </div>
+                <button onclick="event.stopPropagation(); window.location.href='{{ route('lead-assignment.index') }}'" 
+                        class="w-full px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 text-sm font-medium">
+                    <i class="fas fa-cog mr-2"></i>
+                    Manage
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 

@@ -49,8 +49,7 @@ class TargetSeeder extends Seeder
         }
 
         // Set targets for all Telecallers
-        // For telecallers: 200 daily calls = ~6000 monthly (200 * 30 days)
-        // 5 daily prospects = ~150 monthly (5 * 30 days)
+        // For telecallers: 200 calls/month and 15 verified prospects/month
         $telecallers = User::where('role_id', $telecallerRole->id)
             ->where('is_active', true)
             ->get();
@@ -65,15 +64,15 @@ class TargetSeeder extends Seeder
                     'target_meetings' => 0,
                     'target_visits' => 0,
                     'target_closers' => 0,
-                    'target_prospects_extract' => 150, // 5 daily * 30 days
-                    'target_prospects_verified' => 0,
-                    'target_calls' => 6000, // 200 daily * 30 days
+                    'target_prospects_extract' => 0, // Removed, use target_prospects_verified instead
+                    'target_prospects_verified' => 15, // 15 verified prospects per month
+                    'target_calls' => 200, // 200 calls per month
                 ]
             );
         }
 
         $this->command->info('Default targets created successfully!');
         $this->command->info('Sales Managers: 10 meetings, 10 visits, 5 closers (monthly)');
-        $this->command->info('Telecallers: 6000 calls, 150 prospects (monthly = 200 calls & 5 prospects daily)');
+        $this->command->info('Telecallers: 200 calls/month, 15 verified prospects/month');
     }
 }

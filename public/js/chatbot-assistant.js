@@ -26,13 +26,50 @@ class ChatbotAssistant {
     }
 
     getApiToken() {
-        // Try to get token from various sources
+        // Try to get token from various sources (telecaller token has priority)
         const tokenFromMeta = document.querySelector('meta[name="api-token"]')?.content;
+        const telecallerToken = localStorage.getItem('telecaller_token');
         const tokenFromLocalStorage = localStorage.getItem('api_token');
-        const tokenFromSessionStorage = sessionStorage.getItem('api_token');
+        const tokenFromSessionStorage = sessionStorage.getItem('api_token') || sessionStorage.getItem('telecaller_token');
         
         // For web routes, we can use session-based auth or token
-        return tokenFromMeta || tokenFromLocalStorage || tokenFromSessionStorage;
+        return tokenFromMeta || telecallerToken || tokenFromLocalStorage || tokenFromSessionStorage;
+    }
+    
+    isTelecaller() {
+        // Check if user is telecaller by checking for telecaller token or user role
+        const telecallerToken = localStorage.getItem('telecaller_token');
+        const userData = localStorage.getItem('telecaller_user');
+        if (telecallerToken || userData) {
+            try {
+                if (userData) {
+                    const user = JSON.parse(userData);
+                    return user.role?.slug === 'telecaller' || user.role?.name === 'Telecaller';
+                }
+                return true; // If telecaller token exists, assume telecaller
+            } catch (e) {
+                return false;
+            }
+        }
+        return false;
+    }
+    
+    getNotificationsEndpoint() {
+        // Check if telecaller, use telecaller endpoint
+        if (this.isTelecaller()) {
+            return '/api/telecaller/notifications/unread';
+        }
+        // Otherwise use general endpoint (if exists)
+        return '/api/notifications/unread';
+    }
+    
+    getNotificationReadEndpoint(notificationId) {
+        // Check if telecaller, use telecaller endpoint
+        if (this.isTelecaller()) {
+            return `/api/telecaller/notifications/${notificationId}/read`;
+        }
+        // Otherwise use general endpoint (if exists)
+        return `/api/notifications/${notificationId}/read`;
     }
 
     getUserId() {
@@ -114,7 +151,8 @@ class ChatbotAssistant {
                 headers['Authorization'] = `Bearer ${this.apiToken}`;
             }
             
-            const response = await fetch('/api/notifications/unread', {
+            const endpoint = this.getNotificationsEndpoint();
+            const response = await fetch(endpoint, {
                 headers: headers,
                 credentials: 'same-origin',
             });
@@ -208,9 +246,11 @@ class ChatbotAssistant {
         const timeAgo = this.getTimeAgo(notification.created_at);
         const isUnread = !notification.read_at;
         
+        // Check if this is a lead notification and has action_url
+        const isLeadNotification = notification.type === 'new_lead' && notification.action_url;
+        
         return `
-            <div class="chatbot-notification ${isUnread ? 'unread' : ''}" 
-                 onclick="chatbotAssistant.handleNotificationClick(${notification.id}, '${notification.action_url || ''}')">
+            <div class="chatbot-notification ${isUnread ? 'unread' : ''}">
                 <div class="chatbot-notification-header">
                     <div class="chatbot-notification-title">
                         <span class="chatbot-notification-icon">${icon}</span>
@@ -221,6 +261,14 @@ class ChatbotAssistant {
                 <div class="chatbot-notification-message">
                     ${this.escapeHtml(notification.message)}
                 </div>
+                ${isLeadNotification ? `
+                    <div class="chatbot-notification-action">
+                        <button onclick="chatbotAssistant.handleNotificationClick(${notification.id}, '${notification.action_url}')" 
+                                class="chatbot-view-lead-btn">
+                            View Lead
+                        </button>
+                    </div>
+                ` : ''}
             </div>
         `;
     }
@@ -263,7 +311,8 @@ class ChatbotAssistant {
                 headers['Authorization'] = `Bearer ${this.apiToken}`;
             }
             
-            await fetch(`/api/notifications/${notificationId}/read`, {
+            const readEndpoint = this.getNotificationReadEndpoint(notificationId);
+            await fetch(readEndpoint, {
                 method: 'POST',
                 headers: headers,
                 credentials: 'same-origin',

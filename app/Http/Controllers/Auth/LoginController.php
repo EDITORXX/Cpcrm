@@ -6,17 +6,37 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use App\Models\User;
 use App\Models\UserAvailability;
 use App\Models\TelecallerProfile;
 use App\Models\SystemSettings;
 use App\Services\UserAvailabilityService;
+use App\Services\UserStatusService;
 
 class LoginController extends Controller
 {
-    public function showLoginForm()
+    public function showLoginForm(Request $request)
     {
-        return view('auth.login');
+        // If user is already authenticated, redirect to dashboard
+        if (Auth::check()) {
+            $user = Auth::user();
+            $redirectUrl = $this->getRedirectUrlForRole($user);
+            $redirect = redirect($redirectUrl);
+            $redirect->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0, private');
+            $redirect->headers->set('Pragma', 'no-cache');
+            $redirect->headers->set('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
+            return $redirect;
+        }
+        
+        $response = response()->view('auth.login');
+        
+        // Add no-cache headers
+        $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0, private');
+        $response->headers->set('Pragma', 'no-cache');
+        $response->headers->set('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
+        
+        return $response;
     }
 
     public function login(Request $request)
@@ -53,9 +73,14 @@ class LoginController extends Controller
             $user->load('role');
         }
 
+        // Login user first
         Auth::login($user, $request->filled('remember'));
-
+        
+        // Regenerate session immediately after login (before storing data)
         $request->session()->regenerate();
+
+        // Mark user as present (all users, not just telecallers)
+        $this->markUserAsPresent($user);
 
         // Mark attendance for telecallers
         if ($user->isTelecaller()) {
@@ -72,9 +97,57 @@ class LoginController extends Controller
             $token = $user->createToken('web-login-token')->plainTextToken;
             $request->session()->put('api_token', $token);
         }
+        
+        // Commit session to ensure all data is saved
+        $request->session()->save();
+
+        // Ensure user is authenticated before redirect
+        if (!Auth::check()) {
+            Log::error('User not authenticated after login', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+            ]);
+            return back()->withErrors([
+                'email' => 'Authentication failed. Please try again.',
+            ])->withInput($request->only('email'));
+        }
 
         // Redirect based on user role
-        return $this->redirectBasedOnRole($user);
+        try {
+            $redirectUrl = $this->getRedirectUrlForRole($user);
+            $redirect = redirect($redirectUrl);
+            
+            // Add no-cache headers to redirect response
+            $redirect->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0, private');
+            $redirect->headers->set('Pragma', 'no-cache');
+            $redirect->headers->set('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
+            $redirect->headers->set('Location', $redirectUrl);
+            
+            // Force redirect with 302 status to prevent caching
+            $redirect->setStatusCode(302);
+            
+            // Ensure session is committed before redirect
+            $request->session()->save();
+            
+            Log::info('Login successful, redirecting', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'redirect_url' => $redirectUrl,
+                'is_authenticated' => Auth::check(),
+                'session_id' => $request->session()->getId(),
+            ]);
+            
+            return $redirect;
+        } catch (\Exception $e) {
+            Log::error('Login redirect error', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            // Fallback redirect
+            return redirect()->route('sales-manager.dashboard');
+        }
     }
 
     public function logout(Request $request)
@@ -98,24 +171,65 @@ class LoginController extends Controller
             Auth::logout();
         }
 
-        // Always redirect to login page
-        return redirect()->route('login')->with('success', 'You have been logged out successfully.');
+        // Always redirect to login page with no-cache headers
+        $response = redirect()->route('login')->with('success', 'You have been logged out successfully.');
+        
+        // Add no-cache headers to prevent browser caching
+        $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0, private');
+        $response->headers->set('Pragma', 'no-cache');
+        $response->headers->set('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
+        
+        return $response;
     }
 
 
     private function redirectBasedOnRole($user)
     {
+        $url = $this->getRedirectUrlForRole($user);
+        return redirect($url);
+    }
+    
+    private function getRedirectUrlForRole($user)
+    {
+        // Ensure role is loaded
+        if (!$user->relationLoaded('role')) {
+            $user->load('role');
+        }
+        
         $role = $user->role->slug ?? '';
+        
+        Log::info('Login redirect', [
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'role_slug' => $role,
+            'is_sales_head' => $user->isSalesHead(),
+        ]);
 
-        return match($role) {
-            'telecaller' => redirect()->route('telecaller.dashboard'),
+        // Determine redirect URL based on role
+        $redirectUrl = match($role) {
+            'telecaller' => route('telecaller.dashboard'),
             'sales_manager' => $user->isSalesHead() 
-                ? redirect()->route('sales-head.dashboard')
-                : redirect()->route('sales-manager.dashboard'),
-            'admin' => redirect()->route('admin.dashboard'),
-            'crm', 'sales_executive' => redirect()->route('dashboard'),
-            default => redirect('/'),
+                ? route('sales-head.dashboard')
+                : route('sales-manager.dashboard'),
+            'admin' => route('admin.dashboard'),
+            'crm', 'sales_executive' => route('dashboard'),
+            default => '/',
         };
+        
+        Log::info('Login redirect target', [
+            'redirect_url' => $redirectUrl,
+        ]);
+        
+        return $redirectUrl;
+    }
+
+    /**
+     * Mark user as present on login (all users)
+     */
+    private function markUserAsPresent(User $user): void
+    {
+        $userStatusService = app(UserStatusService::class);
+        $userStatusService->markAsPresent($user->id);
     }
 
     /**

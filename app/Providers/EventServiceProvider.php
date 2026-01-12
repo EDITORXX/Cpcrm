@@ -8,6 +8,7 @@ use App\Events\ProspectSentForVerification;
 use App\Events\SiteVisitCreated;
 use App\Listeners\CreateManagerExecutiveTask;
 use App\Listeners\CreateManagerVerificationCallTask;
+use App\Listeners\CreateSiteVisitCallTask;
 use App\Listeners\CreateTelecallerTask;
 use App\Listeners\SendLeadAssignedNotification;
 use App\Listeners\SendNewLeadNotification;
@@ -30,6 +31,7 @@ class EventServiceProvider extends ServiceProvider
         ],
         SiteVisitCreated::class => [
             SendSiteVisitCreatedNotification::class,
+            CreateSiteVisitCallTask::class,
         ],
         ProspectSentForVerification::class => [
             CreateManagerVerificationCallTask::class,

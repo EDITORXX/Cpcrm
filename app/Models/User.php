@@ -214,6 +214,11 @@ class User extends Authenticatable
         return in_array($this->role->slug, [Role::ADMIN, Role::CRM, Role::SALES_MANAGER]) || $this->isSalesHead();
     }
 
+    public function userProfile(): HasOne
+    {
+        return $this->hasOne(UserProfile::class);
+    }
+
     public function telecallerProfile(): HasOne
     {
         return $this->hasOne(TelecallerProfile::class);

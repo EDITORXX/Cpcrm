@@ -7,6 +7,7 @@ use App\Events\DashboardUpdate;
 use App\Models\CrmAssignment;
 use App\Models\TelecallerTask;
 use App\Models\User;
+use App\Models\ActivityLog;
 use App\Services\TelecallerTaskService;
 use Illuminate\Support\Facades\Log;
 
@@ -20,68 +21,207 @@ class CreateTelecallerTask
     }
 
     /**
-     * Handle the event - Auto-create calling task for telecaller when lead is assigned
+     * Handle the event - Auto-create calling task when lead is assigned to telecaller, sales manager, or sales executive
      */
     public function handle(LeadAssigned $event): void
     {
+        Log::info("CreateTelecallerTask listener triggered", [
+            'lead_id' => $event->lead->id,
+            'assigned_to' => $event->assignedTo,
+            'assigned_by' => $event->assignedBy,
+        ]);
+        
         try {
             $assignedUser = User::with('role')->find($event->assignedTo);
 
-            // Check if assigned user is a telecaller
-            if (!$assignedUser || !$assignedUser->isTelecaller()) {
+            if (!$assignedUser) {
+                Log::warning("CreateTelecallerTask: Assigned user not found", [
+                    'lead_id' => $event->lead->id,
+                    'assigned_to' => $event->assignedTo,
+                ]);
+                return;
+            }
+            
+            if (!$assignedUser->role) {
+                Log::warning("CreateTelecallerTask: Assigned user has no role", [
+                    'lead_id' => $event->lead->id,
+                    'assigned_to' => $event->assignedTo,
+                    'user_id' => $assignedUser->id,
+                ]);
+                return;
+            }
+
+            // Check if assigned user has eligible role (telecaller, sales_manager, or sales_executive)
+            $userRole = $assignedUser->role->slug ?? '';
+            $eligibleRoles = [\App\Models\Role::TELECALLER, \App\Models\Role::SALES_MANAGER, \App\Models\Role::SALES_EXECUTIVE];
+            
+            if (!in_array($userRole, $eligibleRoles)) {
+                Log::info("CreateTelecallerTask: User role not eligible for task creation", [
+                    'lead_id' => $event->lead->id,
+                    'assigned_to' => $event->assignedTo,
+                    'user_role' => $userRole,
+                    'eligible_roles' => $eligibleRoles,
+                ]);
                 return;
             }
 
             $lead = $event->lead;
+            
+            Log::info("CreateTelecallerTask: Processing task creation", [
+                'lead_id' => $lead->id,
+                'lead_name' => $lead->name,
+                'assigned_to' => $assignedUser->id,
+                'assigned_to_name' => $assignedUser->name,
+                'user_role' => $userRole,
+            ]);
 
-            // Create CrmAssignment if it doesn't exist
-            $crmAssignment = CrmAssignment::where('lead_id', $lead->id)
-                ->where('assigned_to', $assignedUser->id)
-                ->where('call_status', 'pending')
-                ->first();
+            // Create CrmAssignment if it doesn't exist (only for telecallers)
+            if ($assignedUser->isTelecaller()) {
+                $crmAssignment = CrmAssignment::where('lead_id', $lead->id)
+                    ->where('assigned_to', $assignedUser->id)
+                    ->where('call_status', 'pending')
+                    ->first();
 
-            if (!$crmAssignment) {
-                $crmAssignment = CrmAssignment::create([
-                    'lead_id' => $lead->id,
-                    'customer_name' => $lead->name,
-                    'phone' => $lead->phone,
-                    'assigned_to' => $assignedUser->id,
-                    'assigned_by' => $event->assignedBy,
-                    'assigned_at' => now(),
-                    'call_status' => 'pending',
-                ]);
+                if (!$crmAssignment) {
+                    $crmAssignment = CrmAssignment::create([
+                        'lead_id' => $lead->id,
+                        'customer_name' => $lead->name,
+                        'phone' => $lead->phone,
+                        'assigned_to' => $assignedUser->id,
+                        'assigned_by' => $event->assignedBy,
+                        'assigned_at' => now(),
+                        'call_status' => 'pending',
+                    ]);
+                }
             }
 
-            // Check if TelecallerTask already exists for this lead and telecaller
-            $existingTask = TelecallerTask::where('lead_id', $lead->id)
-                ->where('assigned_to', $assignedUser->id)
-                ->where('task_type', 'calling')
-                ->where('status', 'pending')
-                ->first();
+            // For sales managers and sales executives, use Task model
+            // For telecallers, use TelecallerTask model
+            if (in_array($userRole, [\App\Models\Role::SALES_MANAGER, \App\Models\Role::SALES_EXECUTIVE])) {
+                // Check if Task already exists for this lead and user (any status to avoid duplicates)
+                $existingTask = \App\Models\Task::where('lead_id', $lead->id)
+                    ->where('assigned_to', $assignedUser->id)
+                    ->where('type', 'phone_call')
+                    ->first();
 
-            if (!$existingTask) {
-                // Auto-create calling task for telecaller
-                $task = $this->telecallerTaskService->createCallingTask(
-                    $lead,
-                    $assignedUser,
-                    $event->assignedBy
-                );
-                
-                Log::info("Auto-created calling task for telecaller", [
-                    'task_id' => $task->id,
-                    'lead_id' => $lead->id,
-                    'telecaller_id' => $assignedUser->id,
-                ]);
-                
-                // Broadcast dashboard update
-                event(new DashboardUpdate($assignedUser->id, 'task_created', [
-                    'lead_id' => $lead->id,
-                    'lead_name' => $lead->name,
-                    'task_id' => $task->id,
-                ]));
+                if (!$existingTask) {
+                    // Create Task for sales manager/executive
+                    // Schedule task instantly - set scheduled_at to 15 minutes ago so it becomes overdue immediately
+                    // This ensures task is created instantly and shows as overdue after 15 minutes from creation
+                    $task = \App\Models\Task::create([
+                        'lead_id' => $lead->id,
+                        'assigned_to' => $assignedUser->id,
+                        'type' => 'phone_call',
+                        'title' => "Call lead: {$lead->name}",
+                        'description' => "Phone call task for lead: {$lead->name} ({$lead->phone})",
+                        'status' => 'pending',
+                        'scheduled_at' => now()->subMinutes(15), // Set to 15 minutes ago - becomes overdue immediately
+                        'created_by' => $event->assignedBy,
+                    ]);
+                    
+                    Log::info("Auto-created calling task (Task model) for assigned user", [
+                        'task_id' => $task->id,
+                        'lead_id' => $lead->id,
+                        'user_id' => $assignedUser->id,
+                        'role' => $userRole,
+                        'scheduled_at' => $task->scheduled_at->format('Y-m-d H:i:s'),
+                    ]);
+                    
+                    // Log activity for lead timeline
+                    \App\Models\ActivityLog::create([
+                        'user_id' => $event->assignedBy,
+                        'action' => 'task_created',
+                        'model_type' => 'Lead',
+                        'model_id' => $lead->id,
+                        'description' => "Calling task created for {$lead->name} (Assigned to {$assignedUser->name})",
+                        'old_values' => null,
+                        'new_values' => [
+                            'task_id' => $task->id,
+                            'task_type' => 'phone_call',
+                            'assigned_to' => $assignedUser->id,
+                            'assigned_to_name' => $assignedUser->name,
+                        ],
+                    ]);
+                    
+                    // Broadcast dashboard update
+                    event(new DashboardUpdate($assignedUser->id, 'task_created', [
+                        'lead_id' => $lead->id,
+                        'lead_name' => $lead->name,
+                        'task_id' => $task->id,
+                    ]));
+                }
+            } else {
+                // For telecallers, use TelecallerTask
+                $existingTask = TelecallerTask::where('lead_id', $lead->id)
+                    ->where('assigned_to', $assignedUser->id)
+                    ->where('task_type', 'calling')
+                    ->where('status', 'pending')
+                    ->first();
+
+                if (!$existingTask) {
+                    try {
+                        // Auto-create calling task for telecallers
+                        $task = $this->telecallerTaskService->createCallingTask(
+                            $lead,
+                            $assignedUser,
+                            $event->assignedBy
+                        );
+                        
+                        Log::info("✅ Auto-created calling task (TelecallerTask) for assigned user - SUCCESS", [
+                            'task_id' => $task->id,
+                            'lead_id' => $lead->id,
+                            'lead_name' => $lead->name,
+                            'user_id' => $assignedUser->id,
+                            'user_name' => $assignedUser->name,
+                            'role' => $userRole,
+                            'scheduled_at' => $task->scheduled_at ? $task->scheduled_at->format('Y-m-d H:i:s') : 'null',
+                        ]);
+                    } catch (\Exception $taskError) {
+                        Log::error("❌ Failed to create TelecallerTask for telecaller", [
+                            'lead_id' => $lead->id,
+                            'assigned_to' => $assignedUser->id,
+                            'error' => $taskError->getMessage(),
+                            'trace' => $taskError->getTraceAsString(),
+                        ]);
+                        throw $taskError; // Re-throw to be caught by outer catch
+                    }
+                    
+                    // Log activity for lead timeline
+                    \App\Models\ActivityLog::create([
+                        'user_id' => $event->assignedBy,
+                        'action' => 'task_created',
+                        'model_type' => 'Lead',
+                        'model_id' => $lead->id,
+                        'description' => "Calling task created for {$lead->name} (Assigned to {$assignedUser->name})",
+                        'old_values' => null,
+                        'new_values' => [
+                            'task_id' => $task->id,
+                            'task_type' => 'calling',
+                            'assigned_to' => $assignedUser->id,
+                            'assigned_to_name' => $assignedUser->name,
+                        ],
+                    ]);
+                    
+                    // Broadcast dashboard update
+                    event(new DashboardUpdate($assignedUser->id, 'task_created', [
+                        'lead_id' => $lead->id,
+                        'lead_name' => $lead->name,
+                        'task_id' => $task->id,
+                    ]));
+                }
             }
         } catch (\Exception $e) {
-            Log::error("Failed to create telecaller task for lead {$event->lead->id}: " . $e->getMessage());
+            Log::error("❌ CreateTelecallerTask listener failed completely", [
+                'lead_id' => $event->lead->id,
+                'lead_name' => $event->lead->name ?? 'unknown',
+                'assigned_to' => $event->assignedTo,
+                'assigned_by' => $event->assignedBy,
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            // Don't re-throw - we don't want to break the assignment process
         }
     }
 }

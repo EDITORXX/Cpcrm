@@ -86,6 +86,53 @@
         padding: 40px;
         color: #9ca3af;
     }
+    
+    @media (max-width: 768px) {
+        .grid.grid-cols-1.md\:grid-cols-4 {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        
+        .grid.grid-cols-1.md\:grid-cols-4 > div {
+            padding: 16px !important;
+        }
+        
+        .grid.grid-cols-1.md\:grid-cols-4 > div .text-3xl {
+            font-size: 24px !important;
+        }
+        
+        .team-member-card {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 16px;
+        }
+        
+        .team-member-avatar {
+            margin-right: 0;
+            margin-bottom: 12px;
+        }
+        
+        .team-member-info {
+            width: 100%;
+            margin-bottom: 12px;
+        }
+        
+        .team-member-card > div:last-child {
+            width: 100%;
+            text-align: left;
+        }
+        
+        .team-member-status {
+            display: block;
+            width: fit-content;
+            margin-bottom: 8px;
+        }
+        
+        .stat-badge {
+            display: block;
+            width: fit-content;
+        }
+    }
 </style>
 @endpush
 
@@ -124,17 +171,23 @@
 @push('scripts')
 <script>
     const API_BASE_URL = '{{ url("/api/sales-manager") }}';
+    const API_TOKEN = '{{ $api_token ?? session("api_token") ?? "" }}';
+    
+    // Store token in localStorage if available
+    if (API_TOKEN) {
+        localStorage.setItem('sales_manager_token', API_TOKEN);
+    }
     
     // Get token from localStorage or session
     function getToken() {
-        const metaToken = document.querySelector('meta[name="api-token"]')?.content;
-        return localStorage.getItem('sales_manager_token') || metaToken || '{{ session("api_token") ?? "" }}';
+        return API_TOKEN || localStorage.getItem('sales_manager_token') || document.querySelector('meta[name="api-token"]')?.content || '{{ session("api_token") ?? "" }}';
     }
 
     // API call helper
     async function apiCall(endpoint, options = {}) {
         const token = getToken();
         if (!token) {
+            console.error('No API token available for endpoint:', endpoint);
             window.location.href = '{{ route("login") }}';
             return null;
         }
@@ -152,6 +205,7 @@
         };
 
         try {
+            console.log(`API Call: ${API_BASE_URL}${endpoint}`);
             const response = await fetch(`${API_BASE_URL}${endpoint}`, {
                 ...defaultOptions,
                 ...options,
@@ -159,7 +213,10 @@
                 credentials: 'same-origin',
             });
 
+            console.log(`API Response Status: ${response.status} for ${endpoint}`);
+
             if (response.status === 401) {
+                console.error('Unauthorized - token invalid');
                 localStorage.removeItem('sales_manager_token');
                 window.location.href = '{{ route("login") }}';
                 return null;
@@ -167,6 +224,7 @@
 
             if (!response.ok) {
                 const errorText = await response.text();
+                console.error(`API Error (${response.status}):`, errorText);
                 try {
                     return JSON.parse(errorText);
                 } catch (e) {
@@ -174,9 +232,12 @@
                 }
             }
 
-            return await response.json();
+            const data = await response.json();
+            console.log(`API Success for ${endpoint}:`, data);
+            return data;
         } catch (error) {
             console.error('API Call Error:', error);
+            console.error('Error details:', error.message, error.stack);
             return { success: false, message: error.message };
         }
     }
@@ -184,31 +245,41 @@
     // Load team data
     async function loadTeamData() {
         try {
+            console.log('Loading team data...');
+            console.log('API Token available:', !!getToken());
+            
             const data = await apiCall('/profile');
+            console.log('Profile API response:', data);
             
             if (!data) {
-                console.error('Failed to load team data');
+                console.error('Failed to load team data - no response');
                 showError();
                 return;
             }
 
             // Update statistics
             if (data.team_stats) {
+                console.log('Team stats:', data.team_stats);
                 document.getElementById('totalMembers').textContent = data.team_stats.total_members || 0;
                 document.getElementById('availableMembers').textContent = data.team_stats.available_members || 0;
                 document.getElementById('absentMembers').textContent = (data.team_stats.total_members - data.team_stats.available_members) || 0;
                 document.getElementById('todayProspects').textContent = data.team_stats.today_prospects || 0;
+            } else {
+                console.warn('No team_stats in response');
             }
 
             // Display team members
             console.log('Team members data:', data.team_members); // Debug log
-            if (data.team_members && Array.isArray(data.team_members)) {
+            if (data.team_members && Array.isArray(data.team_members) && data.team_members.length > 0) {
+                console.log('Found', data.team_members.length, 'team members');
                 displayTeamMembers(data.team_members);
             } else {
+                console.warn('No team members found or empty array');
                 showNoMembers();
             }
         } catch (error) {
             console.error('Error loading team data:', error);
+            console.error('Error details:', error.message, error.stack);
             showError();
         }
     }

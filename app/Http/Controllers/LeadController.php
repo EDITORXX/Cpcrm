@@ -144,6 +144,16 @@ class LeadController extends Controller
 
     public function create()
     {
+        $user = auth()->user();
+        
+        // Disable old form for telecaller and manager - use centralized form instead
+        if ($user->isTelecaller() || $user->isSalesManager() || $user->isSalesHead()) {
+            return redirect()
+                ->route('leads.index')
+                ->with('info', 'Old lead creation form is disabled. Please use the centralized lead requirement form by editing an existing lead or contact admin for new lead creation.');
+        }
+        
+        // Existing code for other roles (Admin, CRM, etc.)
         $users = User::where('is_active', true)
             ->whereHas('role', function($q) {
                 $q->whereIn('slug', ['sales_manager', 'sales_executive', 'telecaller']);
@@ -158,53 +168,75 @@ class LeadController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'email' => 'nullable|email|max:255',
-            'address' => 'nullable|string',
-            'city' => 'nullable|string|max:100',
-            'state' => 'nullable|string|max:100',
-            'pincode' => 'nullable|string|max:10',
-            'preferred_location' => 'nullable|string|max:255',
-            'preferred_size' => 'nullable|string|max:255',
-            'preferred_projects' => 'nullable|array',
-            'preferred_projects.*' => 'nullable|exists:projects,id',
-            'use_end_use' => 'nullable|string|in:End User,2nd Investments',
-            'budget' => 'nullable|string|in:Under ₹1 Cr,₹1.1 Cr – ₹2 Cr,Above ₹2 Cr',
-            'source' => 'nullable|in:website,referral,walk_in,call,social_media,other,custom',
-            'custom_source' => 'required_if:source,custom|nullable|string|max:255',
-            'property_type' => 'nullable|in:apartment,villa,plot,commercial,other',
-            'possession_status' => 'nullable|string|in:Ready to Move,Under Construction',
-            'requirements' => 'nullable|string',
-            'notes' => 'nullable|string',
-            'assigned_to' => 'nullable|exists:users,id',
-        ]);
+        $user = $request->user();
+        
+        // For CRM users, only name and phone are required
+        if ($user->isCrm()) {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'phone' => 'required|string|max:20',
+            ]);
+        } else {
+            // For other users, full validation
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'phone' => 'required|string|max:20',
+                'email' => 'nullable|email|max:255',
+                'address' => 'nullable|string',
+                'city' => 'nullable|string|max:100',
+                'state' => 'nullable|string|max:100',
+                'pincode' => 'nullable|string|max:10',
+                'preferred_location' => 'nullable|string|max:255',
+                'preferred_size' => 'nullable|string|max:255',
+                'preferred_projects' => 'nullable|array',
+                'preferred_projects.*' => 'nullable|exists:projects,id',
+                'use_end_use' => 'nullable|string|in:End User,2nd Investments',
+                'budget' => 'nullable|string|in:Under ₹1 Cr,₹1.1 Cr – ₹2 Cr,Above ₹2 Cr',
+                'source' => 'nullable|in:website,referral,walk_in,call,social_media,other,custom',
+                'custom_source' => 'required_if:source,custom|nullable|string|max:255',
+                'property_type' => 'nullable|in:apartment,villa,plot,commercial,other',
+                'possession_status' => 'nullable|string|in:Ready to Move,Under Construction',
+                'requirements' => 'nullable|string',
+                'notes' => 'nullable|string',
+                'assigned_to' => 'nullable|exists:users,id',
+            ]);
+        }
 
         DB::beginTransaction();
         try {
-            $validated['created_by'] = $request->user()->id;
+            $validated['created_by'] = $user->id;
             $validated['status'] = 'new';
+            
+            // For CRM users, set source
+            if ($user->isCrm()) {
+                $validated['source'] = 'crm_manual';
+            } else {
+                // Handle preferred projects array - convert to JSON string
+                if (isset($validated['preferred_projects']) && is_array($validated['preferred_projects'])) {
+                    $validated['preferred_projects'] = json_encode($validated['preferred_projects']);
+                }
 
-            // Handle preferred projects array - convert to JSON string
-            if (isset($validated['preferred_projects']) && is_array($validated['preferred_projects'])) {
-                $validated['preferred_projects'] = json_encode($validated['preferred_projects']);
+                // Handle custom source
+                if ($request->source === 'custom' && $request->has('custom_source')) {
+                    $validated['source'] = $request->custom_source;
+                }
+                unset($validated['custom_source']);
             }
-
-            // Handle custom source
-            if ($request->source === 'custom' && $request->has('custom_source')) {
-                $validated['source'] = $request->custom_source;
-            }
-            unset($validated['custom_source']);
 
             $lead = Lead::create($validated);
 
-            // Assign lead if user selected
-            if ($request->has('assigned_to') && $request->assigned_to) {
-                $this->assignLead($lead, $request->assigned_to, $request->user()->id);
+            // Assign lead if user selected (non-CRM users only)
+            if (!$user->isCrm() && $request->has('assigned_to') && $request->assigned_to) {
+                $this->assignLead($lead, $request->assigned_to, $user->id);
             }
 
             DB::commit();
+
+            if ($user->isCrm()) {
+                return redirect()
+                    ->route('leads.show', $lead->id)
+                    ->with('success', "Lead '{$lead->name}' created successfully. You can now fill detailed requirements using the centralized form.");
+            }
 
             return redirect()
                 ->route('leads.index')
@@ -256,6 +288,148 @@ class LeadController extends Controller
         return view('leads.show', compact('lead', 'timeline'));
     }
 
+    public function edit(Request $request, Lead $lead)
+    {
+        $user = $request->user();
+
+        // Check access permissions
+        if (!$this->canAccessLead($user, $lead)) {
+            abort(403, 'You do not have permission to edit this lead.');
+        }
+
+        // Load lead with form field values
+        $lead->load('formFieldValues');
+
+        return view('leads.edit', compact('lead'));
+    }
+
+    public function update(Request $request, Lead $lead)
+    {
+        $user = $request->user();
+
+        // Check access permissions
+        if (!$this->canAccessLead($user, $lead)) {
+            abort(403, 'You do not have permission to update this lead.');
+        }
+
+        $userRole = $user->role->slug;
+
+        // Basic lead fields validation (name and phone - always required)
+        $validationRules = [
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+        ];
+
+        // Get visible fields for user's role
+        $visibleFields = \App\Models\LeadFormField::active()
+            ->visibleToRole($userRole)
+            ->get();
+
+        // Validate fields dynamically
+        foreach ($visibleFields as $field) {
+            $rule = [];
+            
+            if ($field->is_required) {
+                $rule[] = 'required';
+            } else {
+                $rule[] = 'nullable';
+            }
+            
+            // Add field type validation
+            switch ($field->field_type) {
+                case 'email':
+                    $rule[] = 'email';
+                    break;
+                case 'number':
+                    $rule[] = 'numeric';
+                    break;
+                case 'date':
+                    $rule[] = 'date';
+                    break;
+                case 'time':
+                    $rule[] = 'date_format:H:i';
+                    break;
+            }
+            
+            $validationRules[$field->field_key] = $rule;
+        }
+
+        // Special validation for conditional fields
+        if ($request->has('final_status') && $request->final_status === 'Follow Up') {
+            $validationRules['follow_up_date'] = ['required', 'date'];
+            $validationRules['follow_up_time'] = ['required', 'date_format:H:i'];
+        }
+
+        $validated = $request->validate($validationRules);
+
+        DB::beginTransaction();
+        try {
+            // Update basic lead fields (name and phone)
+            $lead->name = $validated['name'];
+            $lead->phone = $validated['phone'];
+            
+            // Save dynamic form field values
+            foreach ($visibleFields as $field) {
+                if ($request->has($field->field_key)) {
+                    $value = $request->input($field->field_key);
+                    // Only save if value is not empty or if it's a required field
+                    if (!empty($value) || $field->is_required) {
+                        $lead->setFormFieldValue($field->field_key, $value ?? '', $user->id);
+                    }
+                }
+            }
+
+            // Update tracking flags based on role
+            if ($userRole === 'telecaller') {
+                $lead->form_filled_by_telecaller = true;
+            } elseif ($userRole === 'sales_executive') {
+                $lead->form_filled_by_executive = true;
+            } elseif (in_array($userRole, ['sales_manager', 'sales_head'])) {
+                $lead->form_filled_by_manager = true;
+            }
+
+            $lead->save();
+
+            // Handle follow-up task creation
+            if (isset($validated['final_status']) && $validated['final_status'] === 'Follow Up' 
+                && isset($validated['follow_up_date']) && isset($validated['follow_up_time'])) {
+                
+                $followUpDateTime = \Carbon\Carbon::parse($validated['follow_up_date'] . ' ' . $validated['follow_up_time']);
+                
+                // Create follow-up task
+                $taskService = app(\App\Services\TelecallerTaskService::class);
+                $taskService->createFollowUpTask(
+                    $lead,
+                    $user->id,
+                    $validated['follow_up_date'],
+                    $validated['follow_up_time'],
+                    $user->id
+                );
+            }
+
+            DB::commit();
+
+            $roleMessage = [
+                'telecaller' => 'Basic requirements saved. Lead moved to Executive for review.',
+                'sales_executive' => 'Lead status updated.' . (isset($validated['final_status']) && $validated['final_status'] === 'Follow Up' ? ' Follow-up task created.' : ''),
+                'sales_manager' => 'Lead requirements finalized.',
+                'crm' => 'All lead requirements saved successfully.',
+                'admin' => 'Lead requirements updated successfully.',
+                'sales_head' => 'Lead requirements updated successfully.',
+            ];
+
+            return redirect()
+                ->route('leads.show', $lead->id)
+                ->with('success', $roleMessage[$userRole] ?? 'Lead requirements updated successfully.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()
+                ->withErrors(['error' => 'Failed to update lead: ' . $e->getMessage()])
+                ->withInput();
+        }
+    }
+
     public function shortDetails(Request $request, Lead $lead)
     {
         $user = $request->user();
@@ -305,16 +479,32 @@ class LeadController extends Controller
         // Sales Manager can see leads from their team's verified prospects
         if ($user->isSalesManager()) {
             $teamMemberIds = $user->teamMembers()->pluck('id');
-            return $lead->prospects()
-                ->whereIn('telecaller_id', $teamMemberIds)
-                ->whereIn('verification_status', ['verified', 'approved'])
-                ->exists() ||
-                $lead->activeAssignments()->whereIn('assigned_to', $teamMemberIds)->exists();
+            
+            // Check if lead is directly assigned to this sales manager
+            if ($lead->activeAssignments()->where('assigned_to', $user->id)->where('is_active', true)->exists()) {
+                return true;
+            }
+            
+            // Check if lead is assigned to team members
+            if ($teamMemberIds->isNotEmpty() && $lead->activeAssignments()->whereIn('assigned_to', $teamMemberIds)->where('is_active', true)->exists()) {
+                return true;
+            }
+            
+            // Check if lead came from verified prospects of team members
+            if ($teamMemberIds->isNotEmpty()) {
+                return $lead->prospects()
+                    ->whereIn('telecaller_id', $teamMemberIds)
+                    ->whereIn('verification_status', ['verified', 'approved'])
+                    ->exists();
+            }
+            
+            return false;
         }
 
-        // Telecaller and Sales Executive can see assigned leads
+        // Telecaller and Sales Executive can see assigned leads or leads from their prospects
         if ($user->isTelecaller() || $user->isSalesExecutive()) {
-            return $lead->activeAssignments()->where('assigned_to', $user->id)->exists();
+            return $lead->activeAssignments()->where('assigned_to', $user->id)->exists() ||
+                   $lead->prospects()->where('telecaller_id', $user->id)->exists();
         }
 
         return false;

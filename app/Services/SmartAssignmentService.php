@@ -6,16 +6,21 @@ use App\Models\Lead;
 use App\Models\User;
 use App\Events\LeadAssigned;
 use App\Services\UserAvailabilityService;
+use App\Services\UserStatusService;
 use Illuminate\Support\Facades\Log;
 
 class SmartAssignmentService
 {
     protected $availabilityService;
+    protected $userStatusService;
     protected static $roundRobinCounters = [];
 
-    public function __construct(UserAvailabilityService $availabilityService)
-    {
+    public function __construct(
+        UserAvailabilityService $availabilityService,
+        UserStatusService $userStatusService
+    ) {
         $this->availabilityService = $availabilityService;
+        $this->userStatusService = $userStatusService;
     }
 
     /**
@@ -82,7 +87,7 @@ class SmartAssignmentService
             if ($this->evaluateCondition($lead, $condition)) {
                 // Get user from condition
                 $userId = $condition['assign_to'] ?? null;
-                if ($userId && $this->availabilityService->isUserAvailable($userId)) {
+                if ($userId && !$this->userStatusService->isUserAbsent($userId) && $this->availabilityService->isUserAvailable($userId)) {
                     return $userId;
                 }
             }
@@ -314,6 +319,11 @@ class SmartAssignmentService
             $isActive = $userConfig['is_active'] ?? true;
 
             if (!$userId || !$isActive) {
+                continue;
+            }
+
+            // Check if user is absent (for all users)
+            if ($this->userStatusService->isUserAbsent($userId)) {
                 continue;
             }
 

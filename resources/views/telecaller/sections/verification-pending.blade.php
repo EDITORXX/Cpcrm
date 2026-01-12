@@ -191,6 +191,22 @@
             <button class="filter-btn" onclick="filterProspects('all')">All</button>
         </div>
 
+        <!-- Date Filter Section -->
+        <div class="date-filter-bar" style="margin-bottom: 20px; padding: 15px; background: #F7F6F3; border-radius: 8px;">
+            <div class="date-filter-buttons" style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <button class="filter-btn date-filter-btn active" data-filter="today" onclick="applyDateFilter('today')">Today</button>
+                <button class="filter-btn date-filter-btn" data-filter="this_week" onclick="applyDateFilter('this_week')">This Week</button>
+                <button class="filter-btn date-filter-btn" data-filter="this_month" onclick="applyDateFilter('this_month')">This Month</button>
+                <button class="filter-btn date-filter-btn" data-filter="custom" id="custom-date-filter-btn" onclick="toggleCustomDateInputs()">Custom Date</button>
+            </div>
+            <div class="custom-date-inputs" id="custom-date-inputs" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #E5DED4; align-items: center; gap: 10px;">
+                <input type="date" id="start-date" class="date-input" style="padding: 8px 12px; border: 2px solid #E5DED4; border-radius: 8px;">
+                <span style="color: #B3B5B4;">to</span>
+                <input type="date" id="end-date" class="date-input" style="padding: 8px 12px; border: 2px solid #E5DED4; border-radius: 8px;">
+                <button onclick="applyCustomDate()" class="apply-btn" style="padding: 8px 20px; background: #063A1C; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;">Apply</button>
+            </div>
+        </div>
+
         <div id="prospectsContent" class="prospects-grid">
             <div class="loading-state">
                 <i class="fas fa-spinner fa-spin"></i>
@@ -204,6 +220,9 @@
 <script>
     var API_BASE_URL = '{{ url("/api/telecaller") }}';
     let currentStatus = 'pending';
+    let currentDateFilter = 'today';
+    let customStartDate = '';
+    let customEndDate = '';
 
     function getToken() {
         return localStorage.getItem('telecaller_token');
@@ -287,7 +306,10 @@
         contentDiv.className = 'prospects-grid';
         contentDiv.innerHTML = '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Loading prospects...</p></div>';
 
-        const endpoint = `/prospects?status=${status}&per_page=20`;
+        let endpoint = `/prospects?status=${status}&per_page=20&date_range=${currentDateFilter}`;
+        if (currentDateFilter === 'custom' && customStartDate && customEndDate) {
+            endpoint += `&start_date=${customStartDate}&end_date=${customEndDate}`;
+        }
         console.log('Loading prospects from:', API_BASE_URL + endpoint);
         
         const result = await apiCall(endpoint);
@@ -443,16 +465,80 @@
     function formatStatus(status) {
         const statusMap = {
             'pending': 'Pending Verification',
+            'pending_verification': 'Pending Verification',
             'approved': 'Approved',
+            'verified': 'Verified',
             'rejected': 'Rejected',
         };
         return statusMap[status] || status;
     }
 
     function filterProspects(status) {
-        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        currentStatus = status;
+        
+        // Update active button
+        document.querySelectorAll('.filter-bar .filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
         event.target.classList.add('active');
+        
+        // Load prospects
         loadProspects(status);
+    }
+
+    function applyDateFilter(filter) {
+        currentDateFilter = filter;
+        customStartDate = '';
+        customEndDate = '';
+        
+        // Update active button
+        document.querySelectorAll('.date-filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        
+        // Hide custom inputs
+        document.getElementById('custom-date-inputs').style.display = 'none';
+        document.getElementById('start-date').value = '';
+        document.getElementById('end-date').value = '';
+        
+        // Reload prospects
+        loadProspects(currentStatus);
+    }
+
+    function toggleCustomDateInputs() {
+        const customInputs = document.getElementById('custom-date-inputs');
+        if (customInputs.style.display === 'none' || !customInputs.style.display) {
+            customInputs.style.display = 'flex';
+            document.getElementById('custom-date-filter-btn').classList.add('active');
+            document.querySelectorAll('.date-filter-btn').forEach(btn => {
+                if (btn.id !== 'custom-date-filter-btn') {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+    }
+
+    function applyCustomDate() {
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+        
+        if (!startDate || !endDate) {
+            alert('Please select both start and end dates');
+            return;
+        }
+        
+        if (new Date(startDate) > new Date(endDate)) {
+            alert('Start date cannot be after end date');
+            return;
+        }
+        
+        currentDateFilter = 'custom';
+        customStartDate = startDate;
+        customEndDate = endDate;
+        
+        // Reload prospects
+        loadProspects(currentStatus);
     }
 
     function openWhatsApp(phoneNumber) {

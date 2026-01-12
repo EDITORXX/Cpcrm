@@ -16,7 +16,8 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telecaller</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pending Leads</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Max Pending</th>
@@ -25,33 +26,50 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    @foreach($telecallers as $telecaller)
+                    @foreach($users as $user)
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm font-medium text-gray-900">{{ $telecaller['name'] }}</div>
-                                <div class="text-sm text-gray-500">{{ $telecaller['email'] }}</div>
+                                <div class="text-sm font-medium text-gray-900">{{ $user['name'] }}</div>
+                                <div class="text-sm text-gray-500">{{ $user['email'] }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                    {{ $user['role'] }}
+                                </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-2 py-1 text-xs font-semibold rounded-full 
-                                    {{ $telecaller['is_absent'] ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">
-                                    {{ $telecaller['is_absent'] ? 'Absent' : 'Present' }}
+                                    {{ $user['is_absent'] ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">
+                                    {{ $user['is_absent'] ? 'Absent' : 'Present' }}
                                 </span>
-                                @if($telecaller['absent_reason'])
-                                    <div class="text-xs text-gray-500 mt-1">{{ $telecaller['absent_reason'] }}</div>
+                                @if($user['absent_reason'])
+                                    <div class="text-xs text-gray-500 mt-1">{{ $user['absent_reason'] }}</div>
                                 @endif
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $telecaller['pending_count'] }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $telecaller['max_pending_leads'] }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                @if($user['is_telecaller'])
+                                    {{ $user['pending_count'] }}
+                                @else
+                                    <span class="text-gray-400">N/A</span>
+                                @endif
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                @if($user['is_telecaller'] && $user['max_pending_leads'] !== null)
+                                    {{ $user['max_pending_leads'] }}
+                                @else
+                                    <span class="text-gray-400">N/A</span>
+                                @endif
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-2 py-1 text-xs font-semibold rounded-full 
-                                    {{ $telecaller['can_receive'] ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                    {{ $telecaller['can_receive'] ? 'Yes' : 'No' }}
+                                    {{ $user['can_receive'] ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                    {{ $user['can_receive'] ? 'Yes' : 'No' }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <button onclick="toggleStatus({{ $telecaller['id'] }}, {{ $telecaller['is_absent'] ? 'false' : 'true' }})" 
+                                <button onclick="toggleStatus({{ $user['id'] }}, {{ $user['is_absent'] ? 'false' : 'true' }})" 
                                         class="text-indigo-600 hover:text-indigo-900">
-                                    Mark {{ $telecaller['is_absent'] ? 'Present' : 'Absent' }}
+                                    Mark {{ $user['is_absent'] ? 'Present' : 'Absent' }}
                                 </button>
                             </td>
                         </tr>
@@ -64,7 +82,7 @@
     <!-- Status Modal -->
     <div id="status-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 flex items-center justify-center">
         <div class="bg-white rounded-xl shadow-lg p-6 max-w-md w-full mx-4">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Update Telecaller Status</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Update User Status</h3>
             <form id="status-form">
                 <input type="hidden" id="status-user-id">
                 <input type="hidden" id="status-is-absent">

@@ -143,16 +143,25 @@ async function loadNotifications() {
             
             // Show browser notifications for new unread notifications
             result.data.forEach(notification => {
-                if (!notification.read_at && notification.type === 'call_reminder') {
+                if (!notification.read_at && (notification.type === 'call_reminder' || notification.type === 'new_verification')) {
                     // Only show if not already shown
                     if (!shownNotificationIds.has(notification.id)) {
                         const data = notification.data || {};
+                        // Set URL based on action_url or notification type
+                        let notificationUrl = notification.action_url;
+                        if (!notificationUrl && notification.action_type === 'verification') {
+                            notificationUrl = '/telecaller/verification-pending';
+                        } else if (!notificationUrl && notification.telecaller_task_id) {
+                            notificationUrl = `/telecaller/tasks?status=pending&task_id=${notification.telecaller_task_id}`;
+                        }
+                        
                         showBrowserNotification(
                             notification.title,
                             notification.message,
                             {
                                 ...data,
                                 notification_id: notification.id,
+                                url: notificationUrl,
                             }
                         );
                     }

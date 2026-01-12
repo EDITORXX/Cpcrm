@@ -99,23 +99,44 @@ class LeadActivityService
         }
 
         // 5. Site Visits
-        foreach ($lead->siteVisits()->with(['creator', 'assignedTo'])->orderBy('created_at', 'desc')->get() as $siteVisit) {
+        foreach ($lead->siteVisits()->with(['creator', 'assignedTo', 'verifiedBy'])->orderBy('created_at', 'desc')->get() as $siteVisit) {
+            // Site Visit Created event
+            $projectsText = $siteVisit->project ? ". Projects: " . $siteVisit->project : '';
             $activities->push([
-                'type' => 'site_visit',
-                'title' => 'Site Visit ' . ucfirst($siteVisit->status),
-                'description' => "Site visit {$siteVisit->status} for {$lead->name}" . 
-                    ($siteVisit->scheduled_at ? " on " . $siteVisit->scheduled_at->format('M d, Y') : ''),
+                'type' => 'site_visit_created',
+                'title' => 'Site Visit Created',
+                'description' => "Site visit scheduled for {$lead->name}" . 
+                    ($siteVisit->scheduled_at ? " on " . $siteVisit->scheduled_at->format('M d, Y h:i A') : '') .
+                    $projectsText,
                 'user' => $siteVisit->creator,
                 'timestamp' => $siteVisit->created_at,
-                'icon' => $this->getSiteVisitIcon($siteVisit->status),
-                'color' => $this->getSiteVisitColor($siteVisit->status),
+                'icon' => 'fa-calendar-plus',
+                'color' => '#3b82f6', // blue
                 'metadata' => [
-                    'status' => $siteVisit->status,
                     'scheduled_at' => $siteVisit->scheduled_at,
-                    'verification_status' => $siteVisit->verification_status,
-                    'property_name' => $siteVisit->property_name,
+                    'project' => $siteVisit->project,
+                    'status' => $siteVisit->status,
                 ],
             ]);
+
+            // Site Visit Completed event (only if status is completed)
+            if ($siteVisit->status === 'completed' && $siteVisit->completed_at) {
+                $projectsVisitedText = $siteVisit->project ? ". Projects visited: " . $siteVisit->project : '';
+                $activities->push([
+                    'type' => 'site_visit_completed',
+                    'title' => 'Site Visit Completed',
+                    'description' => "Site visit completed for {$lead->name}" . $projectsVisitedText,
+                    'user' => $siteVisit->creator,
+                    'timestamp' => $siteVisit->completed_at,
+                    'icon' => 'fa-check-circle',
+                    'color' => '#10b981', // green
+                    'metadata' => [
+                        'completed_at' => $siteVisit->completed_at,
+                        'project' => $siteVisit->project,
+                        'rating' => $siteVisit->rating,
+                    ],
+                ]);
+            }
 
             // If verified, add verification activity
             if ($siteVisit->verified_at && $siteVisit->verifiedBy) {
@@ -150,6 +171,30 @@ class LeadActivityService
                     'status' => $followUp->status,
                     'scheduled_at' => $followUp->scheduled_at,
                     'completed_at' => $followUp->completed_at,
+                ],
+            ]);
+        }
+
+        // 6.5. Next Follow-up (upcoming scheduled follow-up)
+        $nextFollowUp = $lead->followUps()
+            ->where('status', 'scheduled')
+            ->where('scheduled_at', '>', now())
+            ->orderBy('scheduled_at', 'asc')
+            ->with('creator')
+            ->first();
+
+        if ($nextFollowUp) {
+            $activities->push([
+                'type' => 'next_followup',
+                'title' => 'Next Follow-up Scheduled',
+                'description' => "Follow-up scheduled for " . $nextFollowUp->scheduled_at->format('M d, Y h:i A'),
+                'user' => $nextFollowUp->creator,
+                'timestamp' => $nextFollowUp->created_at,
+                'icon' => 'fa-calendar-check',
+                'color' => '#f59e0b', // amber
+                'metadata' => [
+                    'scheduled_at' => $nextFollowUp->scheduled_at,
+                    'type' => $nextFollowUp->type,
                 ],
             ]);
         }
@@ -224,7 +269,58 @@ class LeadActivityService
             }
         }
 
-        // 9. Status Changes (from lead history or activity logs)
+        // 9. Tasks Created (for this lead)
+        // Check both Task and TelecallerTask models
+        $tasks = \App\Models\Task::where('lead_id', $lead->id)
+            ->with(['assignedTo', 'creator'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+        foreach ($tasks as $task) {
+            $activities->push([
+                'type' => 'task_created',
+                'title' => 'Calling Task Created',
+                'description' => "Calling task created for {$lead->name}" . 
+                    ($task->assignedTo ? " (Assigned to {$task->assignedTo->name})" : ''),
+                'user' => $task->creator,
+                'timestamp' => $task->created_at,
+                'icon' => 'fa-phone',
+                'color' => '#3b82f6', // blue
+                'metadata' => [
+                    'task_id' => $task->id,
+                    'task_type' => $task->type,
+                    'assigned_to' => $task->assignedTo ? $task->assignedTo->name : null,
+                    'status' => $task->status,
+                ],
+            ]);
+        }
+        
+        // Also check TelecallerTask
+        $telecallerTasks = \App\Models\TelecallerTask::where('lead_id', $lead->id)
+            ->with(['assignedTo', 'createdBy'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
+        foreach ($telecallerTasks as $task) {
+            $activities->push([
+                'type' => 'task_created',
+                'title' => 'Calling Task Created',
+                'description' => "Calling task created for {$lead->name}" . 
+                    ($task->assignedTo ? " (Assigned to {$task->assignedTo->name})" : ''),
+                'user' => $task->createdBy ?? $task->assignedTo, // Use creator if available, otherwise assigned user
+                'timestamp' => $task->created_at,
+                'icon' => 'fa-phone',
+                'color' => '#3b82f6', // blue
+                'metadata' => [
+                    'task_id' => $task->id,
+                    'task_type' => $task->task_type,
+                    'assigned_to' => $task->assignedTo ? $task->assignedTo->name : null,
+                    'status' => $task->status,
+                ],
+            ]);
+        }
+
+        // 10. Status Changes (from lead history or activity logs)
         // This is already covered in ActivityLog, but we can add explicit status change tracking
         if ($lead->marked_dead_at) {
             $activities->push([
@@ -254,17 +350,22 @@ class LeadActivityService
             'updated' => 'updated',
             'deleted' => 'deleted',
             'assigned' => 'assigned',
+            'task_created' => 'task_created',
             default => 'activity',
         };
     }
 
     private function getActivityTitle($log): string
     {
+        if ($log->action === 'task_created') {
+            return 'Calling Task Created';
+        }
+        
         if ($log->old_values && $log->new_values && isset($log->old_values['status']) && isset($log->new_values['status'])) {
             return 'Status Changed';
         }
         
-        return ucfirst($log->action);
+        return ucfirst(str_replace('_', ' ', $log->action));
     }
 
     private function getActivityDescription($log): string
@@ -294,6 +395,7 @@ class LeadActivityService
             'updated' => 'fa-edit',
             'deleted' => 'fa-trash',
             'assigned' => 'fa-user-plus',
+            'task_created' => 'fa-phone',
             default => 'fa-info-circle',
         };
     }
@@ -305,6 +407,7 @@ class LeadActivityService
             'updated' => '#3b82f6',
             'deleted' => '#ef4444',
             'assigned' => '#8b5cf6',
+            'task_created' => '#3b82f6',
             default => '#6b7280',
         };
     }

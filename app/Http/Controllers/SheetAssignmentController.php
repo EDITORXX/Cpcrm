@@ -24,10 +24,21 @@ class SheetAssignmentController extends Controller
                 ->latest()
                 ->get();
 
-            $telecallerRoleId = Role::where('slug', Role::TELECALLER)->value('id');
-            $telecallers = User::where('role_id', $telecallerRoleId)
+            // Get all eligible users (telecaller, sales_manager, sales_executive)
+            $eligibleRoleIds = Role::whereIn('slug', [
+                Role::TELECALLER,
+                Role::SALES_MANAGER,
+                Role::SALES_EXECUTIVE
+            ])->pluck('id');
+            
+            $eligibleUsers = User::whereIn('role_id', $eligibleRoleIds)
                 ->where('is_active', true)
-                ->get();
+                ->with('role')
+                ->orderBy('name')
+                ->get()
+                ->groupBy(function($user) {
+                    return $user->role->name ?? 'Other';
+                });
 
             // If requesting specific sheet config via AJAX
             if ($request->has('sheet_id') && $request->ajax()) {
@@ -44,13 +55,23 @@ class SheetAssignmentController extends Controller
                             'per_sheet_daily_limit' => $sheet->per_sheet_daily_limit,
                             'assignment_method' => $sheet->sheetAssignmentConfig->assignment_method,
                             'auto_assign_enabled' => $sheet->sheetAssignmentConfig->auto_assign_enabled,
-                            'percentage_configs' => $sheet->sheetAssignmentConfig->percentageConfigs->map(function($pc) {
-                                return [
-                                    'user_id' => $pc->user_id,
-                                    'percentage' => $pc->percentage,
-                                    'daily_limit' => $pc->daily_limit,
-                                ];
-                            })->toArray(),
+                            'percentage_configs' => $sheet->sheetAssignmentConfig->percentageConfigs
+                                ->where('percentage', '>', 0) // Only percentage configs (not round robin)
+                                ->map(function($pc) {
+                                    return [
+                                        'user_id' => $pc->user_id,
+                                        'percentage' => (float)$pc->percentage,
+                                        'daily_limit' => $pc->daily_limit,
+                                    ];
+                                })->values()->toArray(),
+                            'round_robin_configs' => $sheet->sheetAssignmentConfig->percentageConfigs
+                                ->where('percentage', '=', 0) // Round robin configs have percentage = 0
+                                ->map(function($pc) {
+                                    return [
+                                        'user_id' => $pc->user_id,
+                                        'daily_limit' => $pc->daily_limit,
+                                    ];
+                                })->values()->toArray(),
                         ]
                     ]);
                 } else if ($sheet) {
@@ -74,12 +95,12 @@ class SheetAssignmentController extends Controller
                 }
             }
 
-            return view('lead-assignment.sheet-assignments', compact('sheets', 'telecallers'));
+            return view('lead-assignment.sheet-assignments', compact('sheets', 'eligibleUsers'));
         } catch (\Exception $e) {
             \Log::error('SheetAssignmentController@index error: ' . $e->getMessage());
             return view('lead-assignment.sheet-assignments', [
                 'sheets' => collect([]),
-                'telecallers' => collect([]),
+                'eligibleUsers' => collect([]),
                 'error' => 'Error loading sheet assignments: ' . $e->getMessage()
             ]);
         }
@@ -141,6 +162,9 @@ class SheetAssignmentController extends Controller
             'percentage_config.*.user_id' => 'required|exists:users,id',
             'percentage_config.*.percentage' => 'required|numeric|min:0|max:100',
             'percentage_config.*.daily_limit' => 'nullable|integer|min:0',
+            'round_robin_config' => 'required_if:assignment_method,round_robin|array',
+            'round_robin_config.*.user_id' => 'required|exists:users,id',
+            'round_robin_config.*.daily_limit' => 'nullable|integer|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -187,6 +211,21 @@ class SheetAssignmentController extends Controller
                         'user_id' => $pc['user_id'],
                         'percentage' => $pc['percentage'],
                         'daily_limit' => $pc['daily_limit'] ?? null,
+                        'assigned_count_today' => 0,
+                        'last_reset_date' => now()->toDateString(),
+                    ]);
+                }
+            } elseif ($request->assignment_method === 'round_robin' && $request->has('round_robin_config')) {
+                // Delete existing configs
+                SheetPercentageConfig::where('sheet_assignment_config_id', $config->id)->delete();
+
+                // Create new configs for round robin (percentage = 0 for round robin)
+                foreach ($request->round_robin_config as $rc) {
+                    SheetPercentageConfig::create([
+                        'sheet_assignment_config_id' => $config->id,
+                        'user_id' => $rc['user_id'],
+                        'percentage' => 0, // Not used for round robin
+                        'daily_limit' => $rc['daily_limit'] ?? null,
                         'assigned_count_today' => 0,
                         'last_reset_date' => now()->toDateString(),
                     ]);

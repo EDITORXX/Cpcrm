@@ -14,7 +14,7 @@ class SyncGoogleSheets extends Command
      *
      * @var string
      */
-    protected $signature = 'google-sheets:sync';
+    protected $signature = 'google-sheets:sync {--force : Force sync even if interval not reached}';
 
     /**
      * The console command description.
@@ -36,12 +36,14 @@ class SyncGoogleSheets extends Command
      */
     public function handle()
     {
-        $this->info('Starting Google Sheets sync...');
+        $this->info('Starting Google Sheets sync at ' . now()->format('Y-m-d H:i:s'));
 
         // Find all configs that need syncing
         $configs = GoogleSheetsConfig::where('is_active', true)
             ->where('auto_sync_enabled', true)
             ->get();
+
+        $this->info("Found {$configs->count()} active config(s) with auto-sync enabled");
 
         $synced = 0;
         $skipped = 0;
@@ -49,18 +51,50 @@ class SyncGoogleSheets extends Command
 
         foreach ($configs as $config) {
             // Check if it's time to sync
-            if ($config->last_sync_at) {
-                $nextSyncTime = $config->last_sync_at->addMinutes($config->sync_interval_minutes);
-                if (now()->lt($nextSyncTime)) {
+            // For auto-sync, always sync if interval has passed OR if last_sync_at is null
+            // This ensures we don't miss new leads
+            $shouldSync = false;
+            $forceSync = $this->option('force');
+            
+            if (!$config->last_sync_at) {
+                // Never synced - sync immediately
+                $shouldSync = true;
+                $this->info("  🔄 First sync for config ID: {$config->id} ({$config->sheet_name})");
+                Log::info("Google Sheets first sync", [
+                    'config_id' => $config->id,
+                    'sheet_name' => $config->sheet_name,
+                ]);
+            } else {
+                // Check if interval has passed
+                $nextSyncTime = $config->last_sync_at->copy()->addMinutes($config->sync_interval_minutes);
+                if ($forceSync || now()->gte($nextSyncTime)) {
+                    $shouldSync = true;
+                    if ($forceSync) {
+                        $this->info("  🔄 Force syncing config ID: {$config->id} ({$config->sheet_name}) (interval check bypassed)");
+                    }
+                } else {
                     $skipped++;
+                    $this->info("  ⏭ Skipping config ID: {$config->id} ({$config->sheet_name}) - next sync at {$nextSyncTime->format('Y-m-d H:i:s')} (current: " . now()->format('Y-m-d H:i:s') . ", interval: {$config->sync_interval_minutes} min)");
+                    Log::info("Google Sheets sync skipped - interval not reached", [
+                        'config_id' => $config->id,
+                        'sheet_name' => $config->sheet_name,
+                        'last_sync_at' => $config->last_sync_at->format('Y-m-d H:i:s'),
+                        'sync_interval_minutes' => $config->sync_interval_minutes,
+                        'next_sync_at' => $nextSyncTime->format('Y-m-d H:i:s'),
+                        'current_time' => now()->format('Y-m-d H:i:s'),
+                    ]);
                     continue;
                 }
+            }
+            
+            if (!$shouldSync) {
+                continue;
             }
 
             try {
                 $this->info("Syncing config ID: {$config->id} ({$config->sheet_name})...");
                 
-                $result = $this->sheetsService->syncGoogleSheets($config->id);
+                $result = $this->sheetsService->syncGoogleSheets($config);
                 
                 $this->info("  ✓ Imported: {$result['imported']}, Skipped: {$result['skipped']}");
                 $synced++;

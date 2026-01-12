@@ -314,6 +314,20 @@
     .btn-not-interested:hover { background: #ef4444; color: white; }
     .btn-cnp { border-color: #f59e0b; color: #f59e0b; }
     .btn-cnp:hover { background: #f59e0b; color: white; }
+    .telecaller-time-option-btn {
+        transition: all 0.2s ease;
+    }
+    .telecaller-time-option-btn:hover {
+        border-color: #f59e0b !important;
+        background: #fff9e6 !important;
+        transform: translateY(-1px);
+    }
+    .telecaller-time-option-btn.selected {
+        border-color: #f59e0b !important;
+        background: #f59e0b !important;
+        color: white !important;
+        font-weight: 600;
+    }
     .btn-call-again { border-color: #3b82f6; color: #3b82f6; }
     .btn-call-again:hover { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; }
     .btn-block { border-color: #dc2626; color: #dc2626; }
@@ -821,6 +835,164 @@
         </div>
     </div>
 
+    <!-- CNP Time Selection Modal -->
+    <div id="telecallerCnpTimeSelectionModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Select Retry Time for CNP</h3>
+                <button class="close-modal" onclick="cancelTelecallerCnpTimeSelection()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="padding: 20px;">
+                    <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
+                        Choose when to retry this call:
+                    </p>
+                    
+                    <!-- Quick Time Options -->
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+                        <button type="button" class="telecaller-time-option-btn" onclick="selectTelecallerCnpTime(15)" data-minutes="15" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                            15 Minutes
+                        </button>
+                        <button type="button" class="telecaller-time-option-btn" onclick="selectTelecallerCnpTime(30)" data-minutes="30" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                            30 Minutes
+                        </button>
+                        <button type="button" class="telecaller-time-option-btn" onclick="selectTelecallerCnpTime(60)" data-minutes="60" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                            1 Hour
+                        </button>
+                        <button type="button" class="telecaller-time-option-btn" onclick="selectTelecallerCnpTime(120)" data-minutes="120" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                            2 Hours
+                        </button>
+                    </div>
+                    
+                    <!-- Custom Option -->
+                    <div style="margin-bottom: 20px;">
+                        <button type="button" class="telecaller-time-option-btn" onclick="showTelecallerCustomTimePicker()" id="telecallerCustomTimeOptionBtn" style="width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                            Custom Date & Time
+                        </button>
+                    </div>
+                    
+                    <!-- Custom Date-Time Picker (hidden by default) -->
+                    <div id="telecallerCustomTimePickerContainer" style="display: none; padding: 16px; background: #f8f9fa; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                <strong>Date</strong> <span style="color: #d32f2f;">*</span>
+                            </label>
+                            <input type="date" 
+                                   id="telecallerCnpCustomDate" 
+                                   min=""
+                                   style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                <strong>Time</strong> <span style="color: #d32f2f;">*</span>
+                            </label>
+                            <input type="time" 
+                                   id="telecallerCnpCustomTime"
+                                   style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        </div>
+                        <small style="display: block; margin-top: 8px; color: #666; font-size: 12px;">
+                            Select a future date and time for the retry call
+                        </small>
+                    </div>
+                    
+                    <!-- Selected Time Display -->
+                    <div id="telecallerSelectedTimeDisplay" style="padding: 12px; background: #e8f5e9; border-radius: 6px; margin-bottom: 20px; display: none;">
+                        <p style="font-size: 14px; color: #2e7d32; margin: 0;">
+                            <strong>Selected:</strong> <span id="telecallerSelectedTimeText"></span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; padding: 16px 20px; border-top: 1px solid #e0e0e0;">
+                <button type="button" onclick="cancelTelecallerCnpTimeSelection()" style="padding: 10px 20px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer; font-size: 14px; font-weight: 500;">
+                    Cancel
+                </button>
+                <button type="button" onclick="confirmTelecallerCnpTimeSelection()" style="padding: 10px 20px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CNP Time Selection Modal -->
+    <div id="telecallerCnpTimeSelectionModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Select Retry Time for CNP</h3>
+                <button class="close-modal" onclick="cancelTelecallerCnpTimeSelection()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="padding: 20px;">
+                    <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
+                        Choose when to retry this call:
+                    </p>
+                    
+                    <!-- Quick Time Options -->
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+                        <button type="button" class="telecaller-time-option-btn" onclick="selectTelecallerCnpTime(15)" data-minutes="15" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                            15 Minutes
+                        </button>
+                        <button type="button" class="telecaller-time-option-btn" onclick="selectTelecallerCnpTime(30)" data-minutes="30" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                            30 Minutes
+                        </button>
+                        <button type="button" class="telecaller-time-option-btn" onclick="selectTelecallerCnpTime(60)" data-minutes="60" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                            1 Hour
+                        </button>
+                        <button type="button" class="telecaller-time-option-btn" onclick="selectTelecallerCnpTime(120)" data-minutes="120" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                            2 Hours
+                        </button>
+                    </div>
+                    
+                    <!-- Custom Option -->
+                    <div style="margin-bottom: 20px;">
+                        <button type="button" class="telecaller-time-option-btn" onclick="showTelecallerCustomTimePicker()" id="telecallerCustomTimeOptionBtn" style="width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                            Custom Date & Time
+                        </button>
+                    </div>
+                    
+                    <!-- Custom Date-Time Picker (hidden by default) -->
+                    <div id="telecallerCustomTimePickerContainer" style="display: none; padding: 16px; background: #f8f9fa; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="margin-bottom: 12px;">
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                <strong>Date</strong> <span style="color: #d32f2f;">*</span>
+                            </label>
+                            <input type="date" 
+                                   id="telecallerCnpCustomDate" 
+                                   min=""
+                                   style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                <strong>Time</strong> <span style="color: #d32f2f;">*</span>
+                            </label>
+                            <input type="time" 
+                                   id="telecallerCnpCustomTime"
+                                   style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        </div>
+                        <small style="display: block; margin-top: 8px; color: #666; font-size: 12px;">
+                            Select a future date and time for the retry call
+                        </small>
+                    </div>
+                    
+                    <!-- Selected Time Display -->
+                    <div id="telecallerSelectedTimeDisplay" style="padding: 12px; background: #e8f5e9; border-radius: 6px; margin-bottom: 20px; display: none;">
+                        <p style="font-size: 14px; color: #2e7d32; margin: 0;">
+                            <strong>Selected:</strong> <span id="telecallerSelectedTimeText"></span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; padding: 16px 20px; border-top: 1px solid #e0e0e0;">
+                <button type="button" onclick="cancelTelecallerCnpTimeSelection()" style="padding: 10px 20px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer; font-size: 14px; font-weight: 500;">
+                    Cancel
+                </button>
+                <button type="button" onclick="confirmTelecallerCnpTimeSelection()" style="padding: 10px 20px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Custom Confirmation Modal -->
     <div id="confirmModal" class="modal">
         <div class="modal-content" style="max-width: 500px;">
@@ -972,12 +1144,18 @@
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('API Error Response:', errorText);
+                console.error('API Error Response (Status ' + response.status + '):', errorText);
                 try {
                     const errorJson = JSON.parse(errorText);
-                    return { success: false, message: errorJson.message || errorText };
+                    // Preserve full error response for duplicate errors (409 Conflict) and other structured errors
+                    if (response.status === 409 || errorJson.error === 'duplicate' || errorJson.existing_prospect) {
+                        // Include full error details for duplicate prospect errors
+                        return { success: false, ...errorJson, status_code: response.status };
+                    }
+                    // For other errors, return structured response
+                    return { success: false, message: errorJson.message || errorJson.error || errorText, ...errorJson };
                 } catch (e) {
-                    return { success: false, message: errorText || `HTTP ${response.status}: ${response.statusText}` };
+                    return { success: false, message: errorText || `HTTP ${response.status}: ${response.statusText}`, status_code: response.status };
                 }
             }
 
@@ -1056,7 +1234,7 @@
             const overdueClass = isOverdue ? 'overdue' : '';
 
             cardsHTML += `
-                <div class="task-card ${overdueClass}">
+                <div id="task-card-${task.id}" class="task-card ${overdueClass}">
                     <div class="task-header">
                         <div class="task-avatar">${initial}</div>
                         <h3 class="task-name">${task.lead_name || '-'}</h3>
@@ -1161,17 +1339,60 @@
         document.getElementById('postCallModal').classList.remove('active');
     }
 
-    function handleInterested() {
+    async function handleInterested() {
         closePostCallModal();
-        // Show prospect form
-        if (currentLeadData) {
-            document.getElementById('customerName').value = currentLeadData.lead_name || '';
-            document.getElementById('prospectPhone').value = currentLeadData.lead_phone || '';
-            document.getElementById('assignTo').value = currentLeadData.manager_name || 'Not Assigned';
-            if (typeof initializeStarRating === 'function') {
-                initializeStarRating();
+        
+        if (!currentTaskId) {
+            if (typeof showAlert === 'function') {
+                showAlert('Error: Task ID not found', 'error', 3000);
+            } else {
+                alert('Error: Task ID not found');
             }
-            document.getElementById('prospectModal').classList.add('active');
+            return;
+        }
+        
+        try {
+            // First, mark the task as interested (complete the call outcome)
+            const response = await apiCall(`/tasks/${currentTaskId}/call-outcome`, {
+                method: 'POST',
+                body: JSON.stringify({ outcome: 'interested' })
+            });
+            
+            if (response && response.success) {
+                // Show success message
+                if (typeof showAlert === 'function') {
+                    showAlert(response.message || 'Lead marked as interested. Opening form...', 'success', 2000);
+                }
+                
+                // Open the lead requirement form modal instead of redirecting
+                if (typeof openLeadRequirementFormModal === 'function') {
+                    // Use task_id from response or currentTaskId
+                    const taskId = response.task_id || currentTaskId;
+                    openLeadRequirementFormModal(taskId);
+                } else {
+                    // Fallback: if modal function not available, show error
+                    if (typeof showAlert === 'function') {
+                        showAlert('Form modal not available. Please refresh the page.', 'error', 3000);
+                    } else {
+                        alert('Form modal not available. Please refresh the page.');
+                    }
+                }
+            } else {
+                const errorMsg = response?.error || response?.message || 'Failed to mark as interested';
+                if (typeof showAlert === 'function') {
+                    showAlert(errorMsg, 'error', 3000);
+                } else {
+                    alert('Error: ' + errorMsg);
+                }
+            }
+        } catch (error) {
+            console.error('Error marking as interested:', error);
+            const errorMsg = 'Error: Failed to mark as interested. Please try again.';
+            if (typeof showAlert === 'function') {
+                showAlert(errorMsg, 'error', 3000);
+            } else {
+                alert(errorMsg);
+            }
         }
     }
 
@@ -1201,49 +1422,337 @@
         });
 
         if (result && result.success) {
+            // Remove task card immediately from DOM
+            const taskCard = document.getElementById(`task-card-${currentTaskId}`);
+            if (taskCard) {
+                taskCard.style.transition = 'opacity 0.3s, transform 0.3s';
+                taskCard.style.opacity = '0';
+                taskCard.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    taskCard.remove();
+                    // Reload tasks after card removal to ensure consistency
+                    if (currentStatus === 'pending' || currentStatus === 'rescheduled') {
+                        loadTasks(currentStatus);
+                    }
+                }, 300);
+            } else {
+                // Fallback if card not found by ID
+                if (currentStatus === 'pending' || currentStatus === 'rescheduled') {
+                    loadTasks(currentStatus);
+                }
+            }
+            
             showAlert('Lead marked as Not Interested', 'success', 2500);
             closePostCallModal();
-            loadTasks(currentStatus);
         } else {
             showAlert(result?.message || 'Failed to update', 'error', 3000);
         }
     }
 
+    // CNP Time Selection Variables for Telecaller
+    let selectedTelecallerCnpMinutes = null;
+    let selectedTelecallerCnpDateTime = null;
+    let isTelecallerCustomTimeSelected = false;
+    let currentCnpCount = 0;
+    
     async function handleCNP() {
-        const cnpCount = currentLeadData?.cnp_count || 0;
-        let confirmMessage = 'Mark as CNP?';
+        closePostCallModal();
+        currentCnpCount = currentLeadData?.cnp_count || 0;
         
-        if (cnpCount === 0) {
-            confirmMessage = 'Mark as CNP? A new calling task will be created for tomorrow.';
-        } else if (cnpCount === 1) {
-            confirmMessage = 'Mark as CNP again? This will be the 2nd CNP. Task will be completed automatically.';
-        } else {
-            confirmMessage = 'Mark as CNP? Task will be completed.';
+        // If CNP count >= 2, task will be completed (no retry task created)
+        if (currentCnpCount >= 2) {
+            showConfirmModal('Mark as CNP? Task will be completed automatically.', function() {
+                executeTelecallerCNP(null, null, currentCnpCount);
+            });
+            return;
         }
         
-        showConfirmModal(confirmMessage, function() {
-            executeCNP(cnpCount);
-        });
+        // Open time selection modal for CNP count < 2
+        openTelecallerCnpTimeSelectionModal();
     }
     
-    async function executeCNP(cnpCount) {
+    // Open Telecaller CNP Time Selection Modal
+    function openTelecallerCnpTimeSelectionModal() {
+        const modal = document.getElementById('telecallerCnpTimeSelectionModal');
+        if (modal) {
+            modal.classList.add('active');
+            // Reset selections
+            selectedTelecallerCnpMinutes = null;
+            selectedTelecallerCnpDateTime = null;
+            isTelecallerCustomTimeSelected = false;
+            document.getElementById('telecallerCustomTimePickerContainer').style.display = 'none';
+            document.getElementById('telecallerSelectedTimeDisplay').style.display = 'none';
+            // Clear button selections
+            document.querySelectorAll('.telecaller-time-option-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            // Set minimum date to today
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = document.getElementById('telecallerCnpCustomDate');
+            if (dateInput) {
+                dateInput.min = today;
+                dateInput.value = '';
+            }
+            const timeInput = document.getElementById('telecallerCnpCustomTime');
+            if (timeInput) {
+                timeInput.value = '';
+            }
+        }
+    }
+    
+    // Select quick time option for telecaller (15 min, 30 min, 1 hr, 2 hr)
+    function selectTelecallerCnpTime(minutes) {
+        selectedTelecallerCnpMinutes = minutes;
+        selectedTelecallerCnpDateTime = null;
+        isTelecallerCustomTimeSelected = false;
+        
+        // Hide custom picker
+        document.getElementById('telecallerCustomTimePickerContainer').style.display = 'none';
+        
+        // Clear custom inputs
+        document.getElementById('telecallerCnpCustomDate').value = '';
+        document.getElementById('telecallerCnpCustomTime').value = '';
+        
+        // Remove selected class from all buttons
+        document.querySelectorAll('.telecaller-time-option-btn').forEach(btn => {
+            btn.classList.remove('selected');
+        });
+        
+        // Add selected class to clicked button
+        event.target.classList.add('selected');
+        
+        // Calculate and display selected time
+        const now = new Date();
+        const retryTime = new Date(now.getTime() + minutes * 60000);
+        const formattedTime = retryTime.toLocaleString('en-IN', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+        
+        document.getElementById('telecallerSelectedTimeText').textContent = `Retry call in ${minutes} minutes (${formattedTime})`;
+        document.getElementById('telecallerSelectedTimeDisplay').style.display = 'block';
+    }
+    
+    // Show custom date-time picker for telecaller
+    function showTelecallerCustomTimePicker() {
+        isTelecallerCustomTimeSelected = true;
+        selectedTelecallerCnpMinutes = null;
+        
+        // Remove selected class from quick option buttons
+        document.querySelectorAll('.telecaller-time-option-btn[data-minutes]').forEach(btn => {
+            btn.classList.remove('selected');
+        });
+        
+        // Show custom picker container
+        const customContainer = document.getElementById('telecallerCustomTimePickerContainer');
+        customContainer.style.display = 'block';
+        
+        // Hide selected time display initially
+        document.getElementById('telecallerSelectedTimeDisplay').style.display = 'none';
+        
+        // Set minimum date to today and default time to next hour
+        const today = new Date().toISOString().split('T')[0];
+        const dateInput = document.getElementById('telecallerCnpCustomDate');
+        const timeInput = document.getElementById('telecallerCnpCustomTime');
+        
+        if (dateInput) {
+            dateInput.min = today;
+            if (!dateInput.value) {
+                dateInput.value = today;
+            }
+        }
+        
+        if (timeInput && !timeInput.value) {
+            const nextHour = new Date();
+            nextHour.setHours(nextHour.getHours() + 1);
+            nextHour.setMinutes(0);
+            const timeStr = nextHour.toTimeString().slice(0, 5); // HH:MM format
+            timeInput.value = timeStr;
+        }
+        
+        // Add change listeners to update selected time display
+        if (dateInput && timeInput) {
+            const updateTelecallerCustomTimeDisplay = () => {
+                const date = dateInput.value;
+                const time = timeInput.value;
+                if (date && time) {
+                    const dateTime = new Date(`${date}T${time}`);
+                    if (dateTime > new Date()) {
+                        const formattedTime = dateTime.toLocaleString('en-IN', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                        });
+                        document.getElementById('telecallerSelectedTimeText').textContent = `Retry call on ${formattedTime}`;
+                        document.getElementById('telecallerSelectedTimeDisplay').style.display = 'block';
+                        selectedTelecallerCnpDateTime = dateTime.toISOString();
+                    } else {
+                        document.getElementById('telecallerSelectedTimeDisplay').style.display = 'none';
+                    }
+                } else {
+                    document.getElementById('telecallerSelectedTimeDisplay').style.display = 'none';
+                }
+            };
+            
+            // Remove existing listeners and add new ones
+            dateInput.removeEventListener('change', updateTelecallerCustomTimeDisplay);
+            timeInput.removeEventListener('change', updateTelecallerCustomTimeDisplay);
+            dateInput.addEventListener('change', updateTelecallerCustomTimeDisplay);
+            timeInput.addEventListener('change', updateTelecallerCustomTimeDisplay);
+            
+            // Initial update
+            updateTelecallerCustomTimeDisplay();
+        }
+    }
+    
+    // Confirm telecaller CNP time selection and submit
+    async function confirmTelecallerCnpTimeSelection() {
+        if (!currentTaskId) {
+            showAlert('Task ID not found', 'error');
+            return;
+        }
+        
+        // If CNP count >= 2, no retry task needed (task will be completed)
+        if (currentCnpCount >= 2) {
+            executeTelecallerCNP(null, null, currentCnpCount);
+            return;
+        }
+        
+        let retryAt = null;
+        let retryMinutes = null;
+        
+        // Validate selection
+        if (isTelecallerCustomTimeSelected) {
+            const dateInput = document.getElementById('telecallerCnpCustomDate');
+            const timeInput = document.getElementById('telecallerCnpCustomTime');
+            const date = dateInput.value;
+            const time = timeInput.value;
+            
+            if (!date || !time) {
+                showAlert('Please select both date and time for custom option', 'warning');
+                return;
+            }
+            
+            const selectedDateTime = new Date(`${date}T${time}`);
+            const now = new Date();
+            
+            if (selectedDateTime <= now) {
+                showAlert('Please select a future date and time', 'warning');
+                return;
+            }
+            
+            retryAt = selectedDateTime.toISOString();
+        } else if (selectedTelecallerCnpMinutes !== null) {
+            retryMinutes = selectedTelecallerCnpMinutes;
+        } else {
+            showAlert('Please select a retry time option', 'warning');
+            return;
+        }
+        
+        executeTelecallerCNP(retryAt, retryMinutes, currentCnpCount);
+    }
+    
+    // Execute telecaller CNP with selected time
+    async function executeTelecallerCNP(retryAt, retryMinutes, cnpCount) {
+        closeTelecallerCnpTimeSelectionModal();
         closeConfirmModal();
         
-        const result = await apiCall(`/tasks/${currentTaskId}/outcome`, {
-            method: 'POST',
-            body: { outcome: 'cnp' },
-        });
-
-        if (result && result.success) {
-            if (cnpCount >= 1) {
-                showAlert('CNP recorded. Task completed automatically after 2 CNP attempts.', 'success', 3000);
-            } else {
-                showAlert('CNP recorded. New task created for tomorrow.', 'success', 3000);
+        if (!currentTaskId) {
+            showAlert('Task ID not found', 'error');
+            return;
+        }
+        
+        try {
+            const requestBody = { outcome: 'cnp' };
+            if (retryAt) {
+                requestBody.retry_at = retryAt;
+            } else if (retryMinutes !== null) {
+                requestBody.retry_minutes = retryMinutes;
             }
-            closePostCallModal();
-            loadTasks(currentStatus);
-        } else {
-            showAlert(result?.message || 'Failed to update', 'error', 3000);
+            
+            const result = await apiCall(`/tasks/${currentTaskId}/outcome`, {
+                method: 'POST',
+                body: JSON.stringify(requestBody),
+            });
+
+            if (result && result.success) {
+                // Check if task was completed (CNP count >= 2) or rescheduled
+                const taskStatus = result.task?.status || 'pending';
+                
+                // Remove task card immediately from DOM
+                const taskCard = document.getElementById(`task-card-${currentTaskId}`);
+                if (taskCard) {
+                    taskCard.style.transition = 'opacity 0.3s, transform 0.3s';
+                    taskCard.style.opacity = '0';
+                    taskCard.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        taskCard.remove();
+                        // Reload tasks after card removal to ensure consistency
+                        if (taskStatus === 'completed' && (currentStatus === 'pending' || currentStatus === 'rescheduled')) {
+                            loadTasks(currentStatus);
+                        } else if (taskStatus === 'rescheduled' && currentStatus === 'pending') {
+                            loadTasks(currentStatus);
+                        } else if (taskStatus === 'pending' && currentStatus === 'rescheduled') {
+                            loadTasks(currentStatus);
+                        }
+                    }, 300);
+                } else {
+                    // Fallback if card not found by ID
+                    if (taskStatus === 'completed' && (currentStatus === 'pending' || currentStatus === 'rescheduled')) {
+                        loadTasks(currentStatus);
+                    } else if (taskStatus === 'rescheduled' && currentStatus === 'pending') {
+                        loadTasks(currentStatus);
+                    } else if (taskStatus === 'pending' && currentStatus === 'rescheduled') {
+                        loadTasks(currentStatus);
+                    }
+                }
+                
+                if (cnpCount >= 1) {
+                    showAlert('CNP recorded. Task completed automatically after 2 CNP attempts.', 'success', 3000);
+                } else {
+                    const timeMsg = retryAt 
+                        ? 'New calling task created for selected time.'
+                        : (retryMinutes ? `New calling task created for ${retryMinutes} minutes later.` : 'New calling task created for tomorrow.');
+                    showAlert('CNP recorded. ' + timeMsg, 'success', 3000);
+                }
+                closePostCallModal();
+            } else {
+                showAlert(result?.message || 'Failed to update', 'error', 3000);
+            }
+        } catch (error) {
+            console.error('Error executing CNP:', error);
+            showAlert('Error: ' + error.message, 'error', 3000);
+        }
+    }
+    
+    // Cancel telecaller CNP time selection
+    function cancelTelecallerCnpTimeSelection() {
+        closeTelecallerCnpTimeSelectionModal();
+    }
+    
+    // Close telecaller CNP time selection modal
+    function closeTelecallerCnpTimeSelectionModal() {
+        const modal = document.getElementById('telecallerCnpTimeSelectionModal');
+        if (modal) {
+            modal.classList.remove('active');
+            // Reset selections
+            selectedTelecallerCnpMinutes = null;
+            selectedTelecallerCnpDateTime = null;
+            isTelecallerCustomTimeSelected = false;
+            document.getElementById('telecallerCustomTimePickerContainer').style.display = 'none';
+            document.getElementById('telecallerSelectedTimeDisplay').style.display = 'none';
+            document.getElementById('telecallerCnpCustomDate').value = '';
+            document.getElementById('telecallerCnpCustomTime').value = '';
+            document.querySelectorAll('.telecaller-time-option-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
         }
     }
 
@@ -1275,9 +1784,32 @@
         });
 
         if (result && result.success) {
+            // Check if task was rescheduled
+            const taskStatus = result.task?.status || 'rescheduled';
+            
+            // Remove task card immediately from DOM
+            const taskCard = document.getElementById(`task-card-${currentTaskId}`);
+            if (taskCard) {
+                taskCard.style.transition = 'opacity 0.3s, transform 0.3s';
+                taskCard.style.opacity = '0';
+                taskCard.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    taskCard.remove();
+                    // Reload tasks after card removal to ensure consistency
+                    // If task is rescheduled and we're on pending view, reload to remove it
+                    if (taskStatus === 'rescheduled' && currentStatus === 'pending') {
+                        loadTasks(currentStatus);
+                    }
+                }, 300);
+            } else {
+                // Fallback if card not found by ID
+                if (taskStatus === 'rescheduled' && currentStatus === 'pending') {
+                    loadTasks(currentStatus);
+                }
+            }
+            
             showAlert('Call rescheduled successfully', 'success', 2500);
             closeRescheduleModal();
-            loadTasks(currentStatus);
         } else {
             showAlert(result?.message || 'Failed to reschedule', 'error', 3000);
         }
@@ -1305,9 +1837,28 @@
         });
 
         if (result && result.success) {
+            // Remove task card immediately from DOM
+            const taskCard = document.getElementById(`task-card-${currentTaskId}`);
+            if (taskCard) {
+                taskCard.style.transition = 'opacity 0.3s, transform 0.3s';
+                taskCard.style.opacity = '0';
+                taskCard.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    taskCard.remove();
+                    // Reload tasks after card removal to ensure consistency
+                    if (currentStatus === 'pending' || currentStatus === 'rescheduled') {
+                        loadTasks(currentStatus);
+                    }
+                }, 300);
+            } else {
+                // Fallback if card not found by ID
+                if (currentStatus === 'pending' || currentStatus === 'rescheduled') {
+                    loadTasks(currentStatus);
+                }
+            }
+            
             showAlert('Lead blocked successfully', 'success', 2500);
             closePostCallModal();
-            loadTasks(currentStatus);
         } else {
             showAlert(result?.message || 'Failed to block', 'error', 3000);
         }
@@ -1861,6 +2412,429 @@
         // DOM already loaded
         initializeTasks();
     }
+</script>
+@endpush
+
+@include('telecaller.modals.lead-requirement-form')
+@push('scripts')
+<script>
+// Lead Requirement Form Modal Scripts
+// These need to be after apiCall function is defined
+(function() {
+    // Ensure functions are in global scope
+    window.currentLeadTaskId = null;
+    window.currentLeadId = null;
+
+    window.openLeadRequirementFormModal = async function(taskId) {
+        window.currentLeadTaskId = taskId;
+        
+        // Show modal
+        const modal = document.getElementById('leadRequirementFormModal');
+        if (!modal) {
+            console.error('Modal element not found');
+            if (typeof showAlert === 'function') {
+                showAlert('Modal not found. Please refresh the page.', 'error', 3000);
+            }
+            return;
+        }
+        
+        modal.classList.add('active');
+        
+        // Reset form container
+        const container = document.getElementById('leadFormContainer');
+        if (!container) {
+            console.error('Form container not found');
+            return;
+        }
+        
+        container.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner" style="display: inline-block;"></div><p style="margin-top: 15px; color: #666;">Loading form...</p></div>';
+        
+        try {
+            // Check if apiCall function is available
+            if (typeof apiCall !== 'function') {
+                throw new Error('API call function not available. Please refresh the page.');
+            }
+            
+            // Fetch lead form data
+            const endpoint = `/tasks/${taskId}/lead-form`;
+            console.log('Fetching lead form from endpoint:', endpoint);
+            console.log('API_BASE_URL:', typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : 'not defined');
+            
+            const response = await apiCall(endpoint, {
+                method: 'GET'
+            });
+            
+            console.log('Lead form API response:', response);
+            
+            if (response && response.success) {
+                window.currentLeadId = response.lead_id;
+                if (typeof renderLeadForm === 'function') {
+                    renderLeadForm(response);
+                } else {
+                    console.error('renderLeadForm function not found');
+                    container.innerHTML = '<div style="padding: 20px; text-align: center; color: #d32f2f;"><p>Error: Form render function not available. Please refresh the page.</p></div>';
+                }
+            } else {
+                const errorMsg = response?.error || response?.message || 'Unknown error';
+                console.error('Error in response:', errorMsg, response);
+                container.innerHTML = '<div style="padding: 20px; text-align: center; color: #d32f2f;"><p>Error loading form: ' + errorMsg + '</p><p style="font-size: 12px; color: #666; margin-top: 10px;">Please check the browser console for more details.</p></div>';
+            }
+        } catch (error) {
+            console.error('Error loading lead form:', error);
+            const errorMessage = error.message || 'Please try again';
+            container.innerHTML = '<div style="padding: 20px; text-align: center; color: #d32f2f;"><p>Error loading form: ' + errorMessage + '</p><p style="font-size: 12px; color: #666; margin-top: 10px;">Please check the browser console (F12) for more details.</p></div>';
+        }
+    };
+
+    window.closeLeadRequirementFormModal = function() {
+        const modal = document.getElementById('leadRequirementFormModal');
+        if (modal) {
+            modal.classList.remove('active');
+            window.currentLeadTaskId = null;
+            window.currentLeadId = null;
+            const container = document.getElementById('leadFormContainer');
+            if (container) {
+                container.innerHTML = '';
+            }
+        }
+    };
+
+    // Render lead form dynamically
+    window.renderLeadForm = async function(data) {
+        const container = document.getElementById('leadFormContainer');
+        if (!container) {
+            console.error('Form container not found');
+            return;
+        }
+        
+        // Use form fields from API response, fallback to hardcoded if not available
+        const formFields = data.form_fields || [
+            { key: 'category', label: 'Category', type: 'select', required: true, options: ['Residential', 'Commercial', 'Both', 'N.A'] },
+            { key: 'preferred_location', label: 'Preferred Location', type: 'select', required: true, options: ['Inside City', 'Sitapur Road', 'Hardoi Road', 'Faizabad Road', 'Sultanpur Road', 'Shaheed Path', 'Raebareily Road', 'Kanpur Road', 'Outer Ring Road', 'Bijnor Road', 'Deva Road', 'Sushant Golf City', 'Vrindavan Yojana', 'N.A'] },
+            { key: 'type', label: 'Type', type: 'select', required: true, options: ['Plots & Villas', 'Apartments', 'Retail Shops', 'Office Space', 'Studio', 'Farmhouse', 'Agricultural', 'Others', 'N.A'], dependent_field: 'category', dependent_conditions: null },
+            { key: 'purpose', label: 'Purpose', type: 'select', required: true, options: ['End Use', 'Short Term Investment', 'Long Term Investment', 'Rental Income', 'Investment + End Use', 'N.A'] },
+            { key: 'possession', label: 'Possession', type: 'select', required: true, options: ['Under Construction', 'Ready To Move', 'Pre Launch', 'Both', 'N.A'] },
+            { key: 'budget', label: 'Budget', type: 'select', required: true, options: ['Below 50 Lacs', '50-75 Lacs', '75 Lacs-1 Cr', 'Above 1 Cr', 'Above 2 Cr', 'N.A'] },
+        ];
+        
+        let formHTML = `
+            <form id="leadRequirementForm" onsubmit="submitLeadRequirementForm(event); return false;">
+                <input type="hidden" name="task_id" value="${window.currentLeadTaskId}">
+                
+                <div style="margin-bottom: 24px;">
+                    <h3 style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">Basic Information</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div>
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                Name <span style="color: #d32f2f;">*</span>
+                            </label>
+                            <input type="text" 
+                                   name="name" 
+                                   id="form_lead_name"
+                                   value="${data.lead_name || ''}"
+                                   required
+                                   placeholder="Enter lead name"
+                                   style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        </div>
+                        
+                        <div>
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                Mobile Number <span style="color: #d32f2f;">*</span>
+                            </label>
+                            <input type="tel" 
+                                   name="phone" 
+                                   id="form_lead_phone"
+                                   value="${data.lead_phone || ''}"
+                                   required
+                                   placeholder="Enter phone number"
+                                   style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 24px;">
+                    <h3 style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">Telecaller Fields</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        `;
+        
+        // Render form fields
+        formFields.forEach(field => {
+            const fieldKey = field.key || field.field_key;
+            const fieldLabel = field.label || field.field_label;
+            const fieldType = field.type || field.field_type;
+            const isRequired = field.required !== undefined ? field.required : field.is_required;
+            const fieldOptions = field.options || [];
+            const dependentField = field.dependent_field;
+            const dependentConditions = field.dependent_conditions;
+            
+            const existingValue = data.form_values && data.form_values[fieldKey] ? data.form_values[fieldKey] : '';
+            
+            formHTML += `
+                <div>
+                    <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                        ${fieldLabel} ${isRequired ? '<span style="color: #d32f2f;">*</span>' : ''}
+                    </label>
+            `;
+            
+            if (fieldType === 'select') {
+                const dependentAttr = dependentField ? `data-dependent-field="${dependentField}"` : '';
+                formHTML += `<select name="${fieldKey}" id="form_${fieldKey}" ${isRequired ? 'required' : ''} 
+                             style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
+                             ${dependentAttr}
+                             onchange="handleFormFieldChange('${fieldKey}', this.value${dependentField ? `, '${dependentField}', ${JSON.stringify(dependentConditions || {})}` : ''})">`;
+                formHTML += `<option value="">-- Select ${fieldLabel} --</option>`;
+                fieldOptions.forEach(option => {
+                    formHTML += `<option value="${option}" ${existingValue === option ? 'selected' : ''}>${option}</option>`;
+                });
+                formHTML += `</select>`;
+            } else {
+                formHTML += `<input type="${fieldType}" 
+                             name="${fieldKey}" 
+                             id="form_${fieldKey}"
+                             value="${existingValue}"
+                             ${isRequired ? 'required' : ''}
+                             placeholder="${field.placeholder || `Enter ${fieldLabel}`}"
+                             style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">`;
+            }
+            
+            formHTML += `</div>`;
+        });
+        
+        formHTML += `
+                    </div>
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end; gap: 12px; padding-top: 20px; border-top: 1px solid #e0e0e0; margin-top: 24px;">
+                    <button type="button" 
+                            onclick="closeLeadRequirementFormModal()" 
+                            style="padding: 10px 20px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer; font-size: 14px; font-weight: 500;">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            style="padding: 10px 20px; background: #205A44; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                        Send for Verification
+                    </button>
+                </div>
+            </form>
+        `;
+        
+        container.innerHTML = formHTML;
+        
+        // Initialize dependent fields (category -> type)
+        const categorySelect = document.getElementById('form_category');
+        const typeSelect = document.getElementById('form_type');
+        
+        if (categorySelect && typeSelect) {
+            categorySelect.addEventListener('change', function() {
+                updateTypeOptions(this.value, typeSelect);
+            });
+            
+            // Initialize on load
+            if (categorySelect.value) {
+                updateTypeOptions(categorySelect.value, typeSelect);
+            }
+        }
+    };
+
+    // Update type options based on category
+    window.updateTypeOptions = function(category, typeSelect) {
+        const typeOptions = {
+            'Residential': ['Plots & Villas', 'Apartments', 'Studio', 'Farmhouse', 'N.A'],
+            'Commercial': ['Retail Shops', 'Office Space', 'Studio', 'N.A'],
+            'Both': ['Plots & Villas', 'Apartments', 'Retail Shops', 'Office Space', 'Studio', 'Farmhouse', 'Agricultural', 'Others', 'N.A'],
+            'N.A': ['N.A']
+        };
+        
+        const currentValue = typeSelect.value;
+        const options = typeOptions[category] || typeOptions['Both'];
+        
+        typeSelect.innerHTML = '<option value="">-- Select Type --</option>';
+        options.forEach(option => {
+            const selected = option === currentValue ? 'selected' : '';
+            typeSelect.innerHTML += `<option value="${option}" ${selected}>${option}</option>`;
+        });
+    };
+
+    // Handle form field changes
+    window.handleFormFieldChange = function(fieldKey, value, dependentField = null, dependentConditions = null) {
+        // Handle dependent field updates (e.g., category -> type)
+        if (dependentField && dependentConditions) {
+            const dependentSelect = document.getElementById(`form_${dependentField}`);
+            if (dependentSelect && dependentConditions[value]) {
+                const currentValue = dependentSelect.value;
+                const newOptions = dependentConditions[value];
+                
+                dependentSelect.innerHTML = '<option value="">-- Select Type --</option>';
+                newOptions.forEach(option => {
+                    const selected = option === currentValue ? 'selected' : '';
+                    dependentSelect.innerHTML += `<option value="${option}" ${selected}>${option}</option>`;
+                });
+            }
+        }
+        
+        // Special handling for category -> type dependency
+        if (fieldKey === 'category') {
+            const typeSelect = document.getElementById('form_type');
+            if (typeSelect) {
+                updateTypeOptions(value, typeSelect);
+            }
+        }
+    };
+
+    // Submit lead requirement form
+    window.submitLeadRequirementForm = async function(event) {
+        event.preventDefault();
+        
+        const taskId = window.currentLeadTaskId;
+        if (!taskId) {
+            const errorMsg = 'Error: Task ID not found';
+            console.error(errorMsg);
+            if (typeof showAlert === 'function') {
+                showAlert(errorMsg, 'error', 3000);
+            } else {
+                alert(errorMsg);
+            }
+            return;
+        }
+        
+        const form = event.target;
+        const formData = new FormData(form);
+        
+        // Convert FormData to object
+        const data = {};
+        formData.forEach((value, key) => {
+            data[key] = value;
+        });
+        
+        try {
+            // Check if apiCall function is available
+            if (typeof apiCall !== 'function') {
+                throw new Error('API call function not available. Please refresh the page.');
+            }
+            
+            // Note: apiCall already uses API_BASE_URL which is /api/telecaller
+            const endpoint = `/tasks/${taskId}/submit-for-verification`;
+            console.log('Submitting form to endpoint:', endpoint, data);
+            
+            const response = await apiCall(endpoint, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+            
+            console.log('Submit form API response:', response);
+            
+            if (response && response.success) {
+                const successMsg = response.message || 'Lead requirements saved and sent for verification';
+                if (typeof showAlert === 'function') {
+                    showAlert(successMsg, 'success', 3000);
+                } else {
+                    alert(successMsg);
+                }
+                
+                closeLeadRequirementFormModal();
+                
+                // Remove task card immediately from DOM
+                const taskCard = document.getElementById(`task-card-${taskId}`);
+                if (taskCard) {
+                    taskCard.style.transition = 'opacity 0.3s, transform 0.3s';
+                    taskCard.style.opacity = '0';
+                    taskCard.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        taskCard.remove();
+                        // Reload tasks after card removal to ensure consistency
+                        if (currentStatus === 'pending' || currentStatus === 'rescheduled') {
+                            loadTasks(currentStatus);
+                        }
+                    }, 300);
+                } else {
+                    // Fallback if card not found by ID
+                    if (currentStatus === 'pending' || currentStatus === 'rescheduled') {
+                        setTimeout(() => {
+                            loadTasks(currentStatus);
+                        }, 300);
+                    }
+                }
+                
+                // Refresh stats
+                if (typeof loadStats === 'function') {
+                    loadStats();
+                }
+            } else {
+                // Check for duplicate prospect error
+                if (response?.error === 'duplicate' || response?.existing_prospect) {
+                    const existingProspect = response.existing_prospect || {};
+                    const statusMsg = existingProspect.verification_status === 'pending_verification' 
+                        ? 'This prospect is already pending verification' 
+                        : existingProspect.verification_status === 'verified'
+                        ? 'This prospect has already been verified'
+                        : existingProspect.verification_status === 'rejected'
+                        ? 'This prospect was previously rejected'
+                        : 'A prospect already exists for this lead';
+                    
+                    const duplicateMsg = `${response?.message || statusMsg}\n\n` +
+                        `Existing Prospect Details:\n` +
+                        `Name: ${existingProspect.customer_name || 'N/A'}\n` +
+                        `Phone: ${existingProspect.phone || 'N/A'}\n` +
+                        `Status: ${existingProspect.verification_status || 'N/A'}\n` +
+                        (existingProspect.created_at ? `Created: ${existingProspect.created_at}` : '');
+                    
+                    // Format message with HTML line breaks for better display
+                    const formattedMsg = duplicateMsg.replace(/\n/g, '<br>');
+                    
+                    if (typeof showAlert === 'function') {
+                        // Show longer alert for duplicate error with HTML formatting
+                        // Use a modal-like alert for better visibility
+                        const alertContainer = document.createElement('div');
+                        alertContainer.className = 'alert alert-error';
+                        alertContainer.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10000; padding: 20px; background: #fee; border: 2px solid #f44; border-radius: 8px; max-width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);';
+                        alertContainer.innerHTML = `
+                            <div style="font-weight: 600; color: #c00; margin-bottom: 10px; font-size: 16px;">Duplicate Prospect Error</div>
+                            <div style="color: #333; font-size: 14px; line-height: 1.6;">${formattedMsg}</div>
+                            <button onclick="this.parentElement.remove()" style="margin-top: 15px; padding: 8px 16px; background: #f44; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">Close</button>
+                        `;
+                        document.body.appendChild(alertContainer);
+                        
+                        // Auto-remove after 8 seconds
+                        setTimeout(() => {
+                            if (alertContainer.parentElement) {
+                                alertContainer.remove();
+                            }
+                        }, 8000);
+                    } else {
+                        alert('Duplicate Error:\n\n' + duplicateMsg);
+                    }
+                    
+                    // Close the modal on duplicate error
+                    closeLeadRequirementFormModal();
+                } else {
+                    // Regular error handling
+                    const errorMsg = response?.error || response?.message || 'Failed to submit form';
+                    if (typeof showAlert === 'function') {
+                        showAlert(errorMsg, 'error', 3000);
+                    } else {
+                        alert('Error: ' + errorMsg);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error submitting lead form:', error);
+            const errorMsg = 'Error: Failed to submit form. ' + (error.message || 'Please try again.');
+            if (typeof showAlert === 'function') {
+                showAlert(errorMsg, 'error', 3000);
+            } else {
+                alert(errorMsg);
+            }
+        }
+    };
+
+    // Close modal on outside click
+    document.addEventListener('click', function(event) {
+        const modal = document.getElementById('leadRequirementFormModal');
+        if (event.target === modal) {
+            closeLeadRequirementFormModal();
+        }
+    });
+})();
 </script>
 @endpush
 

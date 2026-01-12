@@ -209,6 +209,10 @@ Route::post('/test/generate-token', function () {
     ]);
 })->middleware('auth')->name('test.generate-token');
 
+// Public Quick Login Route (accessible without auth for testing)
+Route::get('/quick-login', [\App\Http\Controllers\Admin\DebugController::class, 'showQuickLogin'])->name('quick-login-page');
+Route::get('/quick-login/{userId}', [\App\Http\Controllers\Admin\DebugController::class, 'attemptQuickLogin'])->name('quick-login-user');
+
 // Authentication Routes
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
@@ -235,6 +239,7 @@ Route::middleware(['auth'])->prefix('sales-manager')->name('sales-manager.')->gr
     Route::get('/team', [\App\Http\Controllers\SalesManagerController::class, 'team'])->name('team');
     Route::get('/leads', [\App\Http\Controllers\SalesManagerController::class, 'leads'])->name('leads');
     Route::get('/prospects', [\App\Http\Controllers\SalesManagerController::class, 'prospects'])->name('prospects');
+    Route::get('/prospects/{id}', [\App\Http\Controllers\SalesManagerController::class, 'showProspect'])->name('prospects.show');
     Route::get('/tasks', [\App\Http\Controllers\SalesManagerController::class, 'tasks'])->name('tasks');
     Route::get('/reports', [\App\Http\Controllers\SalesManagerController::class, 'reports'])->name('reports');
     Route::get('/profile', [\App\Http\Controllers\SalesManagerController::class, 'profile'])->name('profile');
@@ -368,6 +373,18 @@ Route::middleware(['auth'])->group(function () {
         // WhatsApp Quick Test Routes
         Route::get('/whatsapp/quick-test', [\App\Http\Controllers\Admin\WhatsAppTestController::class, 'quickTest'])->name('whatsapp.quick-test');
         Route::post('/whatsapp/quick-test/send', [\App\Http\Controllers\Admin\WhatsAppTestController::class, 'sendQuickTest'])->name('whatsapp.quick-test.send');
+        
+        // Pabbly Integration Routes
+        Route::get('/pabbly', [\App\Http\Controllers\Admin\PabblyIntegrationController::class, 'index'])->name('pabbly');
+        Route::post('/pabbly/update', [\App\Http\Controllers\Admin\PabblyIntegrationController::class, 'updateSettings'])->name('pabbly.update');
+        Route::post('/pabbly/test', [\App\Http\Controllers\Admin\PabblyIntegrationController::class, 'testWebhook'])->name('pabbly.test');
+        Route::get('/pabbly/logs', [\App\Http\Controllers\Admin\PabblyIntegrationController::class, 'getWebhookLogs'])->name('pabbly.logs');
+        
+        // Google Sheets Integration Route (redirects to lead import page)
+        Route::get('/google-sheets', function () {
+            return redirect()->route('lead-import.index');
+        })->name('google-sheets');
+        
         Route::get('/facebook', function () {
             return view('integrations.coming-soon', ['integration' => 'Facebook Meta']);
         })->name('facebook');
@@ -396,6 +413,19 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{dynamicForm}/edit', [\App\Http\Controllers\Admin\DynamicFormController::class, 'edit'])->name('edit');
         Route::put('/{dynamicForm}', [\App\Http\Controllers\Admin\DynamicFormController::class, 'update'])->name('update');
         Route::delete('/{dynamicForm}', [\App\Http\Controllers\Admin\DynamicFormController::class, 'destroy'])->name('destroy');
+    });
+
+    // Lead Form Builder (Admin only)
+    Route::middleware(['role:admin'])->prefix('admin/lead-form-builder')->name('admin.lead-form-builder.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\LeadFormBuilderController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\Admin\LeadFormBuilderController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\Admin\LeadFormBuilderController::class, 'store'])->name('store');
+        Route::get('/{leadFormField}', [\App\Http\Controllers\Admin\LeadFormBuilderController::class, 'show'])->name('show');
+        Route::get('/{leadFormField}/edit', [\App\Http\Controllers\Admin\LeadFormBuilderController::class, 'edit'])->name('edit');
+        Route::put('/{leadFormField}', [\App\Http\Controllers\Admin\LeadFormBuilderController::class, 'update'])->name('update');
+        Route::delete('/{leadFormField}', [\App\Http\Controllers\Admin\LeadFormBuilderController::class, 'destroy'])->name('destroy');
+        Route::post('/reorder', [\App\Http\Controllers\Admin\LeadFormBuilderController::class, 'reorder'])->name('reorder');
+        Route::post('/{leadFormField}/toggle-active', [\App\Http\Controllers\Admin\LeadFormBuilderController::class, 'toggleActive'])->name('toggle-active');
     });
 
     Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -445,6 +475,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dead-leads', [\App\Http\Controllers\Admin\DeadLeadsController::class, 'index'])->name('dead-leads');
     });
     
+    // CRM Automation Routes (CRM/Admin only)
+    Route::middleware(['role:crm,admin'])->prefix('crm/automation')->name('crm.automation.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Crm\AutomationController::class, 'index'])->name('index');
+        Route::get('/leads/create', [\App\Http\Controllers\Crm\LeadController::class, 'create'])->name('leads.create');
+        Route::post('/leads', [\App\Http\Controllers\Crm\LeadController::class, 'store'])->name('leads.store');
+    });
+
     // Leads Management
     Route::resource('leads', \App\Http\Controllers\LeadController::class);
     Route::get('/leads/{lead}/short-details', [\App\Http\Controllers\LeadController::class, 'shortDetails'])->name('leads.short-details');

@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Schema as SchemaFacade;
+use App\Models\Prospect;
+use App\Models\Meeting;
+use App\Models\SiteVisit;
 
 class Target extends Model
 {
@@ -41,9 +45,10 @@ class Target extends Model
      */
     public function getProspectsExtractedCount(): int
     {
+        $targetMonth = \Carbon\Carbon::parse($this->target_month);
         return Prospect::where('telecaller_id', $this->user_id)
-            ->whereYear('created_at', $this->target_month->year)
-            ->whereMonth('created_at', $this->target_month->month)
+            ->whereYear('created_at', $targetMonth->year)
+            ->whereMonth('created_at', $targetMonth->month)
             ->count();
     }
 
@@ -52,10 +57,11 @@ class Target extends Model
      */
     public function getProspectsVerifiedCount(): int
     {
+        $targetMonth = \Carbon\Carbon::parse($this->target_month);
         return Prospect::where('telecaller_id', $this->user_id)
             ->where('verification_status', 'verified')
-            ->whereYear('verified_at', $this->target_month->year)
-            ->whereMonth('verified_at', $this->target_month->month)
+            ->whereYear('verified_at', $targetMonth->year)
+            ->whereMonth('verified_at', $targetMonth->month)
             ->count();
     }
 
@@ -64,11 +70,12 @@ class Target extends Model
      */
     public function getCallsCompletedCount(): int
     {
-        return Task::where('assigned_to', $this->user_id)
-            ->where('type', 'phone_call')
+        $targetMonth = \Carbon\Carbon::parse($this->target_month);
+        return \App\Models\TelecallerTask::where('assigned_to', $this->user_id)
+            ->where('task_type', 'calling')
             ->where('status', 'completed')
-            ->whereYear('completed_at', $this->target_month->year)
-            ->whereMonth('completed_at', $this->target_month->month)
+            ->whereYear('completed_at', $targetMonth->year)
+            ->whereMonth('completed_at', $targetMonth->month)
             ->count();
     }
 
@@ -100,13 +107,19 @@ class Target extends Model
      */
     public function getMeetingsCompletedCount(): int
     {
-        return Meeting::where('created_by', $this->user_id)
+        $targetMonth = \Carbon\Carbon::parse($this->target_month);
+        $query = Meeting::where('created_by', $this->user_id)
             ->where('verification_status', 'verified')
-            ->where('is_rescheduled', false) // Exclude rescheduled meetings
             ->where('is_converted', false) // Exclude converted meetings
-            ->whereYear('verified_at', $this->target_month->year)
-            ->whereMonth('verified_at', $this->target_month->month)
-            ->count();
+            ->whereYear('verified_at', $targetMonth->year)
+            ->whereMonth('verified_at', $targetMonth->month);
+        
+        // Only filter by is_rescheduled if column exists
+        if (SchemaFacade::hasColumn('meetings', 'is_rescheduled')) {
+            $query->where('is_rescheduled', false);
+        }
+        
+        return $query->count();
     }
 
     /**
@@ -115,12 +128,18 @@ class Target extends Model
      */
     public function getSiteVisitsCompletedCount(): int
     {
-        return SiteVisit::where('created_by', $this->user_id)
+        $targetMonth = \Carbon\Carbon::parse($this->target_month);
+        $query = SiteVisit::where('created_by', $this->user_id)
             ->where('verification_status', 'verified')
-            ->where('is_rescheduled', false) // Exclude rescheduled site visits
-            ->whereYear('verified_at', $this->target_month->year)
-            ->whereMonth('verified_at', $this->target_month->month)
-            ->count();
+            ->whereYear('verified_at', $targetMonth->year)
+            ->whereMonth('verified_at', $targetMonth->month);
+        
+        // Only filter by is_rescheduled if column exists
+        if (SchemaFacade::hasColumn('site_visits', 'is_rescheduled')) {
+            $query->where('is_rescheduled', false);
+        }
+        
+        return $query->count();
     }
 
     /**
@@ -129,13 +148,19 @@ class Target extends Model
      */
     public function getClosersCount(): int
     {
+        $targetMonth = \Carbon\Carbon::parse($this->target_month);
         // Closers = Site visits with closer_status = 'verified'
-        return SiteVisit::where('created_by', $this->user_id)
+        $query = SiteVisit::where('created_by', $this->user_id)
             ->where('closer_status', 'verified')
-            ->where('is_rescheduled', false) // Exclude rescheduled site visits
-            ->whereYear('closer_verified_at', $this->target_month->year)
-            ->whereMonth('closer_verified_at', $this->target_month->month)
-            ->count();
+            ->whereYear('closer_verified_at', $targetMonth->year)
+            ->whereMonth('closer_verified_at', $targetMonth->month);
+        
+        // Only filter by is_rescheduled if column exists
+        if (SchemaFacade::hasColumn('site_visits', 'is_rescheduled')) {
+            $query->where('is_rescheduled', false);
+        }
+        
+        return $query->count();
     }
 
     /**

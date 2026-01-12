@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Events\LeadStatusUpdated;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 
 class Lead extends Model
 {
@@ -53,6 +55,9 @@ class Lead extends Model
         'verification_notes',
         'pending_manager_id',
         'status_auto_update_enabled',
+        'form_filled_by_telecaller',
+        'form_filled_by_executive',
+        'form_filled_by_manager',
     ];
 
     protected $casts = [
@@ -67,6 +72,9 @@ class Lead extends Model
         'verification_requested_at' => 'datetime',
         'verified_at' => 'datetime',
         'status_auto_update_enabled' => 'boolean',
+        'form_filled_by_telecaller' => 'boolean',
+        'form_filled_by_executive' => 'boolean',
+        'form_filled_by_manager' => 'boolean',
     ];
 
     public function creator(): BelongsTo
@@ -147,8 +155,15 @@ class Lead extends Model
         $this->save();
 
         // Fire event if status changed
+        // Wrap in try-catch to handle broadcasting errors (Pusher may not be configured)
         if ($oldStatus !== $newStatus) {
-            event(new LeadStatusUpdated($this, $oldStatus, $newStatus));
+            try {
+                event(new LeadStatusUpdated($this, $oldStatus, $newStatus));
+            } catch (\Exception $e) {
+                // Broadcasting errors (like Pusher) shouldn't stop the status update
+                // Log but continue - the status update is successful even if broadcast fails
+                Log::warning("Broadcasting error in LeadStatusUpdated (non-critical): " . $e->getMessage());
+            }
         }
 
         return true;
@@ -245,5 +260,48 @@ class Lead extends Model
     public function whatsappConversations(): HasMany
     {
         return $this->hasMany(WhatsAppConversation::class);
+    }
+
+    /**
+     * Get all form field values for this lead
+     */
+    public function formFieldValues(): HasMany
+    {
+        return $this->hasMany(LeadFormFieldValue::class);
+    }
+
+    /**
+     * Get value for a specific form field
+     */
+    public function getFormFieldValue(string $fieldKey): ?string
+    {
+        $fieldValue = $this->formFieldValues()->where('field_key', $fieldKey)->first();
+        return $fieldValue ? $fieldValue->field_value : null;
+    }
+
+    /**
+     * Set value for a specific form field
+     */
+    public function setFormFieldValue(string $fieldKey, $value, ?int $userId = null): LeadFormFieldValue
+    {
+        return LeadFormFieldValue::updateOrCreate(
+            [
+                'lead_id' => $this->id,
+                'field_key' => $fieldKey,
+            ],
+            [
+                'field_value' => $value,
+                'filled_by_user_id' => $userId ?? auth()->id(),
+                'filled_at' => now(),
+            ]
+        );
+    }
+
+    /**
+     * Get all form field values as key-value array
+     */
+    public function getFormFieldsArray(): array
+    {
+        return $this->formFieldValues()->pluck('field_value', 'field_key')->toArray();
     }
 }

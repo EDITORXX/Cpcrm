@@ -4,8 +4,87 @@
 @section('page-title', 'Closers')
 @section('page-subtitle', 'Site Visits Converted to Closers')
 
+@push('styles')
+<style>
+    #closersGrid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1.25rem;
+    }
+    .closer-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-left: 4px solid #205A44;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .closer-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    .closer-card .closer-header {
+        margin-bottom: 12px;
+    }
+    .closer-card h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #063A1C;
+        margin-bottom: 8px;
+    }
+    .closer-card .closer-info {
+        color: #6b7280;
+        font-size: 14px;
+        margin: 4px 0;
+    }
+    .closer-card .closer-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        margin-top: 8px;
+    }
+    .closer-card .badge-pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    .closer-card .badge-verified {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    .closer-card .badge-rejected {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    .closer-card .closer-actions {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #e5e7eb;
+    }
+    .closer-card .closer-actions a {
+        display: inline-block;
+        padding: 8px 16px;
+        background: #205A44;
+        color: white;
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.3s;
+        text-align: center;
+        width: 100%;
+    }
+    .closer-card .closer-actions a:hover {
+        background: #15803d;
+    }
+</style>
+@endpush
+
 @section('content')
-    <div class="max-w-7xl mx-auto">
+    <div>
         <!-- Filters -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
             <div class="flex flex-wrap items-center gap-4">
@@ -56,103 +135,62 @@
             </div>
         </div>
 
-        <!-- Closers Table -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            @if($closers->count() > 0)
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visit Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Converted At</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Verified By</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach($closers as $closer)
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900">
-                                            {{ $closer->customer_name ?? $closer->lead->name ?? 'N/A' }}
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">
-                                            {{ $closer->phone ?? $closer->lead->phone ?? 'N/A' }}
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">
-                                            {{ $closer->project ?? 'N/A' }}
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">
-                                            {{ $closer->date_of_visit ? \Carbon\Carbon::parse($closer->date_of_visit)->format('M d, Y') : ($closer->scheduled_at ? $closer->scheduled_at->format('M d, Y') : 'N/A') }}
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">
-                                            {{ $closer->converted_to_closer_at ? $closer->converted_to_closer_at->format('M d, Y') : 'N/A' }}
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        @if($closer->closer_status === 'pending')
-                                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                                Pending
-                                            </span>
-                                        @elseif($closer->closer_status === 'verified')
-                                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                                Verified
-                                            </span>
-                                        @elseif($closer->closer_status === 'rejected')
-                                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                                Rejected
-                                            </span>
-                                        @endif
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">
-                                            {{ $closer->closerVerifiedBy->name ?? 'N/A' }}
-                                        </div>
-                                        @if($closer->closer_verified_at)
-                                            <div class="text-xs text-gray-500">
-                                                {{ $closer->closer_verified_at->format('M d, Y') }}
-                                            </div>
-                                        @endif
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <a href="{{ route('leads.show', $closer->lead_id ?? '#') }}" 
-                                           class="text-indigo-600 hover:text-indigo-900">
-                                            View Lead
-                                        </a>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+        <!-- Closers Grid -->
+        @if($closers->count() > 0)
+            <div id="closersGrid">
+                @foreach($closers as $closer)
+                    <div class="closer-card">
+                        <div class="closer-header">
+                            <h3>{{ $closer->customer_name ?? $closer->lead->name ?? 'N/A' }}</h3>
+                            <div class="closer-info">
+                                <p><i class="fas fa-phone mr-2"></i>{{ $closer->phone ?? $closer->lead->phone ?? 'N/A' }}</p>
+                                @if($closer->project)
+                                    <p><i class="fas fa-building mr-2"></i>{{ $closer->project }}</p>
+                                @endif
+                                <p><i class="fas fa-calendar mr-2"></i>Visit: {{ $closer->date_of_visit ? \Carbon\Carbon::parse($closer->date_of_visit)->format('M d, Y') : ($closer->scheduled_at ? $closer->scheduled_at->format('M d, Y') : 'N/A') }}</p>
+                                @if($closer->converted_to_closer_at)
+                                    <p><i class="fas fa-check-circle mr-2"></i>Converted: {{ $closer->converted_to_closer_at->format('M d, Y') }}</p>
+                                @endif
+                                @if($closer->closerVerifiedBy)
+                                    <p><i class="fas fa-user-check mr-2"></i>Verified By: {{ $closer->closerVerifiedBy->name }}</p>
+                                    @if($closer->closer_verified_at)
+                                        <p class="text-xs text-gray-500 ml-6">{{ $closer->closer_verified_at->format('M d, Y') }}</p>
+                                    @endif
+                                @endif
+                            </div>
+                            <div>
+                                @if($closer->closer_status === 'pending')
+                                    <span class="closer-badge badge-pending">Pending</span>
+                                @elseif($closer->closer_status === 'verified')
+                                    <span class="closer-badge badge-verified">Verified</span>
+                                @elseif($closer->closer_status === 'rejected')
+                                    <span class="closer-badge badge-rejected">Rejected</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="closer-actions">
+                            <a href="{{ route('leads.show', $closer->lead_id ?? '#') }}">
+                                <i class="fas fa-eye mr-2"></i>View Lead
+                            </a>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
 
-                <!-- Pagination -->
-                <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
-                    {{ $closers->links() }}
-                </div>
-            @else
-                <div class="text-center py-12">
-                    <i class="fas fa-inbox text-gray-400 text-4xl mb-4"></i>
-                    <p class="text-gray-500 text-lg">No closers found</p>
-                    @if(request()->has('search') || request()->has('status'))
-                        <a href="{{ route('closers.index') }}" class="mt-4 inline-block text-indigo-600 hover:text-indigo-900">
-                            Clear filters
-                        </a>
-                    @endif
-                </div>
-            @endif
-        </div>
+            <!-- Pagination -->
+            <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6 mt-6 rounded-lg">
+                {{ $closers->links() }}
+            </div>
+        @else
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+                <i class="fas fa-inbox text-gray-400 text-4xl mb-4"></i>
+                <p class="text-gray-500 text-lg">No closers found</p>
+                @if(request()->has('search') || request()->has('status'))
+                    <a href="{{ route('closers.index') }}" class="mt-4 inline-block text-indigo-600 hover:text-indigo-900">
+                        Clear filters
+                    </a>
+                @endif
+            </div>
+        @endif
     </div>
 @endsection

@@ -41,6 +41,33 @@
         color: white;
         border-color: #205A44;
     }
+    .btn-remove-overdue {
+        padding: 10px 20px;
+        border: 2px solid #ef4444;
+        border-radius: 8px;
+        background: #ef4444;
+        color: white;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.3s;
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .btn-remove-overdue:hover {
+        background: #dc2626;
+        border-color: #dc2626;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+    .btn-remove-overdue:disabled {
+        background: #d1d5db;
+        border-color: #d1d5db;
+        cursor: not-allowed;
+        transform: none;
+    }
     .tasks-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -54,6 +81,64 @@
         }
         .tasks-container {
             padding: 16px !important;
+        }
+        .filter-bar {
+            flex-direction: column;
+            gap: 8px;
+        }
+        .filter-btn {
+            width: 100%;
+            padding: 12px 16px;
+            text-align: center;
+        }
+        .btn-remove-overdue {
+            width: 100%;
+            margin-left: 0;
+            justify-content: center;
+            padding: 12px 16px;
+        }
+        .task-card {
+            padding: 16px;
+        }
+        .task-card h3 {
+            font-size: 16px !important;
+        }
+        .task-card p {
+            font-size: 13px !important;
+        }
+        /* Modal responsive */
+        .modal-content {
+            width: 95% !important;
+            max-width: 95% !important;
+            margin: 10px auto !important;
+            padding: 16px !important;
+        }
+        .modal-header h2 {
+            font-size: 18px !important;
+        }
+        /* Form inputs responsive */
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+        }
+        /* Form buttons responsive */
+        .form-actions {
+            flex-direction: column;
+            gap: 10px;
+        }
+        .form-actions button {
+            width: 100%;
+            padding: 12px;
         }
     }
     .task-card {
@@ -208,6 +293,20 @@
     .modal.active {
         display: flex;
     }
+    .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #205A44;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
     .modal-content {
         background: white;
         border-radius: 12px;
@@ -360,11 +459,100 @@
         opacity: 0.5;
         cursor: not-allowed;
     }
+    .btn-cnp {
+        background: #f59e0b;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .btn-cnp:hover {
+        background: #d97706;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+    }
+    .btn-cnp:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .time-option-btn {
+        transition: all 0.2s ease;
+    }
+    .time-option-btn:hover {
+        border-color: #f59e0b !important;
+        background: #fff9e6 !important;
+        transform: translateY(-1px);
+    }
+    .time-option-btn.selected {
+        border-color: #f59e0b !important;
+        background: #f59e0b !important;
+        color: white !important;
+        font-weight: 600;
+    }
     .form-group input[readonly],
     .form-group select[readonly],
     .form-group textarea[readonly] {
         background: #f5f5f5;
         cursor: not-allowed;
+    }
+    /* Project Tags Styling (YouTube-style) */
+    .project-tags-wrapper {
+        margin-top: 8px;
+    }
+    .project-tags-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 12px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        background: #fafafa;
+        min-height: 60px;
+    }
+    .project-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        color: #333;
+        transition: all 0.2s ease;
+        user-select: none;
+        position: relative;
+    }
+    .project-tag:hover {
+        border-color: #205A44;
+        background: #f0f7f4;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(32, 90, 68, 0.1);
+    }
+    .project-tag.selected {
+        background: #205A44;
+        border-color: #205A44;
+        color: white;
+    }
+    .project-tag.selected:hover {
+        background: #15803d;
+        border-color: #15803d;
+    }
+    .project-tag-text {
+        white-space: nowrap;
+    }
+    .project-tag-check {
+        display: none;
+        font-size: 12px;
+    }
+    .project-tag.selected .project-tag-check {
+        display: inline-block;
     }
 </style>
 @endpush
@@ -372,10 +560,18 @@
 @section('content')
 <div class="tasks-container">
     <!-- Filter Bar -->
-    <div class="filter-bar">
-        <button class="filter-btn active" data-status="all" onclick="filterTasks('all')">All Tasks</button>
-        <button class="filter-btn" data-status="pending" onclick="filterTasks('pending')">Pending</button>
-        <button class="filter-btn" data-status="completed" onclick="filterTasks('completed')">Completed</button>
+    <div class="filter-bar" style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <button class="filter-btn active" data-status="all">All Tasks</button>
+            <button class="filter-btn" data-status="pending">Pending</button>
+            <button class="filter-btn" data-status="overdue">Overdue</button>
+            <button class="filter-btn" data-status="rescheduled">Rescheduled</button>
+            <button class="filter-btn" data-status="completed">Completed</button>
+        </div>
+        <button id="removeAllOverdueBtn" class="btn-remove-overdue" onclick="removeAllOverdueTasks()" style="display: none;">
+            <i class="fas fa-trash-alt"></i>
+            Remove All Overdue
+        </button>
     </div>
 
     <!-- Tasks Grid -->
@@ -387,149 +583,275 @@
     </div>
 </div>
 
-<!-- Prospect Detail Form Modal -->
+<!-- Step 1: Verify/Reject Prompt Modal -->
+<div id="verifyRejectPromptModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3>Verify, Reject, or CNP Prospect</h3>
+            <button class="close-modal" onclick="cancelVerifyRejectPrompt()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="padding: 20px; text-align: center;">
+                <p style="font-size: 16px; color: #333; margin-bottom: 30px;">
+                    Please choose an action for this prospect:
+                </p>
+                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                    <button type="button" class="btn-verify" onclick="proceedToVerifyForm()" style="padding: 12px 24px; background: #205A44; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                        <i class="fas fa-check-circle" style="margin-right: 8px;"></i>Verify
+                    </button>
+                    <button type="button" class="btn-reject" onclick="proceedToReject()" style="padding: 12px 24px; background: #dc3545; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                        <i class="fas fa-times-circle" style="margin-right: 8px;"></i>Reject
+                    </button>
+                    <button type="button" class="btn-cnp" onclick="proceedToCNP()" style="padding: 12px 24px; background: #f59e0b; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;">
+                        <i class="fas fa-phone-slash" style="margin-right: 8px;"></i>CNP
+                    </button>
+                </div>
+                <p style="font-size: 12px; color: #666; margin-top: 16px; font-style: italic;">
+                    CNP: Call Not Picked - Will create a retry task for 2 hours later
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Step 2: Full Lead Requirement Form Modal (shown after Verify clicked) -->
+<div id="managerLeadRequirementFormModal" class="modal">
+    <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+            <h3>Lead Requirement Form - Verify Prospect</h3>
+            <button class="close-btn" onclick="cancelManagerLeadRequirementForm()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="managerLeadFormContainer">
+                <div style="text-align: center; padding: 40px;">
+                    <div class="spinner" style="display: inline-block;"></div>
+                    <p style="margin-top: 15px; color: #666;">Loading form...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal (shown after Reject clicked) -->
+<div id="rejectReasonModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3>Reject Prospect</h3>
+            <button class="close-modal" onclick="cancelRejectReasonModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="rejectReasonInput">Rejection Reason <span class="required">*</span></label>
+                <textarea id="rejectReasonInput" rows="4" required placeholder="Enter reason for rejection..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;"></textarea>
+            </div>
+            <div class="form-footer" style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end;">
+                <button type="button" class="btn-cancel" onclick="cancelRejectReasonModal()">Cancel</button>
+                <button type="button" class="btn-reject" onclick="submitRejectProspect()">Confirm Reject</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CNP Time Selection Modal -->
+<div id="cnpTimeSelectionModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3>Select Retry Time for CNP</h3>
+            <button class="close-modal" onclick="cancelCnpTimeSelection()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="padding: 20px;">
+                <p style="font-size: 14px; color: #666; margin-bottom: 20px;">
+                    Choose when to retry this call:
+                </p>
+                
+                <!-- Quick Time Options -->
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+                    <button type="button" class="time-option-btn" onclick="selectCnpTime(15, event)" data-minutes="15" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                        15 Minutes
+                    </button>
+                    <button type="button" class="time-option-btn" onclick="selectCnpTime(30, event)" data-minutes="30" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                        30 Minutes
+                    </button>
+                    <button type="button" class="time-option-btn" onclick="selectCnpTime(60, event)" data-minutes="60" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                        1 Hour
+                    </button>
+                    <button type="button" class="time-option-btn" onclick="selectCnpTime(120, event)" data-minutes="120" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                        2 Hours
+                    </button>
+                </div>
+                
+                <!-- Custom Option -->
+                <div style="margin-bottom: 20px;">
+                    <button type="button" class="time-option-btn" onclick="showCustomTimePicker()" id="customTimeOptionBtn" style="width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                        Custom Date & Time
+                    </button>
+                </div>
+                
+                <!-- Custom Date-Time Picker (hidden by default) -->
+                <div id="customTimePickerContainer" style="display: none; padding: 16px; background: #f8f9fa; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                            <strong>Date</strong> <span style="color: #d32f2f;">*</span>
+                        </label>
+                        <input type="date" 
+                               id="cnpCustomDate" 
+                               min=""
+                               style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                            <strong>Time</strong> <span style="color: #d32f2f;">*</span>
+                        </label>
+                        <input type="time" 
+                               id="cnpCustomTime"
+                               style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    </div>
+                    <small style="display: block; margin-top: 8px; color: #666; font-size: 12px;">
+                        Select a future date and time for the retry call
+                    </small>
+                </div>
+                
+                <!-- Selected Time Display -->
+                <div id="selectedTimeDisplay" style="padding: 12px; background: #e8f5e9; border-radius: 6px; margin-bottom: 20px; display: none;">
+                    <p style="font-size: 14px; color: #2e7d32; margin: 0;">
+                        <strong>Selected:</strong> <span id="selectedTimeText"></span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; padding: 16px 20px; border-top: 1px solid #e0e0e0;">
+            <button type="button" onclick="cancelCnpTimeSelection()" style="padding: 10px 20px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer; font-size: 14px; font-weight: 500;">
+                Cancel
+            </button>
+            <button type="button" onclick="confirmCnpTimeSelection()" style="padding: 10px 20px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                Confirm
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- View Detail Modal (for viewing only) -->
 <div id="prospectDetailModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3 id="modalTitle">Prospect Verification</h3>
+            <h3 id="modalTitle">View Prospect Details</h3>
             <button class="close-modal" onclick="closeProspectDetailModal()">&times;</button>
         </div>
-        <form id="prospectDetailForm">
-            <input type="hidden" id="taskId" name="task_id">
-            <input type="hidden" id="prospectId" name="prospect_id">
-            <input type="hidden" id="leadId" name="lead_id">
-            <input type="hidden" id="isViewMode" name="is_view_mode" value="false">
-            
-            <div class="form-group">
-                <label for="customerName">Customer Name <span class="required">*</span></label>
-                <input type="text" id="customerName" name="customer_name" required>
-            </div>
-
-            <div class="form-group">
-                <label for="phone">Phone <span class="required">*</span></label>
-                <input type="text" id="phone" name="phone" required>
-            </div>
-
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email">
-            </div>
-
-            <div class="form-group">
-                <label for="address">Address</label>
-                <textarea id="address" name="address" rows="2"></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="city">City</label>
-                <input type="text" id="city" name="city">
-            </div>
-
-            <div class="form-group">
-                <label for="state">State</label>
-                <input type="text" id="state" name="state">
-            </div>
-
-            <div class="form-group">
-                <label for="pincode">Pincode</label>
-                <input type="text" id="pincode" name="pincode">
-            </div>
-
-            <div class="form-group">
-                <label for="budget">Budget</label>
-                <input type="number" id="budget" name="budget" step="0.01" min="0">
-            </div>
-
-            <div class="form-group">
-                <label for="preferredLocation">Preferred Location</label>
-                <input type="text" id="preferredLocation" name="preferred_location" placeholder="e.g., South Mumbai, Bandra">
-            </div>
-
-            <div class="form-group">
-                <label for="size">Size</label>
-                <input type="text" id="size" name="size" placeholder="e.g., 2 BHK, 1200 sqft">
-            </div>
-
-            <div class="form-group">
-                <label for="purpose">Purpose</label>
-                <select id="purpose" name="purpose">
-                    <option value="">Select Purpose</option>
-                    <option value="end_user">End User</option>
-                    <option value="investment">Investment</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="possession">Possession</label>
-                <input type="text" id="possession" name="possession">
-            </div>
-
-            <div class="form-group">
-                <label for="leadStatus">Lead Status <span class="required">*</span></label>
-                <select id="leadStatus" name="lead_status" required>
-                    <option value="">Select Lead Status</option>
-                    <option value="hot">Hot</option>
-                    <option value="warm">Warm</option>
-                    <option value="cold">Cold</option>
-                    <option value="junk">Junk</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="interestedProjects">Interested Projects <span class="required">*</span></label>
-                <select id="interestedProjects" name="interested_projects[]" multiple required style="width: 100%; min-height: 100px;">
-                    <!-- Options will be loaded dynamically -->
-                </select>
-                <small class="form-text text-muted">Select one or more projects. Hold Ctrl/Cmd to select multiple.</small>
-            </div>
-
-            <div class="form-group">
-                <label for="managerRemark">Manager Remark</label>
-                <textarea id="managerRemark" name="manager_remark" rows="3" placeholder="Enter remarks or notes..."></textarea>
-            </div>
-
-            <div class="form-footer" id="formFooter">
-                <button type="button" class="btn-cancel" onclick="closeProspectDetailModal()">Cancel</button>
-                <button type="button" class="btn-reject" onclick="submitProspectAction('reject')" id="btnReject">Reject</button>
-                <button type="button" class="btn-verify" onclick="submitProspectAction('verify')" id="btnVerify">Verify</button>
-            </div>
-        </form>
+        <div id="prospectDetailContent" style="padding: 24px;">
+            <!-- Content will be loaded dynamically -->
+        </div>
     </div>
 </div>
 @endsection
 
 @push('scripts')
 <script>
+    // Global variables and functions for onclick handlers
+    // Use relative path to avoid APP_URL misconfig issues
     const API_BASE_URL = '/api/sales-manager';
-    const API_TOKEN = '{{ $api_token }}';
-    let currentStatus = 'all';
+    const API_TOKEN = '{{ $api_token ?? session("api_token") ?? "" }}';
+    
+    // Store token in localStorage if available
+    if (API_TOKEN) {
+        localStorage.setItem('sales_manager_token', API_TOKEN);
+    }
+    
+    // Initialize currentStatus from localStorage or default to 'all'
+    let savedFilter = 'all';
+    try {
+        const saved = localStorage.getItem('salesManagerTasksFilter');
+        if (saved && ['all', 'pending', 'overdue', 'rescheduled', 'completed'].includes(saved)) {
+            savedFilter = saved;
+        }
+    } catch (e) {
+        console.error('Failed to read filter from localStorage:', e);
+    }
+
+    let currentStatus = savedFilter;
     let currentTaskId = null;
+    
+    // Attach to window for global access
+    window.currentStatus = currentStatus;
+    window.currentTaskId = currentTaskId;
 
     function getAuthHeaders() {
+        const token = API_TOKEN || localStorage.getItem('sales_manager_token') || '';
         return {
-            'Authorization': `Bearer ${API_TOKEN}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            'X-Requested-With': 'XMLHttpRequest'
         };
     }
 
     async function apiCall(endpoint, options = {}) {
         try {
-            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-                ...options,
+            const url = `${API_BASE_URL}${endpoint}`;
+            console.log(`API Call: ${url}`);
+            console.log('Request options:', { method: options.method || 'GET', headers: getAuthHeaders() });
+            
+            const response = await fetch(url, {
+                method: options.method || 'GET',
                 headers: {
                     ...getAuthHeaders(),
                     ...(options.headers || {})
-                }
+                },
+                body: options.body || undefined,
+                credentials: 'same-origin'
             });
 
-            const data = await response.json();
+            console.log(`API Response Status: ${response.status} for ${endpoint}`);
+            console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+            if (response.status === 401) {
+                console.error('Unauthorized - Token may be invalid');
+                localStorage.removeItem('sales_manager_token');
+                showAlert('Session expired. Redirecting to login...', 'error');
+                setTimeout(() => {
+                    window.location.href = '{{ route("login") }}';
+                }, 2000);
+                return { success: false, message: 'Unauthorized' };
+            }
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`API Error (${response.status}):`, errorText);
+                console.error('Error response headers:', Object.fromEntries(response.headers.entries()));
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    return { success: false, ...errorJson };
+                } catch (e) {
+                    return { success: false, message: errorText || `HTTP ${response.status}: ${response.statusText}` };
+                }
+            }
+
+            const responseText = await response.text();
+            console.log('Raw API response text:', responseText.substring(0, 500));
+            
+            let data;
+            try {
+                data = JSON.parse(responseText);
+                console.log(`API Success for ${endpoint}:`, {
+                    success: data.success,
+                    data_length: data.data ? (Array.isArray(data.data) ? data.data.length : 'not array') : 'no data',
+                    total: data.total,
+                    current_page: data.current_page
+                });
+            } catch (parseError) {
+                console.error('JSON Parse Error:', parseError);
+                console.error('Response text:', responseText);
+                return { success: false, message: 'Invalid JSON response from server' };
+            }
+            
             return data;
         } catch (error) {
-            console.error('API Error:', error);
-            showAlert('An error occurred: ' + error.message, 'error');
-            return { success: false, message: error.message };
+            console.error('API Call Error:', error);
+            console.error('Error details:', error.message, error.stack);
+            console.error('Error name:', error.name);
+            showAlert('Network error: ' + error.message, 'error');
+            return { success: false, message: error.message || 'Network error occurred' };
         }
     }
 
@@ -568,8 +890,17 @@
         });
     }
 
+    // Filter tasks function - must be globally accessible for onclick handlers
     function filterTasks(status) {
+        console.log('filterTasks called with status:', status);
         currentStatus = status;
+        
+        // Save to localStorage
+        try {
+            localStorage.setItem('salesManagerTasksFilter', status);
+        } catch (e) {
+            console.error('Failed to save filter to localStorage:', e);
+        }
         
         // Update button states
         document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -579,32 +910,134 @@
             }
         });
 
+        // Show/hide remove all overdue button
+        const removeAllOverdueBtn = document.getElementById('removeAllOverdueBtn');
+        if (removeAllOverdueBtn) {
+            if (status === 'overdue') {
+                removeAllOverdueBtn.style.display = 'flex';
+            } else {
+                removeAllOverdueBtn.style.display = 'none';
+            }
+        }
+
         loadTasks();
     }
+    
+    // Attach to window for global access (critical for onclick handlers)
+    window.filterTasks = filterTasks;
+    
+    console.log('filterTasks function defined and attached to window:', typeof window.filterTasks);
 
     async function loadTasks() {
+        console.log('=== loadTasks() CALLED ===');
         const tasksGrid = document.getElementById('tasksGrid');
+        if (!tasksGrid) {
+            console.error('ERROR: Tasks grid element not found!');
+            return;
+        }
+        
+        console.log('Setting loading state...');
         tasksGrid.innerHTML = '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Loading tasks...</p></div>';
 
+        // Set a timeout to show error if API call takes too long
+        let timeoutId = setTimeout(() => {
+            console.error('API call timeout after 30 seconds');
+            const currentGrid = document.getElementById('tasksGrid');
+            if (currentGrid && currentGrid.innerHTML.includes('Loading tasks')) {
+                currentGrid.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Request Timeout</h3><p>The request is taking too long. Please check your connection and try again.</p><button onclick="window.loadTasks()" style="margin-top: 12px; padding: 8px 16px; background: #205A44; color: white; border: none; border-radius: 6px; cursor: pointer;">Retry</button></div>';
+            }
+        }, 30000);
+
         try {
+            console.log('=== STARTING API CALL ===');
+            console.log('Current status filter:', currentStatus);
+            console.log('API_BASE_URL:', API_BASE_URL);
+            console.log('API_TOKEN:', API_TOKEN ? 'Present (' + API_TOKEN.substring(0, 20) + '...)' : 'Missing');
+            
             const params = new URLSearchParams();
-            if (currentStatus !== 'all') {
+            if (currentStatus && currentStatus !== 'all') {
                 params.append('status', currentStatus);
             }
             
-            const result = await apiCall(`/tasks?${params.toString()}`);
+            const endpoint = `/tasks${params.toString() ? '?' + params.toString() : ''}`;
+            const fullUrl = `${API_BASE_URL}${endpoint}`;
+            console.log('Full API URL:', fullUrl);
+            console.log('Calling API endpoint:', endpoint);
             
-            if (result && result.success && result.data) {
-                const tasks = result.data;
-                renderTasks(tasks);
+            const result = await apiCall(endpoint);
+            clearTimeout(timeoutId); // Clear timeout on success
+            
+            console.log('=== API CALL COMPLETED ===');
+            console.log('Tasks API response:', result);
+            console.log('Response type:', typeof result);
+            console.log('Response keys:', result ? Object.keys(result) : 'null');
+            
+            // Check if result exists and has the expected structure
+            if (!result) {
+                console.error('API returned null or undefined');
+                tasksGrid.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Error loading tasks</h3><p>No response from server. Please refresh the page.</p></div>';
+                return;
+            }
+            
+            // Handle error response
+            if (result.success === false) {
+                console.error('API returned error:', result.message || result.error);
+                const errorMsg = result.message || result.error || 'Unknown error occurred';
+                tasksGrid.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Error loading tasks</h3><p>${errorMsg}</p><button onclick="window.loadTasks()" style="margin-top: 12px; padding: 8px 16px; background: #205A44; color: white; border: none; border-radius: 6px; cursor: pointer;">Retry</button></div>`;
+                return;
+            }
+            
+            // Check if data exists and is an array
+            console.log('Checking response data...');
+            console.log('result.success:', result.success);
+            console.log('result.data exists:', result.data !== undefined);
+            console.log('result.data type:', typeof result.data);
+            console.log('result.data is array:', Array.isArray(result.data));
+            
+            if (result.data !== undefined) {
+                if (Array.isArray(result.data)) {
+                    console.log(`Data is array with ${result.data.length} items`);
+                    if (result.data.length > 0) {
+                        console.log(`Found ${result.data.length} tasks out of ${result.total || result.data.length} total`);
+                        console.log('First task sample:', result.data[0]);
+                        renderTasks(result.data);
+                    } else {
+                        console.log('No tasks found (empty array)');
+                        // Custom empty message for rescheduled and overdue tabs
+                        let emptyMessage = '<div class="empty-state"><i class="fas fa-inbox"></i><h3>No tasks found</h3><p>You don\'t have any tasks matching the filter.</p></div>';
+                        if (currentStatus === 'rescheduled') {
+                            emptyMessage = '<div class="empty-state"><i class="fas fa-inbox"></i><h3>No rescheduled CNP calls</h3><p>You don\'t have any CNP calls scheduled for later.</p></div>';
+                        } else if (currentStatus === 'overdue') {
+                            emptyMessage = '<div class="empty-state"><i class="fas fa-inbox"></i><h3>No overdue tasks</h3><p>You don\'t have any overdue tasks. Great job!</p></div>';
+                        }
+                        tasksGrid.innerHTML = emptyMessage;
+                    }
+                } else {
+                    console.error('Invalid response format - data is not an array:', result);
+                    console.error('Data type:', typeof result.data, 'Value:', result.data);
+                    console.error('Full result:', JSON.stringify(result, null, 2));
+                    tasksGrid.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Error loading tasks</h3><p>Invalid response format from server. Data is not an array. Check console for details.</p></div>';
+                }
             } else {
-                tasksGrid.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><h3>No tasks found</h3><p>You don\'t have any tasks yet.</p></div>';
+                console.error('Response missing data field:', result);
+                console.error('Full result object:', JSON.stringify(result, null, 2));
+                tasksGrid.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Error loading tasks</h3><p>Response missing data field from server. Check console for details.</p></div>';
             }
         } catch (error) {
+            clearTimeout(timeoutId); // Clear timeout on error
+            console.error('=== ERROR IN loadTasks() ===');
             console.error('Error loading tasks:', error);
-            tasksGrid.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Error loading tasks</h3><p>Please refresh the page.</p></div>';
+            console.error('Error name:', error.name);
+            console.error('Error message:', error.message);
+            console.error('Error stack:', error.stack);
+            const errorMsg = error.message || 'Unknown error occurred';
+            tasksGrid.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Error loading tasks</h3><p>${errorMsg}. Please refresh the page.</p><button onclick="window.loadTasks()" style="margin-top: 12px; padding: 8px 16px; background: #205A44; color: white; border: none; border-radius: 6px; cursor: pointer;">Retry</button></div>`;
         }
     }
+    
+    // Make loadTasks globally accessible (critical for onclick handlers in error messages)
+    window.loadTasks = loadTasks;
+    console.log('loadTasks function defined and attached to window:', typeof window.loadTasks);
 
     function renderTasks(tasks) {
         const tasksGrid = document.getElementById('tasksGrid');
@@ -616,17 +1049,31 @@
 
         tasksGrid.innerHTML = tasks.map(task => {
             const lead = task.lead || {};
-            const leadName = lead.name || task.title?.replace('Call for prospect verification: ', '') || 'N/A';
-            const leadPhone = lead.phone || 'N/A';
+            // Extract lead name from title if lead name not available
+            let leadName = lead.name || 'Prospect';
+            if (task.title) {
+                const titleMatch = task.title.match(/prospect verification:\s*(.+)/i);
+                if (titleMatch) {
+                    leadName = titleMatch[1].trim();
+                } else if (!lead.name) {
+                    leadName = task.title.replace('Call for prospect verification: ', '').trim() || 'Prospect';
+                }
+            }
+            const leadPhone = lead.phone || task.lead_phone || 'N/A';
             const initial = leadName.charAt(0).toUpperCase();
-            const isOverdue = task.is_overdue || false;
+            const isOverdue = task.is_overdue === true || (task.scheduled_at_formatted && new Date(task.scheduled_at_formatted) < new Date() && task.status === 'pending');
             const scheduledDate = formatDate(task.scheduled_at_formatted || task.scheduled_at);
             const overdueClass = isOverdue ? 'overdue' : '';
-            const statusClass = `status-${task.status}`;
+            const statusClass = `status-${task.status || 'pending'}`;
+            
+            // Check if lead has prospect (from telecaller) - needs verification
+            const hasProspect = task.has_prospect === true && 
+                               task.prospect && 
+                               task.prospect.is_pending_verification === true;
 
-            const cleanPhone = leadPhone.replace(/[^0-9]/g, '');
+            const cleanPhone = String(leadPhone).replace(/[^0-9]/g, '');
             return `
-                <div class="task-card ${overdueClass}">
+                <div id="task-card-${task.id}" class="task-card ${overdueClass}">
                     <div class="task-header">
                         <div class="task-avatar">${initial}</div>
                         <div>
@@ -646,7 +1093,7 @@
                         </div>
                     </div>
                     <div class="task-actions">
-                        <button class="task-action-btn btn-call" onclick="openProspectDetailModal(${task.id}, false)" title="Call">
+                        <button class="task-action-btn btn-call" onclick="handleManagerCallClick(${task.id}, '${leadPhone}', ${hasProspect})" title="Call">
                             <i class="fas fa-phone"></i>
                             <span>Call</span>
                         </button>
@@ -705,91 +1152,1140 @@
         }
     }
 
-    async function openProspectDetailModal(taskId, viewMode = false) {
+    // Handle manager call click - Check if lead has prospect or is direct assignment
+    async function handleManagerCallClick(taskId, phoneNumber, hasProspect = null) {
         currentTaskId = taskId;
-        const modal = document.getElementById('prospectDetailModal');
-        const form = document.getElementById('prospectDetailForm');
-        const modalTitle = document.getElementById('modalTitle');
-        const isViewModeInput = document.getElementById('isViewMode');
         
-        // Set view mode
-        isViewModeInput.value = viewMode ? 'true' : 'false';
+        // If hasProspect not provided, fetch task data to check
+        if (hasProspect === null) {
+            try {
+                const tasksResponse = await apiCall('/tasks');
+                if (tasksResponse && tasksResponse.success && tasksResponse.data) {
+                    const taskData = tasksResponse.data.find(t => t.id === taskId);
+                    hasProspect = taskData?.has_prospect === true && 
+                                 taskData?.prospect?.is_pending_verification === true;
+                }
+            } catch (error) {
+                console.error('Error fetching task data:', error);
+                // Default to showing verification if we can't determine
+                hasProspect = true;
+            }
+        }
         
-        // Update modal title
-        modalTitle.textContent = viewMode ? 'View Prospect Details' : 'Prospect Verification';
+        // If lead has prospect from telecaller → show verification popup
+        // If no prospect (direct assignment) → open Lead Requirement Form directly
+        if (hasProspect) {
+            // Lead from telecaller - show verification popup (current behavior)
+            if (phoneNumber && phoneNumber !== 'N/A' && phoneNumber !== '') {
+                const cleanPhone = String(phoneNumber).replace(/[^0-9]/g, '');
+                if (cleanPhone.length >= 10) {
+                    // Open phone dialer
+                    window.location.href = `tel:${cleanPhone}`;
+                    // Small delay to allow dialer to open, then show verification modal
+                    setTimeout(() => {
+                        showVerifyRejectPrompt();
+                    }, 500);
+                } else {
+                    showAlert('Phone number not available', 'warning');
+                    showVerifyRejectPrompt();
+                }
+            } else {
+                showAlert('Phone number not available', 'warning');
+                showVerifyRejectPrompt();
+            }
+        } else {
+            // Directly assigned lead (no prospect) - open Lead Requirement Form directly
+            // Skip verification popup
+            if (phoneNumber && phoneNumber !== 'N/A' && phoneNumber !== '') {
+                const cleanPhone = String(phoneNumber).replace(/[^0-9]/g, '');
+                if (cleanPhone.length >= 10) {
+                    // Open phone dialer
+                    window.location.href = `tel:${cleanPhone}`;
+                    // Small delay to allow dialer to open, then open form directly
+                    setTimeout(() => {
+                        openManagerLeadRequirementFormModal(taskId);
+                    }, 500);
+                } else {
+                    // No phone, but still open form directly
+                    openManagerLeadRequirementFormModal(taskId);
+                }
+            } else {
+                // No phone, open form directly
+                openManagerLeadRequirementFormModal(taskId);
+            }
+        }
+    }
+    
+    function showVerifyRejectPrompt() {
+        // Show verify/reject prompt modal (Step 1)
+        const promptModal = document.getElementById('verifyRejectPromptModal');
+        promptModal.classList.add('active');
+    }
+
+    function closeVerifyRejectPromptModal() {
+        const modal = document.getElementById('verifyRejectPromptModal');
+        modal.classList.remove('active');
+        // Don't reset currentTaskId here - it's needed for proceedToVerifyForm() and proceedToReject()
+        // Only reset when form is submitted successfully or user explicitly cancels
+    }
+    
+    function cancelVerifyRejectPrompt() {
+        // User clicked close/cancel button - reset task ID
+        closeVerifyRejectPromptModal();
+        currentTaskId = null;
+    }
+
+    // Step 2a: Proceed to Verify - Load full form
+    async function proceedToVerifyForm() {
+        // Don't close modal here - just hide it, keep currentTaskId
+        const promptModal = document.getElementById('verifyRejectPromptModal');
+        promptModal.classList.remove('active');
         
-        // Reset form
-        form.reset();
+        if (!currentTaskId) {
+            showAlert('Task ID not found', 'error');
+            return;
+        }
         
-        // Show loading
+        // Open full form modal
+        await openManagerLeadRequirementFormModal(currentTaskId);
+    }
+
+    // Step 2b: Proceed to Reject - Show reject reason modal
+    function proceedToReject() {
+        // Don't close modal here - just hide it, keep currentTaskId
+        const promptModal = document.getElementById('verifyRejectPromptModal');
+        promptModal.classList.remove('active');
+        
+        if (!currentTaskId) {
+            showAlert('Task ID not found', 'error');
+            return;
+        }
+        
+        // Show reject reason modal
+        const rejectModal = document.getElementById('rejectReasonModal');
+        rejectModal.classList.add('active');
+        document.getElementById('rejectReasonInput').value = '';
+    }
+
+    // Step 2c: Proceed to CNP - Open time selection modal
+    function proceedToCNP() {
+        // Hide prompt modal, keep currentTaskId
+        const promptModal = document.getElementById('verifyRejectPromptModal');
+        promptModal.classList.remove('active');
+        
+        if (!currentTaskId) {
+            showAlert('Task ID not found', 'error');
+            return;
+        }
+        
+        // Open CNP time selection modal
+        openCnpTimeSelectionModal();
+    }
+    
+    // CNP Time Selection Variables
+    let selectedCnpMinutes = null;
+    let selectedCnpCustomDateTime = null;
+    let isCustomTimeSelected = false;
+    
+    // Open CNP time selection modal
+    function openCnpTimeSelectionModal() {
+        const modal = document.getElementById('cnpTimeSelectionModal');
+        if (modal) {
+            modal.classList.add('active');
+            // Reset selections
+            selectedCnpMinutes = null;
+            selectedCnpCustomDateTime = null;
+            isCustomTimeSelected = false;
+            document.getElementById('customTimePickerContainer').style.display = 'none';
+            document.getElementById('selectedTimeDisplay').style.display = 'none';
+            // Clear button selections
+            document.querySelectorAll('.time-option-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            // Set minimum date to today
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = document.getElementById('cnpCustomDate');
+            if (dateInput) {
+                dateInput.min = today;
+                dateInput.value = '';
+            }
+            const timeInput = document.getElementById('cnpCustomTime');
+            if (timeInput) {
+                timeInput.value = '';
+            }
+        }
+    }
+    
+    // Select quick time option (15 min, 30 min, 1 hr, 2 hr)
+    function selectCnpTime(minutes, event) {
+        selectedCnpMinutes = minutes;
+        selectedCnpCustomDateTime = null;
+        isCustomTimeSelected = false;
+        
+        // Hide custom picker
+        document.getElementById('customTimePickerContainer').style.display = 'none';
+        
+        // Clear custom inputs
+        document.getElementById('cnpCustomDate').value = '';
+        document.getElementById('cnpCustomTime').value = '';
+        
+        // Remove selected class from all buttons
+        document.querySelectorAll('.time-option-btn').forEach(btn => {
+            btn.classList.remove('selected');
+        });
+        
+        // Add selected class to clicked button
+        if (event && event.target) {
+            event.target.classList.add('selected');
+        }
+        
+        // Calculate and display selected time
+        const now = new Date();
+        const retryTime = new Date(now.getTime() + minutes * 60000);
+        const formattedTime = retryTime.toLocaleString('en-IN', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+        
+        document.getElementById('selectedTimeText').textContent = `Retry call in ${minutes} minutes (${formattedTime})`;
+        document.getElementById('selectedTimeDisplay').style.display = 'block';
+    }
+    
+    // Show custom date-time picker
+    function showCustomTimePicker() {
+        isCustomTimeSelected = true;
+        selectedCnpMinutes = null;
+        
+        // Remove selected class from quick option buttons
+        document.querySelectorAll('.time-option-btn[data-minutes]').forEach(btn => {
+            btn.classList.remove('selected');
+        });
+        
+        // Show custom picker container
+        const customContainer = document.getElementById('customTimePickerContainer');
+        customContainer.style.display = 'block';
+        
+        // Hide selected time display initially
+        document.getElementById('selectedTimeDisplay').style.display = 'none';
+        
+        // Set minimum date to today and default time to next hour
+        const today = new Date().toISOString().split('T')[0];
+        const dateInput = document.getElementById('cnpCustomDate');
+        const timeInput = document.getElementById('cnpCustomTime');
+        
+        if (dateInput) {
+            dateInput.min = today;
+            if (!dateInput.value) {
+                dateInput.value = today;
+            }
+        }
+        
+        if (timeInput && !timeInput.value) {
+            const nextHour = new Date();
+            nextHour.setHours(nextHour.getHours() + 1);
+            nextHour.setMinutes(0);
+            const timeStr = nextHour.toTimeString().slice(0, 5); // HH:MM format
+            timeInput.value = timeStr;
+        }
+        
+        // Add change listeners to update selected time display
+        if (dateInput && timeInput) {
+            const updateCustomTimeDisplay = () => {
+                const date = dateInput.value;
+                const time = timeInput.value;
+                if (date && time) {
+                    const dateTime = new Date(`${date}T${time}`);
+                    if (dateTime > new Date()) {
+                        const formattedTime = dateTime.toLocaleString('en-IN', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                        });
+                        document.getElementById('selectedTimeText').textContent = `Retry call on ${formattedTime}`;
+                        document.getElementById('selectedTimeDisplay').style.display = 'block';
+                        selectedCnpCustomDateTime = dateTime.toISOString();
+                    } else {
+                        document.getElementById('selectedTimeDisplay').style.display = 'none';
+                    }
+                } else {
+                    document.getElementById('selectedTimeDisplay').style.display = 'none';
+                }
+            };
+            
+            // Remove existing listeners and add new ones
+            dateInput.removeEventListener('change', updateCustomTimeDisplay);
+            timeInput.removeEventListener('change', updateCustomTimeDisplay);
+            dateInput.addEventListener('change', updateCustomTimeDisplay);
+            timeInput.addEventListener('change', updateCustomTimeDisplay);
+            
+            // Initial update
+            updateCustomTimeDisplay();
+        }
+    }
+    
+    // Confirm CNP time selection and submit
+    async function confirmCnpTimeSelection() {
+        if (!currentTaskId) {
+            showAlert('Task ID not found', 'error');
+            return;
+        }
+        
+        let retryAt = null;
+        let retryMinutes = null;
+        
+        // Validate selection
+        if (isCustomTimeSelected) {
+            const dateInput = document.getElementById('cnpCustomDate');
+            const timeInput = document.getElementById('cnpCustomTime');
+            const date = dateInput.value;
+            const time = timeInput.value;
+            
+            if (!date || !time) {
+                showAlert('Please select both date and time for custom option', 'warning');
+                return;
+            }
+            
+            const selectedDateTime = new Date(`${date}T${time}`);
+            const now = new Date();
+            
+            if (selectedDateTime <= now) {
+                showAlert('Please select a future date and time', 'warning');
+                return;
+            }
+            
+            retryAt = selectedDateTime.toISOString();
+        } else if (selectedCnpMinutes !== null) {
+            retryMinutes = selectedCnpMinutes;
+        } else {
+            showAlert('Please select a retry time option', 'warning');
+            return;
+        }
+        
+        try {
+            const requestBody = {};
+            if (retryAt) {
+                requestBody.retry_at = retryAt;
+            } else if (retryMinutes !== null) {
+                requestBody.retry_minutes = retryMinutes;
+            }
+            
+            const result = await apiCall(`/tasks/${currentTaskId}/cnp`, {
+                method: 'POST',
+                body: JSON.stringify(requestBody)
+            });
+            
+            if (result && result.success) {
+                const timeMsg = isCustomTimeSelected 
+                    ? `New calling task created for selected time.`
+                    : `New calling task created for ${retryMinutes} minutes later.`;
+                showAlert(`Call Not Picked marked. ${timeMsg}`, 'success', 4000);
+                closeCnpTimeSelectionModal();
+                currentTaskId = null; // Reset after successful submission
+                // Refresh tasks list after a short delay
+                setTimeout(() => {
+                    loadTasks();
+                }, 500);
+            } else {
+                showAlert(result?.message || result?.error || 'Failed to mark as CNP', 'error');
+            }
+        } catch (error) {
+            console.error('Error marking as CNP:', error);
+            showAlert('Error marking as CNP: ' + error.message, 'error');
+        }
+    }
+    
+    // Cancel CNP time selection
+    function cancelCnpTimeSelection() {
+        closeCnpTimeSelectionModal();
+        // Don't reset currentTaskId here - user might want to try again
+    }
+    
+    // Close CNP time selection modal
+    function closeCnpTimeSelectionModal() {
+        const modal = document.getElementById('cnpTimeSelectionModal');
+        if (modal) {
+            modal.classList.remove('active');
+            // Reset selections
+            selectedCnpMinutes = null;
+            selectedCnpCustomDateTime = null;
+            isCustomTimeSelected = false;
+            document.getElementById('customTimePickerContainer').style.display = 'none';
+            document.getElementById('selectedTimeDisplay').style.display = 'none';
+            document.getElementById('cnpCustomDate').value = '';
+            document.getElementById('cnpCustomTime').value = '';
+            document.querySelectorAll('.time-option-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+        }
+    }
+
+    function closeRejectReasonModal() {
+        const modal = document.getElementById('rejectReasonModal');
+        modal.classList.remove('active');
+        document.getElementById('rejectReasonInput').value = '';
+    }
+    
+    function cancelRejectReasonModal() {
+        // User cancelled - reset task ID and close modal
+        closeRejectReasonModal();
+        currentTaskId = null;
+    }
+
+    // Submit reject
+    async function submitRejectProspect() {
+        const rejectionReason = document.getElementById('rejectReasonInput').value.trim();
+        
+        if (!rejectionReason) {
+            showAlert('Please enter a rejection reason', 'warning');
+            return;
+        }
+        
+        if (!currentTaskId) {
+            showAlert('Task ID not found', 'error');
+            return;
+        }
+        
+        try {
+            const result = await apiCall(`/tasks/${currentTaskId}/reject`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    rejection_reason: rejectionReason
+                })
+            });
+            
+            if (result && result.success) {
+                // Remove task card immediately from DOM
+                const taskCard = document.getElementById(`task-card-${currentTaskId}`);
+                if (taskCard) {
+                    taskCard.style.transition = 'opacity 0.3s, transform 0.3s';
+                    taskCard.style.opacity = '0';
+                    taskCard.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        taskCard.remove();
+                        // Reload tasks after card removal to ensure consistency
+                        loadTasks();
+                    }, 300);
+                } else {
+                    // Fallback if card not found by ID
+                    loadTasks();
+                }
+                
+                showAlert('Prospect rejected successfully', 'success');
+                closeRejectReasonModal();
+                currentTaskId = null; // Reset after successful submission
+            } else {
+                showAlert(result?.message || 'Failed to reject prospect', 'error');
+            }
+        } catch (error) {
+            console.error('Error rejecting prospect:', error);
+            showAlert('Error rejecting prospect: ' + error.message, 'error');
+        }
+    }
+
+    // Open manager lead requirement form modal (Step 2 - after verify clicked)
+    async function openManagerLeadRequirementFormModal(taskId) {
+        const modal = document.getElementById('managerLeadRequirementFormModal');
+        const container = document.getElementById('managerLeadFormContainer');
+        
         modal.classList.add('active');
-        form.style.opacity = '0.5';
-        form.style.pointerEvents = 'none';
+        container.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner" style="display: inline-block;"></div><p style="margin-top: 15px; color: #666;">Loading form...</p></div>';
         
-        // Enable/disable form fields based on view mode
-        const formFields = form.querySelectorAll('input, select, textarea');
+        try {
+            const result = await apiCall(`/tasks/${taskId}/lead-requirement-form`);
+            
+            if (result && result.success) {
+                renderManagerLeadForm(result);
+            } else {
+                showAlert('Failed to load form: ' + (result?.error || result?.message || 'Unknown error'), 'error');
+                closeManagerLeadRequirementFormModal();
+            }
+        } catch (error) {
+            console.error('Error loading form:', error);
+            showAlert('Error loading form: ' + error.message, 'error');
+            closeManagerLeadRequirementFormModal();
+        }
+    }
+
+    function closeManagerLeadRequirementFormModal() {
+        const modal = document.getElementById('managerLeadRequirementFormModal');
+        modal.classList.remove('active');
+        document.getElementById('managerLeadFormContainer').innerHTML = '';
+        // Reset currentTaskId when modal is closed (user cancelled)
+        currentTaskId = null;
+    }
+    
+    function cancelManagerLeadRequirementForm() {
+        // User clicked close/cancel button - reset task ID and close modal
+        closeManagerLeadRequirementFormModal();
+    }
+
+    // Render manager lead requirement form (similar to telecaller but all fields visible)
+    function renderManagerLeadForm(data) {
+        const container = document.getElementById('managerLeadFormContainer');
+        
+        // Update modal title based on whether it's a prospect or direct lead
+        const modalTitle = document.querySelector('#managerLeadRequirementFormModal .modal-header h3');
+        if (modalTitle) {
+            const hasProspect = data.has_prospect === true;
+            modalTitle.textContent = hasProspect ? 'Prospect Verification' : 'Lead Detail Form';
+        }
+        
+        const formFields = data.form_fields || [];
+        const formValues = data.form_values || {};
+        
+        let formHTML = `
+            <form id="managerLeadRequirementForm" novalidate onsubmit="submitManagerLeadRequirementForm(event); return false;">
+                <input type="hidden" name="task_id" value="${currentTaskId}">
+                
+                <div style="margin-bottom: 24px;">
+                    <h3 style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">Basic Information</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div>
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                Name <span style="color: #d32f2f;">*</span>
+                            </label>
+                            <input type="text" 
+                                   name="name" 
+                                   id="manager_form_name"
+                                   value="${data.lead_name || ''}"
+                                   required
+                                   placeholder="Enter lead name"
+                                   style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        </div>
+                        
+                        <div>
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                Mobile Number <span style="color: #d32f2f;">*</span>
+                            </label>
+                            <input type="tel" 
+                                   name="phone" 
+                                   id="manager_form_phone"
+                                   value="${data.lead_phone || ''}"
+                                   required
+                                   placeholder="Enter phone number"
+                                   style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 24px;">
+                    <h3 style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">Lead Requirements</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        `;
+        
+        // Render all form fields (manager can see all fields)
+        // Filter out Final Status, Follow-up Date, and Follow-up Time fields
+        const excludedFields = ['final_status', 'follow_up_date', 'follow_up_time', 'follow-up_date', 'follow-up_time'];
         formFields.forEach(field => {
-            if (field.id !== 'taskId' && field.id !== 'prospectId' && field.id !== 'leadId' && field.id !== 'isViewMode') {
-                field.readOnly = viewMode;
-                field.disabled = viewMode;
+            const fieldKey = field.key || field.field_key;
+            const fieldLabel = field.label || field.field_label;
+            
+            // Skip Final Status, Follow-up Date, and Follow-up Time fields
+            if (excludedFields.includes(fieldKey.toLowerCase()) || 
+                fieldLabel.toLowerCase().includes('final status') ||
+                (fieldLabel.toLowerCase().includes('follow-up') && (fieldLabel.toLowerCase().includes('date') || fieldLabel.toLowerCase().includes('time')))) {
+                return; // Skip this field
+            }
+            
+            const fieldType = field.type || field.field_type;
+            const isRequired = field.required !== undefined ? field.required : field.is_required;
+            const fieldOptions = field.options || [];
+            const dependentField = field.dependent_field;
+            const existingValue = formValues[fieldKey] || '';
+            
+            formHTML += `
+                <div>
+                    <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                        ${fieldLabel} ${isRequired ? '<span style="color: #d32f2f;">*</span>' : ''}
+                    </label>
+            `;
+            
+            if (fieldType === 'select') {
+                const dependentAttr = dependentField ? `data-dependent-field="${dependentField}"` : '';
+                formHTML += `<select name="${fieldKey}" id="manager_form_${fieldKey}" ${isRequired ? 'required' : ''} 
+                             style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
+                             ${dependentAttr}
+                             onchange="handleManagerFormFieldChange('${fieldKey}', this.value${dependentField ? `, '${dependentField}'` : ''})">`;
+                formHTML += `<option value="">-- Select ${fieldLabel} --</option>`;
+                fieldOptions.forEach(option => {
+                    formHTML += `<option value="${option}" ${existingValue === option ? 'selected' : ''}>${option}</option>`;
+                });
+                formHTML += `</select>`;
+            } else {
+                formHTML += `<input type="${fieldType}" 
+                             name="${fieldKey}" 
+                             id="manager_form_${fieldKey}"
+                             value="${existingValue}"
+                             ${isRequired ? 'required' : ''}
+                             placeholder="${field.placeholder || `Enter ${fieldLabel}`}"
+                             style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">`;
+            }
+            
+            formHTML += `</div>`;
+        });
+        
+        formHTML += `
+                    </div>
+                </div>
+                
+                <!-- Follow Up Required Section -->
+                <div style="margin-bottom: 24px;">
+                    <div style="padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                        <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                            <input type="checkbox" 
+                                   name="follow_up_required" 
+                                   id="manager_form_follow_up_required"
+                                   style="width: 18px; height: 18px; margin-right: 10px; cursor: pointer;">
+                            <label for="manager_form_follow_up_required" style="font-size: 14px; font-weight: 500; color: #333; cursor: pointer; margin: 0;">
+                                <strong>Follow Up Required</strong>
+                            </label>
+                        </div>
+                        <small style="display: block; color: #666; font-size: 12px; margin-left: 28px;">Check this if you need to schedule a follow-up call for this lead</small>
+                        
+                        <!-- Follow Up Date & Time Picker (shown conditionally when Follow Up Required is checked) -->
+                        <div id="followUpDateContainer" style="display: none; margin-top: 16px;">
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                <strong>Follow Up Date & Time</strong> <span style="color: #d32f2f;">*</span>
+                            </label>
+                            <input type="datetime-local" 
+                                   name="follow_up_date" 
+                                   id="manager_form_follow_up_date"
+                                   style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                            <small style="display: block; margin-top: 4px; color: #666; font-size: 12px;">Select date and time for the follow-up call. A calling task will be created automatically.</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 24px;">
+                    <h3 style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">Verification Details</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div>
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                <strong>Lead Status</strong> <span style="color: #d32f2f;">*</span>
+                            </label>
+                            <select name="lead_status" id="manager_form_lead_status" required style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                                <option value="">-- Select Lead Status --</option>
+                                <option value="hot">Hot</option>
+                                <option value="warm">Warm</option>
+                                <option value="cold">Cold</option>
+                                <option value="junk">Junk</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                <strong>Lead Quality</strong> <span style="color: #d32f2f;">*</span>
+                            </label>
+                            <select name="lead_quality" id="manager_form_lead_quality" required style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                                <option value="">-- Select Lead Quality --</option>
+                                <option value="1">1 - Bad</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5 - Best Lead</option>
+                            </select>
+                            <small style="display: block; margin-top: 4px; color: #666; font-size: 12px;">Rate the lead quality (1 = Bad, 5 = Best Lead)</small>
+                        </div>
+                        <div style="grid-column: 1 / -1;">
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                <strong>Interested Projects</strong> <span style="color: #d32f2f;">*</span>
+                            </label>
+                            <div id="project-tags-container" class="project-tags-wrapper">
+                                <div class="project-tags-grid" id="project-tags-grid">
+                                    <!-- Project tags will be loaded dynamically -->
+                                </div>
+                            </div>
+                            <input type="hidden" name="interested_projects" id="manager_form_interested_projects_hidden">
+                            <small style="display: block; margin-top: 8px; color: #666; font-size: 12px;">Click on projects to select/deselect</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Customer Profiling Section -->
+                    <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e0e0e0;">
+                        <h3 style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">Customer Profiling <span style="color: #666; font-weight: 400; font-size: 14px;">(Optional)</span></h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                    Customer Job
+                                </label>
+                                <input type="text" 
+                                       name="customer_job" 
+                                       id="manager_form_customer_job"
+                                       value="${formValues.customer_job || ''}"
+                                       placeholder="Enter customer job / occupation"
+                                       style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                    Industry / Sector
+                                </label>
+                                <select name="industry_sector" 
+                                        id="manager_form_industry_sector"
+                                        style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                                    <option value="">-- Select Industry / Sector --</option>
+                                    <option value="IT" ${formValues.industry_sector === 'IT' ? 'selected' : ''}>IT</option>
+                                    <option value="Education" ${formValues.industry_sector === 'Education' ? 'selected' : ''}>Education</option>
+                                    <option value="Healthcare" ${formValues.industry_sector === 'Healthcare' ? 'selected' : ''}>Healthcare</option>
+                                    <option value="Business" ${formValues.industry_sector === 'Business' ? 'selected' : ''}>Business</option>
+                                    <option value="FMCG" ${formValues.industry_sector === 'FMCG' ? 'selected' : ''}>FMCG</option>
+                                    <option value="Government" ${formValues.industry_sector === 'Government' ? 'selected' : ''}>Government</option>
+                                    <option value="Other" ${formValues.industry_sector === 'Other' ? 'selected' : ''}>Other</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                    Buying Frequency
+                                </label>
+                                <select name="buying_frequency" 
+                                        id="manager_form_buying_frequency"
+                                        style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                                    <option value="">-- Select Buying Frequency --</option>
+                                    <option value="Regular" ${formValues.buying_frequency === 'Regular' ? 'selected' : ''}>Regular</option>
+                                    <option value="Occasional" ${formValues.buying_frequency === 'Occasional' ? 'selected' : ''}>Occasional</option>
+                                    <option value="First-time" ${formValues.buying_frequency === 'First-time' ? 'selected' : ''}>First-time</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                    Living City
+                                </label>
+                                <input type="text" 
+                                       name="living_city" 
+                                       id="manager_form_living_city"
+                                       value="${formValues.living_city || ''}"
+                                       placeholder="Enter living city"
+                                       style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                    City Type
+                                </label>
+                                <select name="city_type" 
+                                        id="manager_form_city_type"
+                                        style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                                    <option value="">-- Select City Type --</option>
+                                    <option value="Metro" ${formValues.city_type === 'Metro' ? 'selected' : ''}>Metro</option>
+                                    <option value="Tier 1" ${formValues.city_type === 'Tier 1' ? 'selected' : ''}>Tier 1</option>
+                                    <option value="Tier 2" ${formValues.city_type === 'Tier 2' ? 'selected' : ''}>Tier 2</option>
+                                    <option value="Tier 3" ${formValues.city_type === 'Tier 3' ? 'selected' : ''}>Tier 3</option>
+                                    <option value="Local Resident" ${formValues.city_type === 'Local Resident' ? 'selected' : ''}>Local Resident</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 16px;">
+                        <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                            <strong>Manager Remark</strong>
+                        </label>
+                        <textarea name="manager_remark" id="manager_form_manager_remark" rows="3" placeholder="Enter remarks or notes..." style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"></textarea>
+                    </div>
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end; gap: 12px; padding-top: 20px; border-top: 1px solid #e0e0e0; margin-top: 24px;">
+                    <button type="button" 
+                            onclick="cancelManagerLeadRequirementForm()" 
+                            style="padding: 10px 20px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer; font-size: 14px; font-weight: 500;">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            style="padding: 10px 20px; background: #205A44; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                        <i class="fas fa-check-circle" style="margin-right: 8px;"></i>Verify Prospect
+                    </button>
+                </div>
+            </form>
+        `;
+        
+        container.innerHTML = formHTML;
+        
+        // Load interested projects
+        loadInterestedProjectsForManager();
+        
+        // Initialize dependent fields (category -> type)
+        const categorySelect = document.getElementById('manager_form_category');
+        const typeSelect = document.getElementById('manager_form_type');
+        
+        if (categorySelect && typeSelect) {
+            categorySelect.addEventListener('change', function() {
+                updateManagerTypeOptions(this.value, typeSelect);
+            });
+            
+            if (categorySelect.value) {
+                updateManagerTypeOptions(categorySelect.value, typeSelect);
+            }
+        }
+        
+        // Initialize Follow Up Required checkbox handler
+        const followUpRequiredCheckbox = document.getElementById('manager_form_follow_up_required');
+        if (followUpRequiredCheckbox) {
+            followUpRequiredCheckbox.addEventListener('change', function() {
+                handleFollowUpRequiredChange(this.checked);
+            });
+            // Initialize on page load if checkbox is already checked
+            if (followUpRequiredCheckbox.checked) {
+                handleFollowUpRequiredChange(true);
+            }
+        }
+    }
+    
+    // Handle Follow Up Required checkbox change - show/hide follow-up date picker
+    function handleFollowUpRequiredChange(isRequired) {
+        const followUpContainer = document.getElementById('followUpDateContainer');
+        const followUpDateInput = document.getElementById('manager_form_follow_up_date');
+        
+        if (isRequired) {
+            // Show follow-up date picker
+            if (followUpContainer) {
+                followUpContainer.style.display = 'block';
+                followUpContainer.style.visibility = 'visible';
+            }
+            if (followUpDateInput) {
+                followUpDateInput.style.display = 'block';
+                followUpDateInput.style.visibility = 'visible';
+                followUpDateInput.removeAttribute('disabled');
+                followUpDateInput.removeAttribute('readonly');
+                // Don't set required attribute - we'll validate in JavaScript
+                followUpDateInput.removeAttribute('required');
+                followUpDateInput.required = false;
+            }
+        } else {
+            // Hide follow-up date picker
+            if (followUpContainer) {
+                followUpContainer.style.display = 'none';
+            }
+            if (followUpDateInput) {
+                // Always remove required attribute when hiding to prevent validation error
+                followUpDateInput.removeAttribute('required');
+                followUpDateInput.required = false;
+                followUpDateInput.value = '';
+            }
+        }
+    }
+
+    // Handle form field changes for manager form
+    function handleManagerFormFieldChange(fieldKey, value, dependentField = null) {
+        if (fieldKey === 'category' && dependentField === 'type') {
+            const typeSelect = document.getElementById('manager_form_type');
+            if (typeSelect) {
+                updateManagerTypeOptions(value, typeSelect);
+            }
+        }
+    }
+
+    // Update type options based on category
+    function updateManagerTypeOptions(category, typeSelect) {
+        const typeOptions = {
+            'Residential': ['Plots & Villas', 'Apartments', 'Studio', 'Farmhouse', 'N.A'],
+            'Commercial': ['Retail Shops', 'Office Space', 'Studio', 'N.A'],
+            'Both': ['Plots & Villas', 'Apartments', 'Retail Shops', 'Office Space', 'Studio', 'Farmhouse', 'Agricultural', 'Others', 'N.A'],
+            'N.A': ['N.A']
+        };
+        
+        const currentValue = typeSelect.value;
+        const options = typeOptions[category] || typeOptions['Both'];
+        
+        typeSelect.innerHTML = '<option value="">-- Select Type --</option>';
+        options.forEach(option => {
+            const selected = option === currentValue ? 'selected' : '';
+            typeSelect.innerHTML += `<option value="${option}" ${selected}>${option}</option>`;
+        });
+    }
+
+    // Load interested projects for manager form (render as tags)
+    async function loadInterestedProjectsForManager() {
+        try {
+            // Use full path for interested projects endpoint
+            const response = await fetch('/api/interested-project-names', {
+                headers: getAuthHeaders(),
+            });
+            const projectsResponse = await response.json();
+            const projectTagsGrid = document.getElementById('project-tags-grid');
+            
+            if (projectsResponse && projectsResponse.success && projectsResponse.data && projectTagsGrid) {
+                projectTagsGrid.innerHTML = '';
+                projectsResponse.data.forEach(project => {
+                    const tag = document.createElement('div');
+                    tag.className = 'project-tag';
+                    tag.dataset.projectId = project.id;
+                    tag.innerHTML = `
+                        <span class="project-tag-text">${escapeHtml(project.name)}</span>
+                        <i class="fas fa-check project-tag-check"></i>
+                    `;
+                    tag.addEventListener('click', function() {
+                        toggleProjectTag(this);
+                    });
+                    projectTagsGrid.appendChild(tag);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading interested projects:', error);
+        }
+    }
+
+    // Toggle project tag selection
+    function toggleProjectTag(tagElement) {
+        tagElement.classList.toggle('selected');
+        updateSelectedProjects();
+    }
+
+    // Update hidden input with selected project IDs
+    function updateSelectedProjects() {
+        const selectedTags = document.querySelectorAll('#project-tags-grid .project-tag.selected');
+        const selectedIds = Array.from(selectedTags).map(tag => parseInt(tag.dataset.projectId));
+        const hiddenInput = document.getElementById('manager_form_interested_projects_hidden');
+        if (hiddenInput) {
+            hiddenInput.value = JSON.stringify(selectedIds);
+        }
+    }
+
+    // Escape HTML to prevent XSS
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    // Submit manager lead requirement form (verify)
+    async function submitManagerLeadRequirementForm(event) {
+        event.preventDefault();
+        
+        if (!currentTaskId) {
+            showAlert('Task ID not found', 'error');
+            return;
+        }
+        
+        // Get follow-up required checkbox state
+        const followUpRequiredCheckbox = document.getElementById('manager_form_follow_up_required');
+        const isFollowUpRequired = followUpRequiredCheckbox ? followUpRequiredCheckbox.checked : false;
+        
+        // Handle required attribute for follow-up date before form validation
+        // This prevents HTML5 validation error when field is hidden but required
+        const followUpDateInput = document.getElementById('manager_form_follow_up_date');
+        const followUpContainer = document.getElementById('followUpDateContainer');
+        
+        // Always ensure if container is hidden, required is removed (safety check)
+        if (followUpContainer && followUpContainer.style.display === 'none') {
+            if (followUpDateInput) {
+                followUpDateInput.removeAttribute('required');
+                followUpDateInput.required = false;
+            }
+        }
+        
+        const form = event.target;
+        const formData = new FormData(form);
+        
+        // Convert FormData to object
+        const data = {};
+        
+        formData.forEach((value, key) => {
+            // Skip interested_projects as we'll get it from selected tags
+            if (key !== 'interested_projects') {
+                data[key] = value;
             }
         });
         
-        // Show/hide action buttons
-        const footer = document.getElementById('formFooter');
-        const verifyBtn = document.getElementById('btnVerify');
-        const rejectBtn = document.getElementById('btnReject');
+        // Add follow_up_required as boolean
+        data['follow_up_required'] = isFollowUpRequired ? '1' : '0';
         
-        if (viewMode) {
-            verifyBtn.style.display = 'none';
-            rejectBtn.style.display = 'none';
+        // Validate Lead Quality
+        if (!data['lead_quality'] || data['lead_quality'] === '') {
+            showAlert('Please select Lead Quality', 'warning');
+            const leadQualitySelect = document.getElementById('manager_form_lead_quality');
+            if (leadQualitySelect) {
+                leadQualitySelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(() => {
+                    leadQualitySelect.focus();
+                }, 100);
+            }
+            return;
+        }
+        
+        // Get selected interested projects from tags
+        const selectedTags = document.querySelectorAll('#project-tags-grid .project-tag.selected');
+        data['interested_projects'] = Array.from(selectedTags).map(tag => parseInt(tag.dataset.projectId));
+        
+        // Ensure interested_projects is an array
+        if (!data['interested_projects'] || data['interested_projects'].length === 0) {
+            showAlert('Please select at least one Interested Project', 'warning');
+            return;
+        }
+        
+        // Validate follow-up date & time if Follow Up Required is checked
+        if (isFollowUpRequired) {
+            if (!data['follow_up_date'] || data['follow_up_date'] === '') {
+                showAlert('Please select a Follow Up Date & Time', 'warning');
+                // Re-show the container and make input visible if validation fails
+                if (followUpContainer) {
+                    followUpContainer.style.display = 'block';
+                }
+                if (followUpDateInput) {
+                    // Show the field but don't set required (we validate in JS)
+                    followUpDateInput.style.display = 'block';
+                    followUpDateInput.style.visibility = 'visible';
+                    followUpDateInput.removeAttribute('required');
+                    followUpDateInput.required = false;
+                    // Scroll to the field
+                    followUpDateInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => {
+                        followUpDateInput.focus();
+                    }, 100);
+                }
+                return;
+            }
+            
+            // Validate that datetime is not in the past
+            const selectedDateTime = new Date(data['follow_up_date']);
+            const now = new Date();
+            
+            if (selectedDateTime <= now) {
+                showAlert('Follow Up Date & Time cannot be in the past. Please select a future date and time.', 'warning');
+                if (followUpDateInput) {
+                    followUpDateInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => {
+                        followUpDateInput.focus();
+                    }, 100);
+                }
+                return;
+            }
         } else {
-            verifyBtn.style.display = 'block';
-            rejectBtn.style.display = 'block';
+            // Clear follow-up date if Follow Up Required is not checked (to avoid sending it to backend)
+            data['follow_up_date'] = '';
+            // Ensure required is removed and field is hidden when not Follow Up Required
+            if (followUpDateInput) {
+                followUpDateInput.removeAttribute('required');
+                followUpDateInput.required = false;
+            }
+            if (followUpContainer) {
+                followUpContainer.style.display = 'none';
+            }
+        }
+        
+        try {
+            const response = await apiCall(`/tasks/${currentTaskId}/verify`, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            });
+            
+            if (response && response.success) {
+                // Remove task card immediately from DOM
+                const taskCard = document.getElementById(`task-card-${currentTaskId}`);
+                if (taskCard) {
+                    taskCard.style.transition = 'opacity 0.3s, transform 0.3s';
+                    taskCard.style.opacity = '0';
+                    taskCard.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        taskCard.remove();
+                        // Reload tasks after card removal to ensure consistency
+                        loadTasks();
+                    }, 300);
+                } else {
+                    // Fallback if card not found by ID
+                    setTimeout(() => {
+                        loadTasks();
+                    }, 500);
+                }
+                
+                const message = response.message || (isFollowUpRequired 
+                    ? 'Follow-up task created successfully! Prospect will be called on the selected date and time.' 
+                    : 'Prospect verified successfully!');
+                showAlert(message, 'success', 3000);
+                closeManagerLeadRequirementFormModal();
+                currentTaskId = null; // Reset after successful submission
+            } else {
+                showAlert(response?.message || response?.error || 'Failed to process request', 'error');
+            }
+        } catch (error) {
+            console.error('Error verifying prospect:', error);
+            showAlert('Error verifying prospect: ' + error.message, 'error');
+        }
+    }
+
+    // Remove all overdue tasks
+    async function removeAllOverdueTasks() {
+        if (!confirm('Are you sure you want to remove all overdue tasks? This action cannot be undone.')) {
+            return;
+        }
+
+        const removeBtn = document.getElementById('removeAllOverdueBtn');
+        if (removeBtn) {
+            removeBtn.disabled = true;
+            removeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Removing...';
         }
 
         try {
-            // Load projects first
-            await loadInterestedProjects();
-            
+            const result = await apiCall('/sales-manager/tasks/remove-all-overdue', {
+                method: 'POST',
+                body: JSON.stringify({})
+            });
+
+            if (result && result.success) {
+                const count = result.count || 0;
+                showAlert(`Successfully removed ${count} overdue task(s)`, 'success');
+                
+                // Reload tasks after a short delay
+                setTimeout(() => {
+                    loadTasks();
+                }, 500);
+            } else {
+                showAlert(result?.message || result?.error || 'Failed to remove overdue tasks', 'error');
+            }
+        } catch (error) {
+            console.error('Error removing overdue tasks:', error);
+            showAlert('Error removing overdue tasks: ' + error.message, 'error');
+        } finally {
+            if (removeBtn) {
+                removeBtn.disabled = false;
+                removeBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Remove All Overdue';
+            }
+        }
+    }
+    
+    // Attach to window for global access
+    window.removeAllOverdueTasks = removeAllOverdueTasks;
+
+    // View prospect details (read-only)
+    async function openProspectDetailModal(taskId, viewMode = false) {
+        currentTaskId = taskId;
+        const modal = document.getElementById('prospectDetailModal');
+        const content = document.getElementById('prospectDetailContent');
+        
+        modal.classList.add('active');
+        content.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner" style="display: inline-block;"></div><p style="margin-top: 15px; color: #666;">Loading...</p></div>';
+        
+        try {
             const result = await apiCall(`/tasks/${taskId}`);
             
             if (result && result.success && result.data) {
                 const task = result.data;
                 const lead = task.lead || {};
                 const prospect = task.prospect || {};
-
-                // Populate form
-                document.getElementById('taskId').value = taskId;
-                document.getElementById('prospectId').value = prospect.id || '';
-                document.getElementById('leadId').value = lead.id || task.lead_id || '';
                 
-                // Populate from prospect first, then lead
-                document.getElementById('customerName').value = prospect.customer_name || lead.name || '';
-                document.getElementById('phone').value = prospect.phone || lead.phone || '';
-                document.getElementById('email').value = lead.email || '';
-                document.getElementById('address').value = lead.address || '';
-                document.getElementById('city').value = lead.city || '';
-                document.getElementById('state').value = lead.state || '';
-                document.getElementById('pincode').value = lead.pincode || '';
-                document.getElementById('budget').value = prospect.budget || lead.budget || lead.investment || '';
-                document.getElementById('preferredLocation').value = prospect.preferred_location || lead.preferred_location || '';
-                document.getElementById('size').value = prospect.size || lead.preferred_size || '';
-                document.getElementById('purpose').value = prospect.purpose || '';
-                document.getElementById('possession').value = prospect.possession || '';
-                document.getElementById('leadStatus').value = prospect.lead_status || lead.lead_status || '';
-                document.getElementById('managerRemark').value = prospect.manager_remark || '';
-                
-                // Populate interested projects if available
-                if (prospect.interested_projects && prospect.interested_projects.length > 0) {
-                    const projectSelect = document.getElementById('interestedProjects');
-                    const projectIds = prospect.interested_projects.map(p => p.id || p);
-                    Array.from(projectSelect.options).forEach(option => {
-                        if (projectIds.includes(parseInt(option.value))) {
-                            option.selected = true;
-                        }
-                    });
-                }
+                content.innerHTML = `
+                    <div>
+                        <h3 style="margin-bottom: 20px;">${lead.name || 'Lead'}</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div><strong>Phone:</strong> ${lead.phone || '-'}</div>
+                            <div><strong>Email:</strong> ${lead.email || '-'}</div>
+                            <div><strong>Status:</strong> ${prospect.verification_status || '-'}</div>
+                            <div><strong>Budget:</strong> ${prospect.budget || '-'}</div>
+                        </div>
+                    </div>
+                `;
             } else {
                 showAlert('Failed to load task details', 'error');
                 closeProspectDetailModal();
@@ -798,118 +2294,142 @@
             console.error('Error loading task details:', error);
             showAlert('Error loading task details', 'error');
             closeProspectDetailModal();
-        } finally {
-            form.style.opacity = '1';
-            form.style.pointerEvents = 'auto';
         }
     }
 
     function closeProspectDetailModal() {
         const modal = document.getElementById('prospectDetailModal');
-        const form = document.getElementById('prospectDetailForm');
-        
         modal.classList.remove('active');
-        form.reset();
+        document.getElementById('prospectDetailContent').innerHTML = '';
         currentTaskId = null;
-        
-        // Re-enable all fields
-        const formFields = form.querySelectorAll('input, select, textarea');
-        formFields.forEach(field => {
-            field.readOnly = false;
-            field.disabled = false;
-        });
     }
 
-    async function submitProspectAction(action) {
-        const leadStatus = document.getElementById('leadStatus').value;
-        if (!leadStatus) {
-            showAlert('Please select a Lead Status', 'warning');
-            return;
-        }
-
-        if (!currentTaskId) {
-            showAlert('Task ID not found', 'error');
-            return;
-        }
-
-        const customerName = document.getElementById('customerName').value;
-        const phone = document.getElementById('phone').value;
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('=== DOM LOADED - INITIALIZING TASKS ===');
+        console.log('API_BASE_URL:', API_BASE_URL);
+        console.log('API_TOKEN available:', !!API_TOKEN);
+        console.log('API_TOKEN value:', API_TOKEN ? API_TOKEN.substring(0, 20) + '...' : 'null');
         
-        if (!customerName || !phone) {
-            showAlert('Please fill Customer Name and Phone', 'warning');
-            return;
-        }
-
-        const formData = {
-            action: action, // 'verify' or 'reject'
-            customer_name: customerName,
-            phone: phone,
-            email: document.getElementById('email').value,
-            address: document.getElementById('address').value,
-            city: document.getElementById('city').value,
-            state: document.getElementById('state').value,
-            pincode: document.getElementById('pincode').value,
-            budget: document.getElementById('budget').value || null,
-            preferred_location: document.getElementById('preferredLocation').value,
-            size: document.getElementById('size').value,
-            purpose: document.getElementById('purpose').value,
-            possession: document.getElementById('possession').value,
-            lead_status: leadStatus,
-            manager_remark: document.getElementById('managerRemark').value,
-            interested_projects: Array.from(document.getElementById('interestedProjects').selectedOptions).map(option => parseInt(option.value)),
-        };
-
-        if (action === 'reject' && !formData.manager_remark) {
-            showAlert('Please enter a rejection reason', 'warning');
-            return;
-        }
-
-        // Validate interested projects for verify action
-        if (action === 'verify' && (!formData.interested_projects || formData.interested_projects.length === 0)) {
-            showAlert('Please select at least one Interested Project', 'warning');
-            return;
-        }
-
-        // Disable buttons during submission
-        const verifyBtn = document.getElementById('btnVerify');
-        const rejectBtn = document.getElementById('btnReject');
-        verifyBtn.disabled = true;
-        rejectBtn.disabled = true;
-
-        try {
-            const result = await apiCall(`/tasks/${currentTaskId}/update-lead`, {
-                method: 'POST',
-                body: JSON.stringify(formData),
+        // Set up event delegation for filter buttons (instead of inline onclick)
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const status = this.getAttribute('data-status');
+                console.log('Filter button clicked, status:', status);
+                if (window.filterTasks) {
+                    window.filterTasks(status);
+                } else {
+                    console.error('filterTasks function not available');
+                    filterTasks(status); // Try direct call as fallback
+                }
             });
-
-            if (result && result.success) {
-                const message = action === 'verify' 
-                    ? 'Prospect verified and task marked as completed successfully!' 
-                    : 'Prospect rejected and task marked as completed successfully!';
-                showAlert(message, 'success');
-                closeProspectDetailModal();
-                loadTasks();
-            } else {
-                const errorMsg = result?.message || 'Failed to process request';
-                showAlert(errorMsg, 'error');
-            }
-        } catch (error) {
-            console.error('Error processing request:', error);
-            showAlert('Error processing request: ' + error.message, 'error');
-        } finally {
-            verifyBtn.disabled = false;
-            rejectBtn.disabled = false;
+        });
+        
+        const tasksGridEl = document.getElementById('tasksGrid');
+        console.log('Tasks grid element found:', !!tasksGridEl);
+        
+        if (tasksGridEl) {
+            console.log('Calling filterTasks() with saved filter:', currentStatus);
+            // Use filterTasks instead of loadTasks to restore UI state
+            filterTasks(currentStatus);
+            
+            // Auto-refresh every 60 seconds (1 minute) to move tasks from Rescheduled to Pending
+            // Only refresh when page/tab is visible (not hidden)
+            setInterval(function() {
+                if (!document.hidden) {
+                    console.log('Auto-refreshing tasks...');
+                    loadTasks();
+                }
+            }, 60000); // 60 seconds = 1 minute
+        } else {
+            console.error('ERROR: Tasks grid element not found on DOM ready!');
+            // Try again after a short delay
+            setTimeout(function() {
+                const retryEl = document.getElementById('tasksGrid');
+                if (retryEl) {
+                    console.log('Tasks grid found on retry, calling filterTasks() with saved filter:', currentStatus);
+                    // Use filterTasks instead of loadTasks to restore UI state
+                    filterTasks(currentStatus);
+                    
+                    // Auto-refresh every 60 seconds (1 minute) to move tasks from Rescheduled to Pending
+                    // Only refresh when page/tab is visible (not hidden)
+                    setInterval(function() {
+                        if (!document.hidden) {
+                            console.log('Auto-refreshing tasks...');
+                            loadTasks();
+                        }
+                    }, 60000); // 60 seconds = 1 minute
+                } else {
+                    console.error('ERROR: Tasks grid still not found after retry!');
+                }
+            }, 500);
         }
+    });
+    
+    // Fallback: If DOMContentLoaded already fired, call immediately
+    if (document.readyState === 'loading') {
+        // DOM is still loading, wait for DOMContentLoaded
+        console.log('DOM still loading, waiting for DOMContentLoaded...');
+    } else {
+        // DOM already loaded, call immediately
+        console.log('DOM already loaded, initializing immediately...');
+        setTimeout(function() {
+            // Set up filter button event listeners
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const status = this.getAttribute('data-status');
+                    console.log('Filter button clicked, status:', status);
+                    if (window.filterTasks) {
+                        window.filterTasks(status);
+                    } else {
+                        console.error('filterTasks function not available');
+                        filterTasks(status); // Try direct call as fallback
+                    }
+                });
+            });
+            
+            const tasksGridEl = document.getElementById('tasksGrid');
+            if (tasksGridEl) {
+                console.log('Tasks grid found in fallback, calling filterTasks() with saved filter:', currentStatus);
+                // Use filterTasks instead of loadTasks to restore UI state
+                filterTasks(currentStatus);
+            }
+        }, 100);
     }
 
-    // Close modal on outside click
-    document.getElementById('prospectDetailModal').addEventListener('click', function(e) {
+    // Close modals on outside click (backdrop click)
+    document.getElementById('verifyRejectPromptModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            cancelVerifyRejectPrompt();
+        }
+    });
+    
+    document.getElementById('rejectReasonModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            cancelRejectReasonModal();
+        }
+    });
+    
+    document.getElementById('managerLeadRequirementFormModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            cancelManagerLeadRequirementForm();
+        }
+    });
+    
+    document.getElementById('cnpTimeSelectionModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            cancelCnpTimeSelection();
+        }
+    });
+    
+    document.getElementById('prospectDetailModal')?.addEventListener('click', function(e) {
         if (e.target === this) {
             closeProspectDetailModal();
         }
     });
-
-    // Load tasks on page load
-    loadTasks();
+    
+    // Note: loadTasks() is called in DOMContentLoaded event listener above (line 1820)
 </script>
 @endpush

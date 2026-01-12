@@ -34,49 +34,26 @@ class LeadController extends Controller
 
     public function store(Request $request)
     {
+        // For CRM users, only name and phone are required
+        // Detailed requirements will be filled later via centralized form
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:20',
-            'email' => 'nullable|email|max:255',
-            'address' => 'nullable|string',
-            'city' => 'nullable|string|max:100',
-            'state' => 'nullable|string|max:100',
-            'pincode' => 'nullable|string|max:10',
-            'preferred_location' => 'nullable|string|max:255',
-            'preferred_size' => 'nullable|string|max:255',
-            'use_end_use' => 'nullable|string',
-            'investment' => 'nullable|numeric|min:0',
-            'budget_min' => 'nullable|numeric|min:0',
-            'budget_max' => 'nullable|numeric|min:0|gte:budget_min',
-            'source' => 'nullable|in:website,referral,walk_in,call,social_media,other',
-            'property_type' => 'nullable|in:apartment,villa,plot,commercial,other',
-            'requirements' => 'nullable|string',
-            'notes' => 'nullable|string',
-            'assigned_to' => 'nullable|exists:users,id',
-            'create_calling_task' => 'nullable|boolean',
         ]);
 
         DB::beginTransaction();
         try {
             $validated['created_by'] = $request->user()->id;
             $validated['status'] = 'new';
+            $validated['source'] = 'crm_manual'; // Mark as manually created by CRM
 
             $lead = Lead::create($validated);
-
-            // Assign lead if user selected
-            if ($request->has('assigned_to') && $request->assigned_to) {
-                // Checkbox: if present and equals '1', create task. If not present (unchecked), don't create task
-                // Note: Checkbox is checked by default in the form, so when checked it sends '1'
-                $createCallingTask = $request->has('create_calling_task') && $request->create_calling_task == '1';
-                
-                $this->assignLead($lead, $request->assigned_to, $request->user()->id, $createCallingTask);
-            }
 
             DB::commit();
 
             return redirect()
-                ->route('crm.automation.index')
-                ->with('success', "Lead '{$lead->name}' created successfully" . ($request->assigned_to ? ' and assigned.' : '.'));
+                ->route('leads.edit', $lead->id)
+                ->with('success', "Lead '{$lead->name}' created successfully. Please fill the detailed requirements below.");
 
         } catch (\Exception $e) {
             DB::rollBack();

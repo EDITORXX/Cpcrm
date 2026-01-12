@@ -29,11 +29,11 @@ class MoveOverdueCallsToPending extends Command
     {
         $this->info('Checking for overdue calls and rescheduled tasks...');
 
-        // Part 1: Move all overdue tasks (any status except completed/pending)
+        // Part 1: Move all overdue tasks (more than 15 minutes old, any status except completed/pending)
         // Use NOW() in SQL to ensure proper timezone comparison with database
         $overdueTasks = TelecallerTask::where('status', '!=', 'completed')
             ->where('status', '!=', 'pending')
-            ->whereRaw('scheduled_at < NOW()')
+            ->whereRaw('scheduled_at < DATE_SUB(NOW(), INTERVAL 15 MINUTE)')
             ->get();
 
         // Part 2: Move rescheduled tasks within 10 minutes (even if not overdue yet)

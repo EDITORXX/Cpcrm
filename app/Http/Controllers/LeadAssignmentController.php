@@ -69,11 +69,27 @@ class LeadAssignmentController extends Controller
 
         $leads = $query->latest()->paginate(20);
 
+        // Get all eligible users (telecaller, sales_manager, sales_executive)
+        $eligibleRoleIds = Role::whereIn('slug', [
+            Role::TELECALLER,
+            Role::SALES_MANAGER,
+            Role::SALES_EXECUTIVE
+        ])->pluck('id');
+        
+        $eligibleUsers = User::whereIn('role_id', $eligibleRoleIds)
+            ->where('is_active', true)
+            ->with('role')
+            ->orderBy('name')
+            ->get()
+            ->groupBy(function($user) {
+                return $user->role->name ?? 'Other';
+            });
+
         if ($request->wantsJson()) {
             return response()->json($leads);
         }
 
-        return view('lead-assignment.unassigned', compact('leads'));
+        return view('lead-assignment.unassigned', compact('leads', 'eligibleUsers'));
     }
 
     /**
@@ -94,38 +110,44 @@ class LeadAssignmentController extends Controller
             ], 422);
         }
 
-        $telecaller = User::findOrFail($request->telecaller_id);
+        $assignedUser = User::with('role')->findOrFail($request->telecaller_id);
         
-        if (!$telecaller->isTelecaller()) {
+        // Check if user has eligible role (telecaller, sales_manager, or sales_executive)
+        $userRole = $assignedUser->role->slug ?? '';
+        $eligibleRoles = [Role::TELECALLER, Role::SALES_MANAGER, Role::SALES_EXECUTIVE];
+        
+        if (!in_array($userRole, $eligibleRoles)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Selected user is not a telecaller.'
+                'message' => 'Selected user must be a Telecaller, Sales Manager, or Sales Executive.'
             ], 422);
         }
 
-        // Check if telecaller can receive assignment
-        $canReceive = $this->statusService->canReceiveAssignment($telecaller->id);
-        if (!$canReceive['can_receive']) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Telecaller cannot receive assignment. ' . 
-                    ($canReceive['is_absent'] ? 'Telecaller is absent.' : '') .
-                    ($canReceive['has_reached_threshold'] ? 'Pending threshold reached.' : '')
-            ], 422);
-        }
+        // Check if user can receive assignment (only for telecallers)
+        if ($assignedUser->isTelecaller()) {
+            $canReceive = $this->statusService->canReceiveAssignment($assignedUser->id);
+            if (!$canReceive['can_receive']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User cannot receive assignment. ' . 
+                        ($canReceive['is_absent'] ? 'User is absent.' : '') .
+                        ($canReceive['has_reached_threshold'] ? 'Pending threshold reached.' : '')
+                ], 422);
+            }
 
-        // Check daily limits
-        $limitCheck = $this->limitService->checkDailyLimits($telecaller->id);
-        if (!$limitCheck['is_allowed']) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Telecaller has reached daily limit.'
-            ], 422);
+            // Check daily limits (only for telecallers)
+            $limitCheck = $this->limitService->checkDailyLimits($assignedUser->id);
+            if (!$limitCheck['is_allowed']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User has reached daily limit.'
+                ], 422);
+            }
         }
 
         $results = $this->assignmentService->bulkAssignLeads(
             $request->lead_ids,
-            $telecaller->id,
+            $assignedUser->id,
             Auth::id()
         );
 

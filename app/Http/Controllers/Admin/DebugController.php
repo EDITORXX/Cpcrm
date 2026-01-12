@@ -170,13 +170,26 @@ class DebugController extends Controller
             Auth::login($user, false);
             $request->session()->regenerate();
             
+            // Generate API tokens based on role
+            if ($user->isTelecaller()) {
+                $token = $user->createToken('web-login-token')->plainTextToken;
+                $request->session()->put('telecaller_api_token', $token);
+            }
+            
+            if ($user->isSalesManager()) {
+                $token = $user->createToken('web-login-token')->plainTextToken;
+                $request->session()->put('api_token', $token);
+            }
+            
+            // Determine redirect URL based on role
+            $redirectUrl = $this->getRedirectUrlForRole($user);
             $result['login_success'] = true;
-            $result['redirect_url'] = route('admin.dashboard');
+            $result['redirect_url'] = $redirectUrl;
             
             return response()->json([
                 'success' => true,
                 'message' => 'Login successful',
-                'redirect' => route('admin.dashboard'),
+                'redirect' => $redirectUrl,
                 'debug' => $result
             ]);
             
@@ -188,5 +201,49 @@ class DebugController extends Controller
                 'debug' => $result
             ], 500);
         }
+    }
+    
+    /**
+     * Get redirect URL based on user role
+     */
+    private function getRedirectUrlForRole($user)
+    {
+        if (!$user->relationLoaded('role')) {
+            $user->load('role');
+        }
+        
+        $role = $user->role->slug ?? '';
+        
+        // Use same logic as LoginController
+        if ($role === 'telecaller') {
+            return route('telecaller.dashboard');
+        } elseif ($role === 'sales_manager') {
+            return $user->isSalesHead() 
+                ? route('sales-head.dashboard')
+                : route('sales-manager.dashboard');
+        } elseif ($role === 'admin') {
+            return route('admin.dashboard');
+        } elseif (in_array($role, ['crm', 'sales_executive'])) {
+            return route('dashboard');
+        } else {
+            return route('login');
+        }
+    }
+    
+    /**
+     * Show quick login page with all users
+     */
+    public function showQuickLogin()
+    {
+        // Get all active users grouped by role
+        $users = User::where('is_active', true)
+            ->with('role')
+            ->orderBy('name')
+            ->get()
+            ->groupBy(function($user) {
+                return $user->role->name ?? 'Unknown';
+            });
+        
+        return view('admin.quick-login', compact('users'));
     }
 }

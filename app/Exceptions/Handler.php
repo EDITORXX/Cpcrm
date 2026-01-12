@@ -2,9 +2,11 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -96,6 +98,14 @@ class Handler extends ExceptionHandler
      */
     protected function handleApiException($request, Throwable $e)
     {
+        // Auth exceptions should be 401 (not 500)
+        if ($e instanceof AuthenticationException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
         if ($e instanceof \Illuminate\Validation\ValidationException) {
             return response()->json([
                 'message' => 'The given data was invalid.',
@@ -118,7 +128,14 @@ class Handler extends ExceptionHandler
         ]);
 
         // Return JSON error response
-        $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+        $statusCode = 500;
+        if ($e instanceof HttpExceptionInterface) {
+            $statusCode = $e->getStatusCode();
+        } elseif (method_exists($e, 'getStatusCode')) {
+            /** @phpstan-ignore-next-line */
+            $statusCode = $e->getStatusCode();
+        }
+
         return response()->json([
             'message' => $e->getMessage() ?: 'An error occurred',
             'error' => config('app.debug') ? [

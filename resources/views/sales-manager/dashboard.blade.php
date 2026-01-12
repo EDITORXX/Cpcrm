@@ -52,24 +52,147 @@
         font-size: 12px;
         font-weight: 500;
     }
+    
+    /* Responsive Styles */
+    @media (max-width: 767px) {
+        .chart-container {
+            height: 250px;
+            margin: 16px 0;
+        }
+        
+        .achievement-card {
+            padding: 16px;
+        }
+        
+        .achievement-title {
+            font-size: 16px;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        
+        .achievement-stats {
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .stat-value {
+            font-size: 20px;
+        }
+        
+        /* Stats cards responsive - 2 columns on mobile */
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 12px !important;
+        }
+        
+        .stats-grid > div {
+            padding: 16px !important;
+        }
+        
+        .stats-grid > div h3 {
+            font-size: 20px !important;
+        }
+        
+        .stats-grid > div p {
+            font-size: 12px !important;
+        }
+        
+        /* Hide Team Members card on mobile */
+        .team-members-card {
+            display: none !important;
+        }
+        
+        /* Hide Pending Tasks card on mobile (keep only 4 cards: Leads, Prospects, Pending Verifications, Over Due) */
+        .stats-grid > div:nth-child(6) {
+            display: none !important;
+        }
+        
+        /* Team call stats section */
+        #teamCallStatsSection > div:first-child {
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-start !important;
+        }
+        
+        #teamCallStatsSection > div:first-child > div {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+        
+        #teamCallStatsSection > div:first-child button {
+            flex: 1;
+            min-width: 80px;
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+        
+        /* Table responsive */
+        .overflow-x-auto {
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .overflow-x-auto table {
+            min-width: 600px;
+        }
+        
+        .overflow-x-auto th,
+        .overflow-x-auto td {
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+        
+        /* Quick actions buttons */
+        .grid.grid-cols-1.md\:grid-cols-2 > a {
+            padding: 16px;
+        }
+        
+        .grid.grid-cols-1.md\:grid-cols-2 > a i {
+            font-size: 24px !important;
+        }
+    }
+    
+    @media (min-width: 768px) and (max-width: 1023px) {
+        .chart-container {
+            height: 280px;
+        }
+    }
 </style>
 @endpush
 
 @section('content')
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-    <!-- Stats Cards -->
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-6 stats-grid">
+    <!-- Stats Cards - Reordered for mobile: Leads Received, Today Prospects, Pending Verifications, Over Due Task, Team Members -->
+    
+    <!-- 1. Leads Received -->
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-gray-500 text-sm">Team Members</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-1" id="teamMembersCount">0</h3>
+                <p class="text-gray-500 text-sm">Leads Received</p>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1" id="assignedLeads">0</h3>
             </div>
-            <div class="bg-blue-100 rounded-full p-3">
-                <i class="fas fa-users text-blue-600 text-xl"></i>
+            <div class="bg-indigo-100 rounded-full p-3">
+                <i class="fas fa-briefcase text-indigo-600 text-xl"></i>
             </div>
         </div>
     </div>
 
+    <!-- 2. Today's Prospects -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-sm">Today's Prospects</p>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1" id="todayProspects">0</h3>
+            </div>
+            <div class="bg-green-100 rounded-full p-3">
+                <i class="fas fa-star text-green-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Pending Verifications -->
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center justify-between">
             <div>
@@ -82,91 +205,41 @@
         </div>
     </div>
 
+    <!-- 4. Over Due Task -->
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-gray-500 text-sm">Today's Prospects</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-1" id="todayProspects">0</h3>
+                <p class="text-gray-500 text-sm">Over Due Task</p>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1" id="overdueTasks">0</h3>
             </div>
-            <div class="bg-green-100 rounded-full p-3">
-                <i class="fas fa-star text-green-600 text-xl"></i>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Achievement Charts -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-    <!-- Meetings Chart -->
-    <div class="achievement-card">
-        <div class="achievement-title">
-            <span><i class="fas fa-handshake mr-2"></i>Meetings</span>
-            <span class="pending-badge" id="meetingsPending">0 pending</span>
-        </div>
-        <div class="chart-container">
-            <canvas id="meetingsChart"></canvas>
-        </div>
-        <div class="achievement-stats">
-            <div class="stat-item">
-                <div class="stat-value" id="meetingsTarget">0</div>
-                <div class="stat-label">Target</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="meetingsAchieved">0</div>
-                <div class="stat-label">Achieved</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="meetingsPercentage">0%</div>
-                <div class="stat-label">Progress</div>
+            <div class="bg-red-100 rounded-full p-3">
+                <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
             </div>
         </div>
     </div>
 
-    <!-- Site Visits Chart -->
-    <div class="achievement-card">
-        <div class="achievement-title">
-            <span><i class="fas fa-map-marker-alt mr-2"></i>Site Visits</span>
-            <span class="pending-badge" id="visitsPending">0 pending</span>
-        </div>
-        <div class="chart-container">
-            <canvas id="visitsChart"></canvas>
-        </div>
-        <div class="achievement-stats">
-            <div class="stat-item">
-                <div class="stat-value" id="visitsTarget">0</div>
-                <div class="stat-label">Target</div>
+    <!-- 5. Team Members (hidden on mobile) -->
+    <div class="bg-white rounded-lg shadow p-6 team-members-card">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-sm">Team Members</p>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1" id="teamMembersCount">0</h3>
             </div>
-            <div class="stat-item">
-                <div class="stat-value" id="visitsAchieved">0</div>
-                <div class="stat-label">Achieved</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="visitsPercentage">0%</div>
-                <div class="stat-label">Progress</div>
+            <div class="bg-blue-100 rounded-full p-3">
+                <i class="fas fa-users text-blue-600 text-xl"></i>
             </div>
         </div>
     </div>
 
-    <!-- Closers Chart -->
-    <div class="achievement-card">
-        <div class="achievement-title">
-            <span><i class="fas fa-check-circle mr-2"></i>Closers</span>
-        </div>
-        <div class="chart-container">
-            <canvas id="closersChart"></canvas>
-        </div>
-        <div class="achievement-stats">
-            <div class="stat-item">
-                <div class="stat-value" id="closersTarget">0</div>
-                <div class="stat-label">Target</div>
+    <!-- 6. Pending Tasks (kept for desktop) -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-sm">Pending Tasks</p>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1" id="pendingTasks">0</h3>
             </div>
-            <div class="stat-item">
-                <div class="stat-value" id="closersAchieved">0</div>
-                <div class="stat-label">Achieved</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="closersPercentage">0%</div>
-                <div class="stat-label">Progress</div>
+            <div class="bg-orange-100 rounded-full p-3">
+                <i class="fas fa-tasks text-orange-600 text-xl"></i>
             </div>
         </div>
     </div>
@@ -174,11 +247,11 @@
 
 <!-- Team Call Statistics -->
 <div class="bg-white rounded-lg shadow p-6 mb-6" id="teamCallStatsSection" style="display: none;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
         <h2 class="text-xl font-bold text-gray-900">
             <i class="fas fa-phone mr-2"></i>Team Call Statistics
         </h2>
-        <div style="display: flex; gap: 10px;">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <button onclick="loadTeamCallStats('today')" class="px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg text-sm font-medium hover:from-[#205A44] hover:to-[#15803d]">Today</button>
             <button onclick="loadTeamCallStats('this_week')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300">This Week</button>
             <button onclick="loadTeamCallStats('this_month')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300">This Month</button>
@@ -233,7 +306,7 @@
     </div>
 
     <!-- Quick Actions -->
-    <div style="display: flex; gap: 10px; margin-top: 20px;">
+    <div style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;">
         <a href="{{ route('calls.index') }}" class="px-4 py-2 bg-[#205A44] text-white rounded-lg hover:bg-[#15803d] transition-colors duration-200 text-sm font-medium">
             <i class="fas fa-list mr-2"></i> View All Team Calls
         </a>
@@ -243,35 +316,37 @@
 <!-- Quick Actions -->
 <div class="bg-white rounded-lg shadow p-6">
     <h2 class="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <a href="{{ route('sales-manager.meetings.create') }}" class="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-center">
-            <i class="fas fa-handshake text-3xl text-blue-600 mb-2"></i>
-            <p class="font-semibold text-gray-900">Schedule Meeting</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <a href="{{ route('sales-manager.leads') }}" class="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all text-center">
+            <i class="fas fa-briefcase text-3xl text-indigo-600 mb-2"></i>
+            <p class="font-semibold text-gray-900">View Leads</p>
         </a>
-        <a href="{{ route('sales-manager.site-visits.create') }}" class="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all text-center">
-            <i class="fas fa-map-marker-alt text-3xl text-green-600 mb-2"></i>
-            <p class="font-semibold text-gray-900">Schedule Site Visit</p>
-        </a>
-        <a href="{{ route('sales-manager.meetings') }}" class="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-center">
-            <i class="fas fa-list text-3xl text-purple-600 mb-2"></i>
-            <p class="font-semibold text-gray-900">View Meetings</p>
+        <a href="{{ route('sales-manager.tasks') }}" class="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-all text-center">
+            <i class="fas fa-tasks text-3xl text-orange-600 mb-2"></i>
+            <p class="font-semibold text-gray-900">View Tasks</p>
         </a>
     </div>
 </div>
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
     const API_BASE_URL = '{{ url("/api/sales-manager") }}';
+    const API_TOKEN = '{{ $api_token ?? session("api_token") ?? "" }}';
+    
+    // Store token in localStorage if available
+    if (API_TOKEN) {
+        localStorage.setItem('sales_manager_token', API_TOKEN);
+    }
     
     function getToken() {
-        return localStorage.getItem('sales_manager_token') || '{{ session("api_token") }}';
+        return API_TOKEN || localStorage.getItem('sales_manager_token') || '{{ session("api_token") ?? "" }}';
     }
 
     async function apiCall(endpoint, options = {}) {
         const token = getToken();
         if (!token) {
+            console.error('No API token available');
             window.location.href = '{{ route("login") }}';
             return null;
         }
@@ -289,6 +364,7 @@
         };
 
         try {
+            console.log(`API Call: ${API_BASE_URL}${endpoint}`);
             const response = await fetch(`${API_BASE_URL}${endpoint}`, {
                 ...defaultOptions,
                 ...options,
@@ -296,7 +372,10 @@
                 credentials: 'same-origin',
             });
 
+            console.log(`API Response Status: ${response.status} for ${endpoint}`);
+
             if (response.status === 401) {
+                console.error('Unauthorized - token invalid');
                 localStorage.removeItem('sales_manager_token');
                 window.location.href = '{{ route("login") }}';
                 return null;
@@ -304,6 +383,7 @@
 
             if (!response.ok) {
                 const errorText = await response.text();
+                console.error(`API Error (${response.status}):`, errorText);
                 try {
                     return JSON.parse(errorText);
                 } catch (e) {
@@ -311,92 +391,43 @@
                 }
             }
 
-            return await response.json();
+            const data = await response.json();
+            console.log(`API Success for ${endpoint}:`, data);
+            return data;
         } catch (error) {
             console.error('API Call Error:', error);
+            console.error('Error details:', error.message, error.stack);
             return { success: false, message: error.message };
         }
     }
 
-    function createPieChart(canvasId, target, achieved, label) {
-        const ctx = document.getElementById(canvasId).getContext('2d');
-        const remaining = Math.max(0, target - achieved);
-        
-        return new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Achieved', 'Remaining'],
-                datasets: [{
-                    data: [achieved, remaining],
-                    backgroundColor: ['#10b981', '#e5e7eb'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.label + ': ' + context.parsed;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-
     async function loadDashboardData() {
         try {
-            // Load achievements
-            const achievements = await apiCall('/achievements');
-            if (achievements && achievements.success) {
-                // Meetings
-                const meetings = achievements.meetings || {target: 0, achieved: 0, percentage: 0};
-                document.getElementById('meetingsTarget').textContent = meetings.target;
-                document.getElementById('meetingsAchieved').textContent = meetings.achieved;
-                document.getElementById('meetingsPercentage').textContent = meetings.percentage + '%';
-                createPieChart('meetingsChart', meetings.target, meetings.achieved, 'Meetings');
-
-                // Site Visits
-                const visits = achievements.site_visits || {target: 0, achieved: 0, percentage: 0};
-                document.getElementById('visitsTarget').textContent = visits.target;
-                document.getElementById('visitsAchieved').textContent = visits.achieved;
-                document.getElementById('visitsPercentage').textContent = visits.percentage + '%';
-                createPieChart('visitsChart', visits.target, visits.achieved, 'Site Visits');
-
-                // Closers
-                const closers = achievements.closers || {target: 0, achieved: 0, percentage: 0};
-                document.getElementById('closersTarget').textContent = closers.target;
-                document.getElementById('closersAchieved').textContent = closers.achieved;
-                document.getElementById('closersPercentage').textContent = closers.percentage + '%';
-                createPieChart('closersChart', closers.target, closers.achieved, 'Closers');
-            }
-
-            // Load profile for team stats
+            console.log('Loading dashboard data...');
+            console.log('API Token available:', !!getToken());
+            
+            // Load profile for team stats first
             const profile = await apiCall('/profile');
+            console.log('Profile API response:', profile);
+            
             if (profile && profile.team_stats) {
                 document.getElementById('teamMembersCount').textContent = profile.team_stats.total_members || 0;
                 document.getElementById('todayProspects').textContent = profile.team_stats.today_prospects || 0;
+                // Get pending verifications from team_stats
+                document.getElementById('pendingVerifications').textContent = profile.team_stats.pending_verifications || 0;
+                // Get assigned leads count
+                document.getElementById('assignedLeads').textContent = profile.team_stats.assigned_leads || 0;
+                // Get pending tasks count
+                document.getElementById('pendingTasks').textContent = profile.team_stats.pending_tasks || 0;
+                // Get overdue tasks count
+                document.getElementById('overdueTasks').textContent = profile.team_stats.overdue_tasks || 0;
+                console.log('Team stats updated:', profile.team_stats);
+            } else {
+                console.error('Profile API failed or no team_stats:', profile);
             }
-
-            // Load pending verifications
-            const meetings = await apiCall('/meetings?verification_status=pending&status=completed');
-            const siteVisits = await apiCall('/site-visits?verification_status=pending&status=completed');
-            
-            const pendingCount = (meetings?.data?.length || 0) + (siteVisits?.data?.length || 0);
-            document.getElementById('pendingVerifications').textContent = pendingCount;
-            
-            // Update pending badges
-            document.getElementById('meetingsPending').textContent = (meetings?.data?.length || 0) + ' pending';
-            document.getElementById('visitsPending').textContent = (siteVisits?.data?.length || 0) + ' pending';
         } catch (error) {
             console.error('Error loading dashboard data:', error);
+            console.error('Error details:', error.message, error.stack);
         }
     }
 

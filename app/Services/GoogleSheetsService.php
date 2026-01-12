@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\GoogleSheetsConfig;
+use App\Models\GoogleSheetsColumnMapping;
 use App\Models\Lead;
 use App\Models\LeadAssignment;
+use App\Models\LeadFormFieldValue;
 use App\Models\ImportBatch;
 use App\Models\ImportedLead;
 use App\Services\LeadAssignmentService;
@@ -202,9 +204,17 @@ class GoogleSheetsService
     /**
      * Sync Google Sheets - incremental sync with row tracking
      */
-    public function syncGoogleSheets(int $configId): array
+    public function syncGoogleSheets($configOrId): array
     {
-        $config = GoogleSheetsConfig::findOrFail($configId);
+        // Accept either config object or ID
+        if (is_numeric($configOrId)) {
+            $config = GoogleSheetsConfig::find($configOrId);
+            if (!$config) {
+                throw new \Exception("Google Sheets configuration not found (ID: {$configOrId})");
+            }
+        } else {
+            $config = $configOrId;
+        }
 
         if (!$config->is_active) {
             throw new \Exception("Google Sheets config is not active");
@@ -217,9 +227,12 @@ class GoogleSheetsService
         }
 
         // Determine start row
-        $startRow = $config->last_synced_row > 0 ? $config->last_synced_row + 1 : 2; // Skip header if first sync
+        // Always start from row 2 (skip header) to catch ALL rows including new ones added anywhere in sheet
+        // We'll check for duplicates by phone number to avoid re-importing existing leads from the same sheet
+        // This ensures we catch new rows added anywhere in the sheet, not just at the end
 
-        // Fetch data
+        // Fetch data - always fetch from row 2 to get all rows (duplicate check will prevent re-importing)
+        // This ensures we catch new rows added anywhere in the sheet, not just at the end
         try {
             $rows = $this->fetchSheetData(
                 $sheetId,
@@ -227,10 +240,25 @@ class GoogleSheetsService
                 $config->range,
                 $config->api_key,
                 $config->service_account_json_path,
-                $startRow
+                2 // Always start from row 2 (skip header) to catch all rows
             );
+            
+            Log::info("Google Sheets sync - Fetched rows", [
+                'config_id' => $config->id,
+                'sheet_name' => $config->sheet_name,
+                'sheet_id' => $sheetId,
+                'rows_count' => count($rows),
+                'start_row' => 2,
+                'sync_interval' => $config->sync_interval_minutes,
+                'last_sync_at' => $config->last_sync_at?->format('Y-m-d H:i:s'),
+                'auto_sync_enabled' => $config->auto_sync_enabled,
+            ]);
         } catch (\Exception $e) {
-            Log::error("Google Sheets fetch error for config {$configId}: " . $e->getMessage());
+            Log::error("Google Sheets fetch error for config {$config->id}: " . $e->getMessage(), [
+                'config_id' => $config->id,
+                'sheet_id' => $sheetId,
+                'sheet_name' => $config->sheet_name,
+            ]);
             throw $e;
         }
 
@@ -243,16 +271,30 @@ class GoogleSheetsService
             ];
         }
 
-        // Convert column letters to indices
+        // Convert column letters to indices for standard fields
         $nameIndex = GoogleSheetsConfig::columnLetterToIndex($config->name_column);
         $phoneIndex = GoogleSheetsConfig::columnLetterToIndex($config->phone_column);
-        $notesIndex = $config->notes_column ? GoogleSheetsConfig::columnLetterToIndex($config->notes_column) : null;
+
+        // Load custom column mappings
+        $customMappings = GoogleSheetsColumnMapping::where('google_sheets_config_id', $config->id)
+            ->orderBy('display_order')
+            ->get()
+            ->map(function($mapping) {
+                return [
+                    'id' => $mapping->id,
+                    'sheet_column' => $mapping->sheet_column,
+                    'column_index' => GoogleSheetsConfig::columnLetterToIndex($mapping->sheet_column),
+                    'lead_field_key' => $mapping->lead_field_key,
+                    'field_type' => $mapping->field_type,
+                    'field_label' => $mapping->field_label,
+                    'is_required' => $mapping->is_required,
+                ];
+            });
 
         $imported = 0;
         $skipped = 0;
         $errors = [];
-        $currentRow = $startRow;
-        $lastSuccessfulRow = $config->last_synced_row;
+        $lastSuccessfulRow = 1; // Track highest row processed (will be updated as we process rows)
 
         // Create import batch
         $batch = ImportBatch::create([
@@ -268,7 +310,7 @@ class GoogleSheetsService
         DB::beginTransaction();
         try {
             foreach ($rows as $rowIndex => $row) {
-                $currentRow = $startRow + $rowIndex;
+                $currentRow = 2 + $rowIndex; // Row 2 is first data row (row 1 is header), rowIndex starts at 0
 
                 // Skip empty rows
                 if (empty(array_filter($row))) {
@@ -276,21 +318,34 @@ class GoogleSheetsService
                 }
 
                 try {
-                    // Extract data
+                    // Extract standard data
                     $name = trim($row[$nameIndex] ?? '');
                     $phone = trim($row[$phoneIndex] ?? '');
-                    $notes = $notesIndex !== null ? trim($row[$notesIndex] ?? '') : null;
+                    
+                    // Extract custom column values
+                    $customFieldValues = [];
+                    foreach ($customMappings as $mapping) {
+                        $columnValue = trim($row[$mapping['column_index']] ?? '');
+                        if (!empty($columnValue)) {
+                            $customFieldValues[] = [
+                                'field_key' => $mapping['lead_field_key'],
+                                'field_value' => $columnValue,
+                                'field_type' => $mapping['field_type'],
+                                'field_label' => $mapping['field_label'],
+                            ];
+                        }
+                    }
 
-                    // Debug: Log raw data
-                    Log::info("Row {$currentRow} - Raw data", [
-                        'name_index' => $nameIndex,
-                        'phone_index' => $phoneIndex,
-                        'notes_index' => $notesIndex,
-                        'row_data' => $row,
-                        'extracted_name' => $name,
-                        'extracted_phone' => $phone,
-                        'extracted_notes' => $notes,
-                    ]);
+                    // Log processing for debugging (especially for specific leads)
+                    if (stripos($name, 'Avtar') !== false || stripos($name, 'Singh') !== false || empty($name)) {
+                        Log::info("Row {$currentRow} - Processing lead", [
+                            'name' => $name,
+                            'phone' => $phone,
+                            'row_number' => $currentRow,
+                            'config_id' => $config->id,
+                            'sheet_name' => $config->sheet_name,
+                        ]);
+                    }
 
                     // Validate required fields
                     if (empty($name) || empty($phone)) {
@@ -321,24 +376,110 @@ class GoogleSheetsService
                         continue;
                     }
 
-                    // Check for duplicates
-                    if ($this->duplicateService->isDuplicate($phone)) {
-                        $skipped++;
-                        $errorMsg = "Row {$currentRow}: Duplicate phone number ({$phone})";
-                        $errors[] = $errorMsg;
-                        Log::info($errorMsg, ['row' => $currentRow, 'phone' => $phone]);
-                        continue;
+                    // Check for duplicates - but allow if it's from a different source (sheet)
+                    // This allows the same phone to be imported from different sheets
+                    $existingLead = Lead::where('phone', $phone)->first();
+                    if ($existingLead) {
+                        // Extract sheet ID for comparison
+                        $currentSheetId = GoogleSheetsConfig::extractSheetId($config->sheet_id);
+                        
+                        // Check if this lead was already imported from this specific sheet
+                        // We check both ImportedLead and also check if the lead has source tracking from this sheet
+                        $alreadyImported = ImportedLead::where('lead_id', $existingLead->id)
+                            ->whereHas('importBatch', function($q) use ($currentSheetId, $config) {
+                                $q->where('google_sheet_id', $currentSheetId)
+                                  ->where('google_sheet_name', $config->sheet_name);
+                            })
+                            ->exists();
+                        
+                        // Also check source_sheet_id in lead_form_field_values
+                        if (!$alreadyImported) {
+                            $sourceSheetId = LeadFormFieldValue::where('lead_id', $existingLead->id)
+                                ->where('field_key', 'source_sheet_id')
+                                ->where('field_value', $currentSheetId)
+                                ->exists();
+                            
+                            if ($sourceSheetId) {
+                                $alreadyImported = true;
+                            }
+                        }
+                        
+                        if ($alreadyImported) {
+                            $skipped++;
+                            $errorMsg = "Row {$currentRow}: Duplicate phone number ({$phone}) - already imported from this sheet";
+                            $errors[] = $errorMsg;
+                            Log::info($errorMsg, [
+                                'row' => $currentRow, 
+                                'phone' => $phone, 
+                                'lead_id' => $existingLead->id,
+                                'sheet_id' => $currentSheetId,
+                                'sheet_name' => $config->sheet_name,
+                                'name' => $name,
+                            ]);
+                            continue;
+                        }
+                        // If lead exists but not from this sheet, we'll still import it (different source)
+                        Log::info("Row {$currentRow}: Lead with phone {$phone} exists but from different source - will import", [
+                            'existing_lead_id' => $existingLead->id,
+                            'current_sheet_id' => $currentSheetId,
+                            'name' => $name,
+                        ]);
                     }
 
                     // Create lead
                     $lead = Lead::create([
                         'name' => $name,
                         'phone' => $phone,
-                        'notes' => $notes,
                         'source' => 'google_sheets',
                         'status' => 'new',
                         'created_by' => $config->created_by,
                     ]);
+
+                    // Store custom field values in lead_form_field_values table
+                    foreach ($customFieldValues as $fieldData) {
+                        LeadFormFieldValue::updateOrCreate(
+                            [
+                                'lead_id' => $lead->id,
+                                'field_key' => $fieldData['field_key'],
+                            ],
+                            [
+                                'field_value' => $fieldData['field_value'],
+                                'filled_at' => now(),
+                            ]
+                        );
+                    }
+                    
+                    // Store source tracking information
+                    LeadFormFieldValue::updateOrCreate(
+                        [
+                            'lead_id' => $lead->id,
+                            'field_key' => 'source_sheet_name',
+                        ],
+                        [
+                            'field_value' => $config->sheet_name,
+                            'filled_at' => now(),
+                        ]
+                    );
+                    LeadFormFieldValue::updateOrCreate(
+                        [
+                            'lead_id' => $lead->id,
+                            'field_key' => 'source_sheet_id',
+                        ],
+                        [
+                            'field_value' => $config->sheet_id,
+                            'filled_at' => now(),
+                        ]
+                    );
+                    LeadFormFieldValue::updateOrCreate(
+                        [
+                            'lead_id' => $lead->id,
+                            'field_key' => 'source_row_number',
+                        ],
+                        [
+                            'field_value' => (string)$currentRow,
+                            'filled_at' => now(),
+                        ]
+                    );
 
                     // Assign lead using new assignment system
                     $assignedTo = null;
@@ -347,8 +488,8 @@ class GoogleSheetsService
                         $newAssignmentService = app(\App\Services\LeadAssignmentService::class);
                         $assignedTo = $newAssignmentService->assignLead($lead, $config->id, $config->created_by);
                         
-                        // Update assignment with sheet tracking info if assigned
                         if ($assignedTo) {
+                            // Update assignment with sheet tracking info
                             LeadAssignment::where('lead_id', $lead->id)
                                 ->where('assigned_to', $assignedTo)
                                 ->where('is_active', true)
@@ -356,13 +497,62 @@ class GoogleSheetsService
                                     'sheet_config_id' => $config->id,
                                     'sheet_row_number' => $currentRow,
                                 ]);
+                            
+                            Log::info("Lead assigned successfully during import", [
+                                'lead_id' => $lead->id,
+                                'assigned_to' => $assignedTo,
+                                'sheet_config_id' => $config->id,
+                                'row' => $currentRow,
+                            ]);
+                        } else {
+                            Log::warning("Lead assignment failed during import - no user assigned", [
+                                'lead_id' => $lead->id,
+                                'sheet_config_id' => $config->id,
+                                'row' => $currentRow,
+                                'name' => $name,
+                                'phone' => $phone,
+                            ]);
                         }
                     } catch (\Exception $e) {
-                        Log::error("Assignment error for lead {$lead->id}: " . $e->getMessage());
+                        // Check if it's a Pusher error - if so, assignment might still have succeeded
+                        $isPusherError = strpos($e->getMessage(), 'Pusher') !== false;
+                        
+                        if ($isPusherError) {
+                            // Pusher errors shouldn't prevent assignment - check if assignment actually happened
+                            $lead->refresh();
+                            $actualAssignment = $lead->activeAssignments()->first();
+                            if ($actualAssignment && $actualAssignment->assigned_to) {
+                                // Assignment succeeded despite Pusher error
+                                $assignedTo = $actualAssignment->assigned_to;
+                                Log::warning("Assignment succeeded but Pusher broadcast failed", [
+                                    'lead_id' => $lead->id,
+                                    'assigned_to' => $assignedTo,
+                                    'sheet_config_id' => $config->id,
+                                    'row' => $currentRow,
+                                    'pusher_error' => $e->getMessage(),
+                                ]);
+                            } else {
+                                // Assignment actually failed
+                                Log::error("Assignment failed for lead {$lead->id}: " . $e->getMessage(), [
+                                    'lead_id' => $lead->id,
+                                    'sheet_config_id' => $config->id,
+                                    'row' => $currentRow,
+                                    'exception' => $e->getTraceAsString(),
+                                ]);
+                            }
+                        } else {
+                            // Non-Pusher error - log as error
+                            Log::error("Assignment error for lead {$lead->id}: " . $e->getMessage(), [
+                                'lead_id' => $lead->id,
+                                'sheet_config_id' => $config->id,
+                                'row' => $currentRow,
+                                'exception' => $e->getTraceAsString(),
+                            ]);
+                        }
                     }
 
                     // Track imported lead
-                    ImportedLead::create([
+                    $importedLead = ImportedLead::create([
                         'import_batch_id' => $batch->id,
                         'lead_id' => $lead->id,
                         'assigned_to' => $assignedTo,
@@ -370,13 +560,51 @@ class GoogleSheetsService
                         'import_data' => [
                             'name' => $name,
                             'phone' => $phone,
-                            'notes' => $notes,
                             'row' => $currentRow,
+                            'custom_fields' => $customFieldValues,
                         ],
                     ]);
+                    
+                    // If assignment happened but ImportedLead.assigned_to is null, update it
+                    // This handles cases where assignment happens after ImportedLead creation
+                    // Also refresh to get latest assignment status
+                    $lead->refresh();
+                    $actualAssignment = $lead->activeAssignments()->first();
+                    if ($actualAssignment && $actualAssignment->assigned_to) {
+                        // Update ImportedLead if it doesn't match actual assignment
+                        if ($importedLead->assigned_to != $actualAssignment->assigned_to) {
+                            $importedLead->update([
+                                'assigned_to' => $actualAssignment->assigned_to,
+                                'assigned_at' => $actualAssignment->assigned_at ?? now(),
+                            ]);
+                            Log::info("Updated ImportedLead.assigned_to from LeadAssignment", [
+                                'imported_lead_id' => $importedLead->id,
+                                'lead_id' => $lead->id,
+                                'old_assigned_to' => $importedLead->getOriginal('assigned_to'),
+                                'new_assigned_to' => $actualAssignment->assigned_to,
+                            ]);
+                        }
+                    } else if (!$assignedTo && !$actualAssignment) {
+                        // No assignment happened - log for debugging
+                        Log::warning("Lead imported but not assigned", [
+                            'imported_lead_id' => $importedLead->id,
+                            'lead_id' => $lead->id,
+                            'sheet_config_id' => $config->id,
+                            'row' => $currentRow,
+                        ]);
+                    }
 
                     $imported++;
                     $lastSuccessfulRow = $currentRow;
+                    
+                    // Log successful import
+                    Log::info("Row {$currentRow} - Lead imported successfully", [
+                        'lead_id' => $lead->id,
+                        'name' => $lead->name,
+                        'phone' => $lead->phone,
+                        'assigned_to' => $assignedTo,
+                        'row_number' => $currentRow,
+                    ]);
 
                 } catch (\Exception $e) {
                     $skipped++;
@@ -386,9 +614,26 @@ class GoogleSheetsService
             }
 
             // Update config with last synced row
+            // Track the highest row number we processed
+            // Since we process all rows, maxRowProcessed will be the last row in the sheet
+            $maxRowProcessed = $lastSuccessfulRow > 1 ? $lastSuccessfulRow : (count($rows) > 0 ? count($rows) + 1 : 1);
+            
+            // Always update last_sync_at to track sync attempts
+            // Update last_synced_row to the highest row we've seen (for reference, but we always check all rows)
             $config->update([
                 'last_sync_at' => now(),
-                'last_synced_row' => $lastSuccessfulRow,
+                'last_synced_row' => $maxRowProcessed,
+            ]);
+            
+            Log::info("Google Sheets sync completed", [
+                'config_id' => $config->id,
+                'sheet_name' => $config->sheet_name,
+                'imported' => $imported,
+                'skipped' => $skipped,
+                'errors' => count($errors),
+                'total_rows_fetched' => count($rows),
+                'max_row_processed' => $maxRowProcessed,
+                'last_sync_at' => now()->format('Y-m-d H:i:s'),
             ]);
 
             // Update batch
@@ -428,99 +673,10 @@ class GoogleSheetsService
         ?string $notes = null,
         ?string $username = null
     ): bool {
-        try {
-            $config = GoogleSheetsConfig::findOrFail($sheetConfigId);
-            
-            // Extract sheet ID
-            $sheetId = GoogleSheetsConfig::extractSheetId($config->sheet_id);
-            if (!$sheetId) {
-                Log::error("Invalid sheet ID for config {$sheetConfigId}");
-                return false;
-            }
-
-            // Map status - handle both custom and standard statuses
-            $statusMap = [
-                'called_interested' => 'Interested',
-                'called_not_interested' => 'Not Interested',
-                'completed' => 'Completed',
-                'cnp' => 'CNP',
-                'broker' => 'Broker',
-                'closed_won' => 'Interested', // Map closed_won to Interested
-                'closed_lost' => 'Not Interested', // Map closed_lost to Not Interested
-            ];
-            $mappedStatus = $statusMap[$status] ?? $status;
-
-            // Format notes
-            $formattedNotes = $notes;
-            if ($username && $notes) {
-                $formattedNotes = "Remark by {$username}: {$notes}";
-            }
-
-            // Get access token
-            $accessToken = null;
-            if ($config->service_account_json_path) {
-                $accessToken = $this->getGoogleAccessTokenFromServiceAccount($config->service_account_json_path);
-            }
-
-            if (!$accessToken && !$config->api_key) {
-                Log::warning("No authentication method available for config {$sheetConfigId}");
-                return false;
-            }
-
-            // Build update request
-            $statusCol = $config->status_column . $rowNumber;
-            $notesCol = $config->notes_column_sync . $rowNumber;
-
-            $url = "https://sheets.googleapis.com/v4/spreadsheets/{$sheetId}/values:batchUpdate";
-            
-            $body = [
-                'valueInputOption' => 'USER_ENTERED',
-                'data' => [
-                    [
-                        'range' => "{$config->sheet_name}!{$statusCol}",
-                        'values' => [[$mappedStatus]],
-                    ],
-                ],
-            ];
-
-            if ($formattedNotes) {
-                $body['data'][] = [
-                    'range' => "{$config->sheet_name}!{$notesCol}",
-                    'values' => [[$formattedNotes]],
-                ];
-            }
-
-            $headers = [
-                'Content-Type: application/json',
-            ];
-
-            if ($accessToken) {
-                $headers[] = "Authorization: Bearer {$accessToken}";
-            }
-
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $url . ($config->api_key ? "?key={$config->api_key}" : ''));
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
-            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-
-            if ($httpCode !== 200) {
-                $errorData = json_decode($response, true);
-                Log::error("Google Sheets update error: " . ($errorData['error']['message'] ?? "HTTP {$httpCode}"));
-                return false;
-            }
-
-            return true;
-
-        } catch (\Exception $e) {
-            Log::error("Error updating Google Sheet status: " . $e->getMessage());
-            return false;
-        }
+        // Sync back functionality removed - status_column and notes_column_sync are no longer used
+        // This method is kept for backward compatibility but returns false
+        Log::info("Sync back to Google Sheets is disabled - status_column and notes_column_sync removed");
+        return false;
     }
 }
 

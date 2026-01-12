@@ -8,6 +8,10 @@
     @extends('layouts.app')
 @elseif($user && $user->isSalesHead() && !$user->isAdmin() && !$user->isCrm())
     @extends('sales-head.layout')
+@elseif($user && $user->isSalesManager())
+    @extends('sales-manager.layout')
+@elseif($user && $user->isTelecaller())
+    @extends('telecaller.layout')
 @else
     @extends('layouts.app')
 @endif
@@ -25,6 +29,12 @@
     @if(session('success'))
         <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg">
             {{ session('success') }}
+        </div>
+    @endif
+
+    @if(session('info'))
+        <div class="mb-4 bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded-lg">
+            <strong>ℹ️ Info:</strong> {{ session('info') }}
         </div>
     @endif
 

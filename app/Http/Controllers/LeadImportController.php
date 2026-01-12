@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\GoogleSheetsConfig;
+use App\Models\GoogleSheetsColumnMapping;
 use App\Models\SmartImportAutomation;
 use App\Models\ImportBatch;
+use App\Models\ImportedLead;
 use App\Services\LeadImportService;
 use App\Services\GoogleSheetsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class LeadImportController extends Controller
 {
@@ -39,6 +42,19 @@ class LeadImportController extends Controller
             ->limit(10)
             ->get();
 
+        // Get last 5 imported leads with actual assignments
+        $recentImportedLeads = ImportedLead::whereHas('importBatch', function($query) {
+                $query->where('user_id', auth()->id());
+            })
+            ->with([
+                'lead.activeAssignments.assignedTo', // Load actual assignments
+                'assignedTo', // Load ImportedLead.assigned_to
+                'importBatch'
+            ])
+            ->latest()
+            ->limit(5)
+            ->get();
+
         $stats = [
             'total_imports' => ImportBatch::where('user_id', auth()->id())->count(),
             'total_leads_imported' => ImportBatch::where('user_id', auth()->id())->sum('imported_leads'),
@@ -48,7 +64,7 @@ class LeadImportController extends Controller
                 ->where('status', 'failed')->count(),
         ];
 
-        return view('lead-import.index', compact('configs', 'recentImports', 'stats'));
+        return view('lead-import.index', compact('configs', 'recentImports', 'recentImportedLeads', 'stats'));
     }
 
     /**
@@ -59,13 +75,26 @@ class LeadImportController extends Controller
         $configId = $request->get('config_id');
 
         if ($configId) {
-            $config = GoogleSheetsConfig::where('id', $configId)
+            $config = GoogleSheetsConfig::with('columnMappings')
+                ->where('id', $configId)
                 ->where('created_by', auth()->id())
                 ->firstOrFail();
 
             // Remove sensitive data
             $configData = $config->toArray();
             unset($configData['api_key'], $configData['refresh_token'], $configData['service_account_json_path']);
+            
+            // Add column mappings
+            $configData['column_mappings'] = $config->columnMappings->map(function($mapping) {
+                return [
+                    'id' => $mapping->id,
+                    'sheet_column' => $mapping->sheet_column,
+                    'lead_field_key' => $mapping->lead_field_key,
+                    'field_type' => $mapping->field_type,
+                    'field_label' => $mapping->field_label,
+                    'is_required' => $mapping->is_required,
+                ];
+            })->toArray();
 
             return response()->json([
                 'success' => true,
@@ -103,12 +132,10 @@ class LeadImportController extends Controller
             'range' => 'required|string|max:50',
             'name_column' => 'required|string|size:1|regex:/^[A-Z]$/',
             'phone_column' => 'required|string|size:1|regex:/^[A-Z]$/',
-            'notes_column' => 'nullable|string|size:1|regex:/^[A-Z]$/',
-            'status_column' => 'required|string|size:1|regex:/^[A-Z]$/',
-            'notes_column_sync' => 'required|string|size:1|regex:/^[A-Z]$/',
             'auto_sync_enabled' => 'boolean',
             'sync_interval_minutes' => 'required|integer|min:1',
             'automation_id' => 'nullable|exists:smart_import_automations,id',
+            'custom_columns_json' => 'nullable|string',
         ]);
 
         try {
@@ -128,36 +155,96 @@ class LeadImportController extends Controller
                 'range',
                 'name_column',
                 'phone_column',
-                'notes_column',
-                'status_column',
-                'notes_column_sync',
                 'auto_sync_enabled',
                 'sync_interval_minutes',
                 'automation_id',
             ]);
 
             // Apply defaults if not provided
-            $data['notes_column'] = $data['notes_column'] ?? 'C';
-            $data['status_column'] = $data['status_column'] ?? 'D';
-            $data['notes_column_sync'] = $data['notes_column_sync'] ?? 'E';
-            $data['sync_interval_minutes'] = $data['sync_interval_minutes'] ?? 5;
-            $data['sync_interval_minutes'] = $data['sync_interval_minutes'] ?? 5;
+            $data['auto_sync_enabled'] = $request->boolean('auto_sync_enabled', true);
+            $data['sync_interval_minutes'] = $data['sync_interval_minutes'] ?? 2;
 
             $data['sheet_id'] = $sheetId;
             $data['created_by'] = auth()->id();
 
-            if ($request->config_id) {
-                $config = GoogleSheetsConfig::where('id', $request->config_id)
-                    ->where('created_by', auth()->id())
-                    ->firstOrFail();
-                $config->update($data);
-            } else {
-                $config = GoogleSheetsConfig::create($data);
+            DB::beginTransaction();
+            try {
+                if ($request->config_id) {
+                    $config = GoogleSheetsConfig::where('id', $request->config_id)
+                        ->where('created_by', auth()->id())
+                        ->firstOrFail();
+                    $config->update($data);
+                } else {
+                    $config = GoogleSheetsConfig::create($data);
+                }
+                
+                // Handle custom column mappings
+                if ($request->has('custom_columns_json') && $request->custom_columns_json) {
+                    $customColumns = json_decode($request->custom_columns_json, true);
+                    
+                    if (is_array($customColumns)) {
+                        // Get existing mapping IDs to keep
+                        $existingIds = collect($customColumns)->pluck('id')->filter()->toArray();
+                        
+                        // Delete mappings that are not in the new list
+                        GoogleSheetsColumnMapping::where('google_sheets_config_id', $config->id)
+                            ->whereNotIn('id', $existingIds)
+                            ->delete();
+                        
+                        // Create or update mappings
+                        foreach ($customColumns as $index => $columnData) {
+                            if (empty($columnData['sheet_column']) || empty($columnData['lead_field_key']) || empty($columnData['field_label'])) {
+                                continue;
+                            }
+                            
+                            $mappingData = [
+                                'google_sheets_config_id' => $config->id,
+                                'sheet_column' => strtoupper($columnData['sheet_column']),
+                                'lead_field_key' => $columnData['lead_field_key'],
+                                'field_type' => $columnData['field_type'] ?? 'custom',
+                                'field_label' => $columnData['field_label'],
+                                'is_required' => $columnData['is_required'] ?? false,
+                                'display_order' => $index,
+                            ];
+                            
+                            if (!empty($columnData['id'])) {
+                                GoogleSheetsColumnMapping::where('id', $columnData['id'])
+                                    ->where('google_sheets_config_id', $config->id)
+                                    ->update($mappingData);
+                            } else {
+                                GoogleSheetsColumnMapping::create($mappingData);
+                            }
+                        }
+                    }
+                } else {
+                    // If no custom columns JSON provided, delete all existing custom mappings
+                    GoogleSheetsColumnMapping::where('google_sheets_config_id', $config->id)->delete();
+                }
+                
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
             }
 
+            // Reload config with relationships
+            $config->load('columnMappings');
+            
             // Remove sensitive data from response
             $configData = $config->toArray();
             unset($configData['api_key'], $configData['refresh_token'], $configData['service_account_json_path']);
+            
+            // Add column mappings to response
+            $configData['column_mappings'] = $config->columnMappings->map(function($mapping) {
+                return [
+                    'id' => $mapping->id,
+                    'sheet_column' => $mapping->sheet_column,
+                    'lead_field_key' => $mapping->lead_field_key,
+                    'field_type' => $mapping->field_type,
+                    'field_label' => $mapping->field_label,
+                    'is_required' => $mapping->is_required,
+                ];
+            })->toArray();
 
             return response()->json([
                 'success' => true,
@@ -237,7 +324,7 @@ class LeadImportController extends Controller
                 ->where('is_active', true)
                 ->firstOrFail();
 
-            $result = $this->sheetsService->syncGoogleSheets($config->id);
+            $result = $this->sheetsService->syncGoogleSheets($config);
 
             return response()->json([
                 'success' => true,

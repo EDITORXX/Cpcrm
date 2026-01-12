@@ -78,6 +78,11 @@ class GoogleSheetsConfig extends Model
         return $this->hasMany(LeadAssignment::class, 'sheet_config_id');
     }
 
+    public function columnMappings(): HasMany
+    {
+        return $this->hasMany(GoogleSheetsColumnMapping::class, 'google_sheets_config_id')->orderBy('display_order');
+    }
+
     /**
      * Extract sheet ID from full Google Sheets URL
      */

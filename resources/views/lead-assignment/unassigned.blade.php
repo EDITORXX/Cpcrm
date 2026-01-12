@@ -2,7 +2,7 @@
 
 @section('title', 'Unassigned Leads - Base CRM')
 @section('page-title', 'Unassigned Leads')
-@section('page-subtitle', 'Assign leads to telecallers')
+@section('page-subtitle', 'Assign leads to telecallers, sales managers, or sales executives')
 
 @section('header-actions')
     <a href="{{ route('lead-assignment.index') }}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 text-sm font-medium">
@@ -41,14 +41,16 @@
             </div>
             <div>
                 <select id="bulk-telecaller" class="px-4 py-2 border border-gray-300 rounded-lg mr-2">
-                    <option value="">Select Telecaller</option>
-                    @php
-                        $telecallerRoleId = \App\Models\Role::where('slug', 'telecaller')->value('id');
-                        $telecallers = \App\Models\User::where('role_id', $telecallerRoleId)->where('is_active', true)->get();
-                    @endphp
-                    @foreach($telecallers as $telecaller)
-                        <option value="{{ $telecaller->id }}">{{ $telecaller->name }}</option>
-                    @endforeach
+                    <option value="">Select User</option>
+                    @if(isset($eligibleUsers))
+                        @foreach($eligibleUsers as $roleName => $users)
+                            <optgroup label="{{ $roleName }}">
+                                @foreach($users as $user)
+                                    <option value="{{ $user->id }}">{{ $user->name }}</option>
+                                @endforeach
+                            </optgroup>
+                        @endforeach
+                    @endif
                 </select>
                 <button onclick="bulkAssign()" class="px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d]">Assign Selected</button>
             </div>
@@ -111,10 +113,16 @@
         <div class="bg-white rounded-xl shadow-lg p-6 max-w-md w-full mx-4">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Assign Lead</h3>
             <select id="modal-telecaller" class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4">
-                <option value="">Select Telecaller</option>
-                @foreach($telecallers as $telecaller)
-                    <option value="{{ $telecaller->id }}">{{ $telecaller->name }}</option>
-                @endforeach
+                <option value="">Select User</option>
+                @if(isset($eligibleUsers))
+                    @foreach($eligibleUsers as $roleName => $users)
+                        <optgroup label="{{ $roleName }}">
+                            @foreach($users as $user)
+                                <option value="{{ $user->id }}">{{ $user->name }}</option>
+                            @endforeach
+                        </optgroup>
+                    @endforeach
+                @endif
             </select>
             <div class="flex justify-end gap-3">
                 <button onclick="closeModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
@@ -162,30 +170,30 @@
         }
 
         function confirmAssign() {
-            const telecallerId = document.getElementById('modal-telecaller').value;
-            if (!telecallerId) {
-                alert('Please select a telecaller');
+            const userId = document.getElementById('modal-telecaller').value;
+            if (!userId) {
+                alert('Please select a user');
                 return;
             }
 
-            assignLeads([selectedLeadId], telecallerId);
+            assignLeads([selectedLeadId], userId);
         }
 
         function bulkAssign() {
             const selected = Array.from(document.querySelectorAll('.lead-checkbox:checked')).map(cb => parseInt(cb.value));
-            const telecallerId = document.getElementById('bulk-telecaller').value;
+            const userId = document.getElementById('bulk-telecaller').value;
 
             if (selected.length === 0) {
                 alert('Please select at least one lead');
                 return;
             }
 
-            if (!telecallerId) {
-                alert('Please select a telecaller');
+            if (!userId) {
+                alert('Please select a user');
                 return;
             }
 
-            assignLeads(selected, telecallerId);
+            assignLeads(selected, userId);
         }
 
         function assignLeads(leadIds, telecallerId) {

@@ -146,6 +146,84 @@
         font-weight: 500;
         transition: all 0.3s;
     }
+    @media (max-width: 768px) {
+        .profile-card {
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .profile-header {
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: center;
+        }
+        
+        .avatar {
+            width: 64px;
+            height: 64px;
+            font-size: 24px;
+            margin-right: 0;
+            margin-bottom: 12px;
+        }
+        
+        .profile-info {
+            width: 100%;
+            text-align: center;
+        }
+        
+        .profile-info h2 {
+            font-size: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 10px;
+            font-size: 14px;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 14px;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .form-actions button {
+            width: 100%;
+        }
+        
+        /* Table responsive */
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .table-responsive table {
+            min-width: 600px;
+        }
+        
+        .table-responsive th,
+        .table-responsive td {
+            padding: 8px 12px;
+            font-size: 12px;
+        }
+        
+        /* Grid responsive */
+        .grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px;
+        }
+    }
+    
     .btn-primary {
         background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
         color: white;
@@ -455,6 +533,22 @@
         </div>
         <div id="activityHistory">
             <p style="text-align: center; color: #B3B5B4; padding: 20px;">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Logout Card -->
+    <div class="profile-card">
+        <div class="card-title">
+            <i class="fas fa-sign-out-alt"></i>
+            Account Actions
+        </div>
+        <div style="padding: 20px 0;">
+            <form action="{{ route('logout') }}" method="POST" style="display: inline;">
+                @csrf
+                <button type="submit" class="btn btn-danger" style="width: 100%; max-width: 300px;">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </form>
         </div>
     </div>
 @endsection

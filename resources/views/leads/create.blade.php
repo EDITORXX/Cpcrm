@@ -16,6 +16,13 @@
                 </div>
             @endif
 
+            @if(auth()->user()->isCrm())
+                <div class="mb-6 bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded-lg">
+                    <strong>Note:</strong> For CRM users, only Name and Phone Number are required. 
+                    Detailed requirements can be filled later through the centralized lead requirement form at lead edit page.
+                </div>
+            @endif
+
             <form method="POST" action="{{ route('leads.store') }}">
                 @csrf
 
@@ -51,20 +58,50 @@
                         </div>
                     </div>
 
-                    <div class="mt-6">
-                        <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                        <input type="email" 
-                               name="email" 
-                               id="email"
-                               value="{{ old('email') }}"
-                               placeholder="Enter email address"
-                                   class="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#205A44] focus:border-[#205A44]">
-                    </div>
+                    @if(!auth()->user()->isCrm())
+                        <div class="mt-6">
+                            <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                            <input type="email" 
+                                   name="email" 
+                                   id="email"
+                                   value="{{ old('email') }}"
+                                   placeholder="Enter email address"
+                                       class="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#205A44] focus:border-[#205A44]">
+                        </div>
+                    @endif
                 </div>
 
+                @if(!auth()->user()->isCrm())
                 <!-- Location Details -->
                 <div class="mb-8">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">Location Details</h3>
+                    
+                    <div>
+                        <label for="address" class="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                        <textarea name="address" id="address" rows="2" placeholder="Enter full address" class="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#205A44] focus:border-[#205A44]">{{ old('address') }}</textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                        <div>
+                            <label for="city" class="block text-sm font-medium text-gray-700 mb-2">City</label>
+                            <input type="text" name="city" id="city" value="{{ old('city') }}" placeholder="Enter city" class="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#205A44] focus:border-[#205A44]">
+                        </div>
+
+                        <div>
+                            <label for="state" class="block text-sm font-medium text-gray-700 mb-2">State</label>
+                            <input type="text" name="state" id="state" value="{{ old('state') }}" placeholder="Enter state" class="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#205A44] focus:border-[#205A44]">
+                        </div>
+
+                        <div>
+                            <label for="pincode" class="block text-sm font-medium text-gray-700 mb-2">Pincode</label>
+                            <input type="text" name="pincode" id="pincode" value="{{ old('pincode') }}" placeholder="Enter pincode" class="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#205A44] focus:border-[#205A44]">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Property Requirements -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">Property Requirements</h3>
                     
                     <div>
                         <label for="preferred_location" class="block text-sm font-medium text-gray-700 mb-2">Preferred Location</label>

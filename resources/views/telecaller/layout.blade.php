@@ -366,6 +366,11 @@
                 <p style="color: #B3B5B4; margin-top: 4px;" id="userName">Loading...</p>
             </div>
             <div style="display: flex; align-items: center; gap: 16px;">
+                <!-- Date/Time Clock -->
+                <div id="datetimeClock" style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px 12px; font-family: 'Courier New', monospace; font-weight: 600; font-size: 14px; color: #063A1C; min-width: 160px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <div id="clockTime" style="font-size: 16px; color: #205A44;">--:--:--</div>
+                    <div id="clockDate" style="font-size: 11px; color: #B3B5B4; margin-top: 2px;">-- -- ----</div>
+                </div>
                 <!-- Notification Bell -->
                 <div style="position: relative;">
                     <button id="notificationBell" onclick="toggleNotificationDropdown()" style="position: relative; background: #F7F6F3; border: none; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s;">
@@ -680,6 +685,35 @@
     
     <!-- Chatbot Assistant Script -->
     <script src="{{ asset('js/chatbot-assistant.js') }}"></script>
+    
+    <!-- Live Clock Functionality -->
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const timeElement = document.getElementById('clockTime');
+            const dateElement = document.getElementById('clockDate');
+            
+            if (timeElement && dateElement) {
+                // Format time: HH:MM:SS
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                timeElement.textContent = `${hours}:${minutes}:${seconds}`;
+                
+                // Format date: DD MMM YYYY
+                const date = now.toLocaleDateString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                });
+                dateElement.textContent = date;
+            }
+        }
+        
+        // Update clock immediately and then every second
+        updateClock();
+        setInterval(updateClock, 1000);
+    </script>
 </body>
 </html>
 

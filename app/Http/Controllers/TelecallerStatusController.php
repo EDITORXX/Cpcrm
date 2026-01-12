@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Role;
 use App\Services\TelecallerStatusService;
+use App\Services\UserStatusService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
@@ -12,42 +13,66 @@ use Carbon\Carbon;
 class TelecallerStatusController extends Controller
 {
     protected $statusService;
+    protected $userStatusService;
 
-    public function __construct(TelecallerStatusService $statusService)
-    {
+    public function __construct(
+        TelecallerStatusService $statusService,
+        UserStatusService $userStatusService
+    ) {
         $this->statusService = $statusService;
+        $this->userStatusService = $userStatusService;
     }
 
     /**
-     * Index - show all telecaller statuses
+     * Index - show all user statuses (except admin)
      */
     public function index()
     {
-        $telecallerRoleId = Role::where('slug', Role::TELECALLER)->value('id');
+        $adminRoleId = Role::where('slug', Role::ADMIN)->value('id');
         
-        $telecallers = User::where('role_id', $telecallerRoleId)
+        $users = User::where('role_id', '!=', $adminRoleId)
             ->where('is_active', true)
-            ->with(['telecallerProfile', 'telecallerDailyLimit'])
+            ->with(['role', 'userProfile', 'telecallerProfile', 'telecallerDailyLimit'])
             ->get()
-            ->map(function ($telecaller) {
-                $profile = $telecaller->telecallerProfile;
-                $pendingCount = $this->statusService->getPendingLeadsCount($telecaller->id);
-                $canReceive = $this->statusService->canReceiveAssignment($telecaller->id);
+            ->map(function ($user) {
+                $userProfile = $user->userProfile;
+                $telecallerProfile = $user->telecallerProfile;
+                $isAbsent = $userProfile ? $userProfile->isCurrentlyAbsent() : false;
+                
+                // For telecallers, use TelecallerStatusService for detailed checks
+                // For other users, use UserStatusService for absent check only
+                if ($user->isTelecaller()) {
+                    $canReceive = $this->statusService->canReceiveAssignment($user->id);
+                    $pendingCount = $this->statusService->getPendingLeadsCount($user->id);
+                    $maxPendingLeads = $telecallerProfile?->max_pending_leads ?? 50;
+                } else {
+                    $canReceive = [
+                        'can_receive' => $this->userStatusService->canUserReceiveLeads($user->id),
+                        'is_absent' => $isAbsent,
+                        'has_reached_threshold' => false,
+                        'pending_count' => 0,
+                        'max_pending' => null,
+                    ];
+                    $pendingCount = 0;
+                    $maxPendingLeads = null;
+                }
 
                 return [
-                    'id' => $telecaller->id,
-                    'name' => $telecaller->name,
-                    'email' => $telecaller->email,
-                    'is_absent' => $profile?->is_absent ?? false,
-                    'absent_reason' => $profile?->absent_reason,
-                    'absent_until' => $profile?->absent_until,
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role->name ?? '',
+                    'is_telecaller' => $user->isTelecaller(),
+                    'is_absent' => $isAbsent,
+                    'absent_reason' => $userProfile?->absent_reason,
+                    'absent_until' => $userProfile?->absent_until,
                     'pending_count' => $pendingCount,
-                    'max_pending_leads' => $profile?->max_pending_leads ?? 50,
+                    'max_pending_leads' => $maxPendingLeads,
                     'can_receive' => $canReceive['can_receive'],
                 ];
             });
 
-        return view('lead-assignment.telecaller-status', compact('telecallers'));
+        return view('lead-assignment.telecaller-status', compact('users'));
     }
 
     /**
@@ -71,16 +96,18 @@ class TelecallerStatusController extends Controller
 
         $user = User::findOrFail($request->user_id);
         
-        if (!$user->isTelecaller()) {
+        // Check if user is admin (admins cannot be marked absent)
+        if ($user->isAdmin()) {
             return response()->json([
                 'success' => false,
-                'message' => 'User is not a telecaller.'
+                'message' => 'Admin users cannot be marked as absent.'
             ], 422);
         }
 
         $absentUntil = $request->absent_until ? Carbon::parse($request->absent_until) : null;
 
-        $profile = $this->statusService->toggleAbsentStatus(
+        // Use UserStatusService for all users (not just telecallers)
+        $profile = $this->userStatusService->toggleAbsentStatus(
             $user->id,
             $request->is_absent,
             $request->absent_reason,
@@ -89,37 +116,51 @@ class TelecallerStatusController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Telecaller status updated successfully.',
+            'message' => 'User status updated successfully.',
             'profile' => $profile->fresh(),
         ]);
     }
 
     /**
-     * Get telecaller status (API)
+     * Get user status (API)
      */
     public function getStatus(Request $request)
     {
-        $telecallerId = $request->input('telecaller_id');
+        $userId = $request->input('user_id') ?? $request->input('telecaller_id'); // Support both for backward compatibility
         
-        if (!$telecallerId) {
-            return response()->json(['error' => 'Telecaller ID required'], 422);
+        if (!$userId) {
+            return response()->json(['error' => 'User ID required'], 422);
         }
 
-        $telecaller = User::findOrFail($telecallerId);
-        $canReceive = $this->statusService->canReceiveAssignment($telecaller->id);
-        $pendingCount = $this->statusService->getPendingLeadsCount($telecaller->id);
-        $profile = $this->statusService->getOrCreateProfile($telecaller->id);
+        $user = User::findOrFail($userId);
+        $userProfile = $this->userStatusService->getOrCreateProfile($user->id);
+        
+        if ($user->isTelecaller()) {
+            $canReceive = $this->statusService->canReceiveAssignment($user->id);
+            $pendingCount = $this->statusService->getPendingLeadsCount($user->id);
+            $telecallerProfile = $this->statusService->getOrCreateProfile($user->id);
+        } else {
+            $canReceive = [
+                'can_receive' => $this->userStatusService->canUserReceiveLeads($user->id),
+                'is_absent' => $userProfile->isCurrentlyAbsent(),
+                'has_reached_threshold' => false,
+                'pending_count' => 0,
+                'max_pending' => null,
+            ];
+            $pendingCount = 0;
+            $telecallerProfile = null;
+        }
 
         return response()->json([
-            'telecaller' => [
-                'id' => $telecaller->id,
-                'name' => $telecaller->name,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
             ],
-            'is_absent' => $profile->isCurrentlyAbsent(),
-            'absent_reason' => $profile->absent_reason,
-            'absent_until' => $profile->absent_until,
+            'is_absent' => $userProfile->isCurrentlyAbsent(),
+            'absent_reason' => $userProfile->absent_reason,
+            'absent_until' => $userProfile->absent_until,
             'pending_count' => $pendingCount,
-            'max_pending_leads' => $profile->max_pending_leads,
+            'max_pending_leads' => $telecallerProfile?->max_pending_leads ?? null,
             'can_receive' => $canReceive['can_receive'],
         ]);
     }

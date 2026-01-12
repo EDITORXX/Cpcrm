@@ -68,7 +68,8 @@ class UserSeeder extends Seeder
         );
 
         // Create 4 Telecallers (under Sales Managers)
-        User::firstOrCreate(
+        // Use updateOrCreate to ensure manager_id is always correct even if user exists
+        User::updateOrCreate(
             ['email' => 'telecaller1@realtorcrm.com'],
             [
                 'name' => 'Telecaller 1',
@@ -79,7 +80,7 @@ class UserSeeder extends Seeder
             ]
         );
 
-        User::firstOrCreate(
+        User::updateOrCreate(
             ['email' => 'telecaller2@realtorcrm.com'],
             [
                 'name' => 'Telecaller 2',
@@ -90,7 +91,7 @@ class UserSeeder extends Seeder
             ]
         );
 
-        User::firstOrCreate(
+        User::updateOrCreate(
             ['email' => 'telecaller3@realtorcrm.com'],
             [
                 'name' => 'Telecaller 3',
@@ -101,7 +102,7 @@ class UserSeeder extends Seeder
             ]
         );
 
-        User::firstOrCreate(
+        User::updateOrCreate(
             ['email' => 'telecaller4@realtorcrm.com'],
             [
                 'name' => 'Telecaller 4',

@@ -20,6 +20,38 @@
     @media (max-width: 768px) {
         #prospectsGrid {
             grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        /* Search and filter controls */
+        .flex.items-center.justify-between {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        
+        .flex.gap-2 {
+            width: 100%;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .flex.gap-2 input,
+        .flex.gap-2 select {
+            width: 100%;
+            padding: 10px;
+        }
+        
+        /* Prospect cards responsive */
+        .bg-white.rounded-lg.shadow {
+            padding: 16px !important;
+        }
+        
+        /* Pagination responsive */
+        #pagination {
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
         }
     }
     
@@ -35,9 +67,9 @@
 
 @section('content')
 <div class="bg-white rounded-lg shadow p-6 mb-6">
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center justify-between mb-6" style="flex-wrap: wrap; gap: 12px;">
         <h2 class="text-xl font-bold text-gray-900">Team Prospects</h2>
-        <div class="flex gap-2">
+        <div class="flex gap-2" style="flex-wrap: wrap;">
             <input 
                 type="text" 
                 id="searchInput"
@@ -83,66 +115,12 @@
         </div>
     </div>
 </div>
-
-<!-- Verify Modal -->
-<div id="verifyModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
-            <h3 class="text-xl font-bold text-gray-900 mb-4">Verify Prospect</h3>
-            <div id="verifyModalContent">
-                <!-- Content will be loaded here -->
-            </div>
-            <div class="mt-6 flex gap-2">
-                <button 
-                    onclick="closeVerifyModal()" 
-                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                >
-                    Cancel
-                </button>
-                <button 
-                    id="submitVerifyBtn"
-                    onclick="submitVerify()" 
-                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                >
-                    Verify
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Reject Modal -->
-<div id="rejectModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 class="text-xl font-bold text-gray-900 mb-4">Reject Prospect</h3>
-            <div id="rejectModalContent">
-                <!-- Content will be loaded here -->
-            </div>
-            <div class="mt-6 flex gap-2">
-                <button 
-                    onclick="closeRejectModal()" 
-                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                >
-                    Cancel
-                </button>
-                <button 
-                    onclick="submitReject()" 
-                    class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                >
-                    Confirm Reject
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 @endsection
 
 @push('scripts')
 <script>
     const API_BASE_URL = '{{ url("/api/sales-manager") }}';
     const API_TOKEN = '{{ $api_token }}';
-    let currentProspectId = null;
     let searchTimeout = null;
 
     // Get auth headers with Bearer token
@@ -233,8 +211,6 @@
             year: 'numeric'
         });
 
-        const isPending = prospect.verification_status === 'pending_verification' || prospect.verification_status === 'pending';
-
         card.innerHTML = `
             <div class="p-5">
                 <div class="flex items-start justify-between mb-4">
@@ -274,14 +250,29 @@
                     </div>
                 </div>
 
-                <button 
-                    onclick="toggleDetails(${prospect.id})" 
-                    class="w-full mt-4 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
-                    id="viewDetailsBtn-${prospect.id}"
-                >
-                    <i class="fas fa-chevron-down mr-2" id="chevron-${prospect.id}"></i>
-                    View Details
-                </button>
+                <div class="flex gap-2 mt-4">
+                    <button 
+                        onclick="makeCall('${prospect.phone || ''}')" 
+                        class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    >
+                        <i class="fas fa-phone mr-2"></i>
+                        Call
+                    </button>
+                    <button 
+                        onclick="openWhatsApp('${prospect.phone || ''}')" 
+                        class="flex-1 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 text-sm font-medium shadow-md"
+                    >
+                        <i class="fab fa-whatsapp mr-2"></i>
+                        WhatsApp
+                    </button>
+                    <a 
+                        href="/sales-manager/prospects/${prospect.id}" 
+                        class="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium text-center"
+                    >
+                        <i class="fas fa-eye mr-2"></i>
+                        View Details
+                    </a>
+                </div>
             </div>
             
             <!-- Expandable Details Section -->
@@ -290,7 +281,7 @@
                 class="hidden border-t border-gray-200 bg-gray-50 p-5"
                 style="transition: all 0.3s ease;"
             >
-                <div class="space-y-3 mb-4">
+                <div class="space-y-3">
                     <div class="grid grid-cols-2 gap-3 text-sm">
                         ${prospect.lead_score ? `
                         <div class="col-span-2">
@@ -346,32 +337,6 @@
                         <span class="text-xs font-medium text-red-700 uppercase">Rejection Reason:</span>
                         <p class="text-sm text-red-800 mt-1">${prospect.rejection_reason}</p>
                     </div>
-                    ` : ''}
-                </div>
-                
-                <div class="flex gap-2 mt-4">
-                    <button 
-                        onclick="openWhatsApp('${prospect.phone || ''}')" 
-                        class="flex-1 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 text-sm font-medium shadow-md"
-                    >
-                        <i class="fab fa-whatsapp mr-2"></i>
-                        WhatsApp
-                    </button>
-                    ${isPending ? `
-                    <button 
-                        onclick="openVerifyModal(${prospect.id})" 
-                        class="flex-1 px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors text-sm font-medium"
-                    >
-                        <i class="fas fa-check mr-2"></i>
-                        Verify
-                    </button>
-                    <button 
-                        onclick="openRejectModal(${prospect.id})" 
-                        class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                    >
-                        <i class="fas fa-times mr-2"></i>
-                        Reject
-                    </button>
                     ` : ''}
                 </div>
             </div>
@@ -495,253 +460,18 @@
         window.open(`https://wa.me/${cleanedPhone}`, '_blank');
     }
 
-    // Open Verify Modal
-    async function openVerifyModal(prospectId) {
-        currentProspectId = prospectId;
-        const modal = document.getElementById('verifyModal');
-        const content = document.getElementById('verifyModalContent');
-        
-        const prospect = allProspects.find(p => p.id === prospectId);
-        if (!prospect) {
-            // Try to load from API if not in current page
-            try {
-                const response = await fetch(`${API_BASE_URL}/prospects/pending?per_page=1000`, {
-                    headers: getAuthHeaders(),
-                });
-                const data = await response.json();
-                const found = data.data.find(p => p.id === prospectId);
-                if (found) {
-                    displayVerifyModal(found, content, modal);
-                } else {
-                    alert('Prospect not found');
-                }
-            } catch (error) {
-                console.error('Error loading prospect:', error);
-                alert('Failed to load prospect details');
-            }
-        } else {
-            displayVerifyModal(prospect, content, modal);
-        }
-    }
-
-    function displayVerifyModal(prospect, content, modal) {
-        content.innerHTML = `
-            <div class="space-y-4">
-                <div class="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                        <span class="text-gray-500">Customer Name:</span>
-                        <p class="font-medium text-gray-900 mt-1">${prospect.customer_name || 'N/A'}</p>
-                    </div>
-                    <div>
-                        <span class="text-gray-500">Phone:</span>
-                        <p class="font-medium text-gray-900 mt-1">${prospect.phone || 'N/A'}</p>
-                    </div>
-                    <div>
-                        <span class="text-gray-500">Budget:</span>
-                        <p class="font-medium text-gray-900 mt-1">${prospect.budget ? '₹' + parseFloat(prospect.budget).toLocaleString('en-IN') : 'N/A'}</p>
-                    </div>
-                    <div>
-                        <span class="text-gray-500">Location:</span>
-                        <p class="font-medium text-gray-900 mt-1">${prospect.preferred_location || 'N/A'}</p>
-                    </div>
-                    <div>
-                        <span class="text-gray-500">Size:</span>
-                        <p class="font-medium text-gray-900 mt-1">${prospect.size || 'N/A'}</p>
-                    </div>
-                    <div>
-                        <span class="text-gray-500">Purpose:</span>
-                        <p class="font-medium text-gray-900 mt-1">${prospect.purpose === 'end_user' ? 'End User' : (prospect.purpose === 'investment' ? 'Investment' : 'N/A')}</p>
-                    </div>
-                </div>
-                ${prospect.remark ? `
-                <div class="p-3 bg-gray-50 rounded border">
-                    <span class="text-xs font-medium text-gray-500 uppercase">Remark:</span>
-                    <p class="text-sm text-gray-700 mt-1">${prospect.remark}</p>
-                </div>
-                ` : ''}
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Manager Remark *</label>
-                    <textarea 
-                        id="managerRemark" 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                        rows="4" 
-                        placeholder="Enter your remarks about this prospect..."
-                        required
-                    ></textarea>
-                    <p class="text-xs text-gray-500 mt-1">Add any additional details or comments about this prospect.</p>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Lead Status *</label>
-                    <select 
-                        id="leadStatus" 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                    >
-                        <option value="">Select Lead Status</option>
-                        <option value="hot">Hot</option>
-                        <option value="warm">Warm</option>
-                        <option value="cold">Cold</option>
-                        <option value="junk">Junk</option>
-                    </select>
-                    <p class="text-xs text-gray-500 mt-1">Classify this lead based on their interest level.</p>
-                </div>
-            </div>
-        `;
-        modal.classList.remove('hidden');
-    }
-
-    // Close Verify Modal
-    function closeVerifyModal() {
-        document.getElementById('verifyModal').classList.add('hidden');
-        currentProspectId = null;
-    }
-
-    // Submit Verify
-    async function submitVerify() {
-        if (!currentProspectId) return;
-        
-        const managerRemark = document.getElementById('managerRemark').value.trim();
-        const leadStatus = document.getElementById('leadStatus').value;
-        
-        if (!managerRemark) {
-            alert('Please enter a manager remark');
+    // Make call
+    function makeCall(phone) {
+        if (!phone || phone === 'N/A') {
+            alert('Phone number not available');
             return;
         }
-        
-        if (!leadStatus) {
-            alert('Please select a lead status');
+        const cleanedPhone = phone.replace(/[^\d+]/g, '');
+        if (!cleanedPhone) {
+            alert('Invalid phone number');
             return;
         }
-        
-        try {
-            const response = await fetch(`${API_BASE_URL}/prospects/${currentProspectId}/verify`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    manager_remark: managerRemark,
-                    lead_status: leadStatus
-                }),
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-                if (typeof showNotification === 'function') {
-                    showNotification('Prospect verified successfully!', 'success', 3000);
-                } else {
-                    alert('Prospect verified successfully!');
-                }
-                closeVerifyModal();
-                loadProspects();
-            } else {
-                alert(data.message || 'Failed to verify prospect');
-            }
-        } catch (error) {
-            console.error('Error verifying prospect:', error);
-            alert('Failed to verify prospect. Please try again.');
-        }
-    }
-
-    // Open Reject Modal
-    async function openRejectModal(prospectId) {
-        currentProspectId = prospectId;
-        const modal = document.getElementById('rejectModal');
-        const content = document.getElementById('rejectModalContent');
-        
-        const prospect = allProspects.find(p => p.id === prospectId);
-        if (!prospect) {
-            try {
-                const response = await fetch(`${API_BASE_URL}/prospects/pending?per_page=1000`, {
-                    headers: getAuthHeaders(),
-                });
-                const data = await response.json();
-                const found = data.data.find(p => p.id === prospectId);
-                if (found) {
-                    displayRejectModal(found, content, modal);
-                } else {
-                    alert('Prospect not found');
-                }
-            } catch (error) {
-                console.error('Error loading prospect:', error);
-                alert('Failed to load prospect details');
-            }
-        } else {
-            displayRejectModal(prospect, content, modal);
-        }
-    }
-
-    function displayRejectModal(prospect, content, modal) {
-        content.innerHTML = `
-            <div class="space-y-4">
-                <div class="p-3 bg-yellow-50 border border-yellow-200 rounded">
-                    <p class="text-sm text-yellow-800">
-                        <strong>Prospect:</strong> ${prospect.customer_name || 'N/A'}<br>
-                        <strong>Phone:</strong> ${prospect.phone || 'N/A'}
-                    </p>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Rejection Reason *</label>
-                    <textarea 
-                        id="rejectReason" 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" 
-                        rows="4" 
-                        placeholder="Enter the reason for rejecting this prospect..."
-                        required
-                    ></textarea>
-                    <p class="text-xs text-gray-500 mt-1">This reason will be shown to the telecaller.</p>
-                </div>
-            </div>
-        `;
-        modal.classList.remove('hidden');
-    }
-
-    // Close Reject Modal
-    function closeRejectModal() {
-        document.getElementById('rejectModal').classList.add('hidden');
-        currentProspectId = null;
-    }
-
-    // Submit Reject
-    async function submitReject() {
-        if (!currentProspectId) return;
-        
-        const reason = document.getElementById('rejectReason').value.trim();
-        if (!reason) {
-            alert('Please enter a rejection reason');
-            return;
-        }
-        
-        if (reason.length < 10) {
-            alert('Please provide a more detailed reason (at least 10 characters)');
-            return;
-        }
-        
-        try {
-            const response = await fetch(`${API_BASE_URL}/prospects/${currentProspectId}/reject`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                    reason: reason
-                }),
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-                if (typeof showNotification === 'function') {
-                    showNotification('Prospect rejected successfully!', 'success', 3000);
-                } else {
-                    alert('Prospect rejected successfully!');
-                }
-                closeRejectModal();
-                loadProspects();
-            } else {
-                alert(data.message || 'Failed to reject prospect');
-            }
-        } catch (error) {
-            console.error('Error rejecting prospect:', error);
-            alert('Failed to reject prospect. Please try again.');
-        }
+        window.location.href = `tel:${cleanedPhone}`;
     }
 
     // Handle search with debounce
