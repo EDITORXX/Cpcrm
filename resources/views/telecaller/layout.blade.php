@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Telecaller - Base CRM')</title>
+    <title>@yield('title', 'Sales Executive - Base CRM')</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="api-token" content="{{ session('telecaller_api_token') ?? session('api_token') ?? (auth()->check() ? auth()->user()->createToken('web-token')->plainTextToken : '') }}">
     <meta name="user-id" content="{{ auth()->check() ? auth()->user()->id : '' }}">
@@ -19,7 +19,90 @@
         html, body { width: 100%; overflow-x: hidden; }
         body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #F7F6F3; width: 100%; max-width: 100vw; }
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; width: 100%; box-sizing: border-box; overflow-x: hidden; }
-        .header { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box; max-width: 100%; overflow-x: hidden; }
+        .header { 
+            background: white; 
+            padding: 16px; 
+            border-radius: 12px; 
+            margin-bottom: 16px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            display: flex; 
+            flex-direction: column;
+            gap: 12px;
+            width: 100%; 
+            box-sizing: border-box; 
+            max-width: 100%; 
+            overflow-x: hidden; 
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .header-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+        .header-actions-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        /* Mobile Header - Single Line */
+        .header-title-mobile {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            font-size: 18px !important;
+            font-weight: 600 !important;
+            margin: 0;
+        }
+        
+        .header-page-title-desktop {
+            flex: 1;
+            font-size: 18px;
+            font-weight: 600;
+            color: #063A1C;
+        }
+        
+        .header-user-info-mobile {
+            display: none; /* Hidden by default, shown on mobile */
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .header-user-name-mobile {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #063A1C;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .header-user-role-mobile {
+            display: block;
+            font-size: 11px;
+            font-weight: 400;
+            color: #6b7280;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .header-user-name-desktop {
+            display: inline; /* Shown on desktop */
+        }
         .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s; }
         .btn-danger { background: #ef4444; color: white; }
         .btn-danger:hover { background: #dc2626; }
@@ -32,6 +115,33 @@
             text-decoration: none;
             color: #666;
             transition: all 0.3s;
+        }
+        
+        /* Icon-only sidebar (all views) */
+        #sidebar {
+            width: 64px !important;
+        }
+        
+        #sidebar nav {
+            padding: 0 12px !important;
+        }
+        
+        #sidebar h2,
+        #sidebar p {
+            display: none !important;
+        }
+        
+        #sidebar .sidebar-link {
+            justify-content: center;
+            padding: 12px !important;
+            font-size: 0 !important;
+        }
+        
+        #sidebar .sidebar-link i {
+            margin-right: 0 !important;
+            font-size: 18px;
+            width: 20px;
+            text-align: center;
         }
         .sidebar-link:hover {
             background: #F7F6F3 !important;
@@ -68,6 +178,11 @@
             color: #B3B5B4;
             max-width: 500px;
         }
+        /* Mobile Footer Navigation - Hidden by default */
+        #mobileFooterNav {
+            display: none;
+        }
+        
         /* Mobile responsive styles */
         @media (max-width: 1024px) {
             .container { margin-left: 0 !important; padding: 15px; width: 100% !important; }
@@ -76,15 +191,280 @@
             .header { padding: 15px !important; }
         }
         
-        @media (max-width: 768px) {
-            .container { margin-left: 0 !important; padding: 10px; width: 100% !important; }
-            .header { flex-direction: column; gap: 15px; align-items: flex-start !important; padding: 15px !important; }
-            .header h1 { font-size: 20px !important; margin: 0 !important; }
-            .header > div:first-child { width: 100%; }
-            .header > div:last-child { width: 100%; justify-content: space-between; }
-            aside { width: 280px; z-index: 1000; }
-            .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 999; }
-            .sidebar-overlay.active { display: block; }
+        /* Mobile: Single line header with user name and time */
+        @media (max-width: 767px) {
+            /* Hide sidebar on mobile - completely remove from layout */
+            #sidebar {
+                display: none !important;
+                width: 0 !important;
+                height: 0 !important;
+                position: absolute !important;
+                left: -9999px !important;
+                visibility: hidden !important;
+            }
+            
+            /* Hide sidebar overlay on mobile */
+            .sidebar-overlay {
+                display: none !important;
+            }
+            
+            /* Hide toggle button on mobile */
+            .sidebar-toggle {
+                display: none !important;
+            }
+            
+            .container { 
+                margin-left: 0 !important; 
+                padding: 12px; 
+                width: 100% !important; 
+                padding-bottom: 70px !important; /* Space for footer */
+            }
+            
+            .header {
+                padding: 10px 12px;
+                margin-bottom: 12px;
+                flex-direction: row;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .header-top {
+                flex: 1;
+                min-width: 0;
+            }
+            
+            .header-title-mobile {
+                font-size: 16px !important;
+                line-height: 1.3;
+                width: 100%;
+                display: flex;
+                align-items: center;
+            }
+            
+            /* Hide page title on mobile */
+            .header-page-title-desktop {
+                display: none !important;
+            }
+            
+            /* Show user info on mobile */
+            .header-user-info-mobile {
+                display: flex;
+                flex: 1;
+                min-width: 0;
+            }
+            
+            .header-user-name-mobile {
+                font-size: 14px;
+                font-weight: 600;
+                color: #063A1C;
+            }
+            
+            .header-user-role-mobile {
+                display: none !important;
+            }
+            
+            /* Show date range selector on mobile in header user info area */
+            .header-date-range-selector-mobile {
+                display: block !important;
+            }
+            
+            /* Hide date range selector below clock on mobile */
+            .header-date-range-selector {
+                display: none !important;
+            }
+            
+            /* Mobile date range selector styling */
+            .header-date-range-selector-mobile select {
+                width: 100%;
+                max-width: 120px;
+            }
+            
+            .header-actions {
+                flex: 0 0 auto;
+                width: auto;
+            }
+            
+            .header-actions-row {
+                flex-direction: column;
+                gap: 4px;
+                align-items: flex-end;
+            }
+            
+            #datetimeClock {
+                min-width: 100px;
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+            
+            #clockTime {
+                font-size: 12px;
+            }
+            
+            #clockDate {
+                font-size: 9px;
+            }
+            
+            .header-user-name-desktop {
+                display: none !important;
+            }
+            
+            /* Hide logout button on mobile (should be in profile) */
+            .header .btn-danger {
+                display: none !important;
+            }
+            
+            /* Hide notification bell on mobile */
+            .header-actions-row > div[style*="position: relative"] {
+                display: none !important;
+            }
+            
+            /* Main content full width on mobile */
+            #mainContent {
+                margin-left: 0 !important;
+                width: 100% !important;
+                padding-bottom: 100px !important; /* Extra space for footer + buttons */
+            }
+            
+            /* Ensure forms and containers have proper spacing */
+            main {
+                padding-bottom: 100px !important;
+            }
+            
+            /* Add bottom margin to buttons in mobile view */
+            .btn, button[type="submit"], input[type="submit"] {
+                margin-bottom: 20px !important;
+            }
+            
+            /* Global fix for all modals and forms on mobile */
+            .modal, .form-container, form {
+                padding-bottom: 100px !important;
+            }
+            
+            /* Ensure modal content doesn't get hidden */
+            .modal-content, .modal > div {
+                max-height: calc(100vh - 150px) !important;
+                overflow-y: auto !important;
+                padding-bottom: 100px !important;
+            }
+            
+            /* Specific fix for action buttons at bottom of forms/modals */
+            .modal-footer, .form-actions, .button-group {
+                margin-bottom: 80px !important;
+                padding-bottom: 20px !important;
+            }
+            
+            /* Footer Navigation for Mobile */
+            #mobileFooterNav {
+                display: flex;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                width: 100%;
+                background: white;
+                border-top: 1px solid #e0e0e0;
+                box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+                z-index: 1000;
+                padding: 8px 0;
+                justify-content: space-around;
+                align-items: center;
+                height: 60px;
+            }
+            
+            .footer-nav-link {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                text-decoration: none;
+                color: #666;
+                padding: 6px 4px;
+                border-radius: 8px;
+                transition: all 0.3s;
+                flex: 1;
+                max-width: 60px;
+            }
+            
+            .footer-nav-link i {
+                font-size: 18px;
+                margin-bottom: 2px;
+                display: block !important;
+                color: inherit;
+            }
+            
+            .footer-nav-link span {
+                font-size: 9px;
+                color: #666;
+                text-align: center;
+                line-height: 1.2;
+                display: block !important;
+            }
+            
+            .footer-nav-link:hover,
+            .footer-nav-link.active {
+                background: #F7F6F3;
+                color: #205A44;
+            }
+            
+            .footer-nav-link.active {
+                color: #205A44;
+            }
+            
+            .footer-nav-link.active i {
+                color: #205A44 !important;
+            }
+            
+            .footer-nav-link.active span {
+                color: #205A44;
+            }
+        }
+        
+        /* Desktop - Show Sidebar, Hide Footer */
+        @media (min-width: 768px) {
+            #mobileFooterNav {
+                display: none !important;
+            }
+            
+            #sidebar {
+                display: block !important;
+            }
+            
+            #mainContent {
+                margin-left: 64px !important;
+                width: calc(100% - 64px) !important;
+            }
+            
+            /* Show logout button on desktop */
+            .header .btn-danger {
+                display: block !important;
+            }
+            
+            /* Show notification bell on desktop */
+            .header-actions-row > div[style*="position: relative"] {
+                display: block !important;
+            }
+            
+            /* Desktop header layout */
+            .header {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+            
+            .header-top {
+                flex: 0 0 auto;
+            }
+            
+            .header-actions {
+                flex: 0 0 auto;
+                width: auto;
+            }
+            
+            .header-actions-row {
+                flex-direction: row;
+                align-items: center;
+                gap: 16px;
+            }
         }
         
         @media (max-width: 480px) {
@@ -358,40 +738,77 @@
         </nav>
     </aside>
     
-    <div class="container" id="mainContainer" style="margin-left: 256px;">
+    <div class="container" id="mainContent" style="margin-left: 64px;">
         <!-- Header -->
         <div class="header">
-            <div>
-                <h1 style="font-size: 24px; font-weight: 700; color: #063A1C;">@yield('page-title', 'Telecaller Dashboard')</h1>
-                <p style="color: #B3B5B4; margin-top: 4px;" id="userName">Loading...</p>
-            </div>
-            <div style="display: flex; align-items: center; gap: 16px;">
-                <!-- Date/Time Clock -->
-                <div id="datetimeClock" style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px 12px; font-family: 'Courier New', monospace; font-weight: 600; font-size: 14px; color: #063A1C; min-width: 160px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                    <div id="clockTime" style="font-size: 16px; color: #205A44;">--:--:--</div>
-                    <div id="clockDate" style="font-size: 11px; color: #B3B5B4; margin-top: 2px;">-- -- ----</div>
-                </div>
-                <!-- Notification Bell -->
-                <div style="position: relative;">
-                    <button id="notificationBell" onclick="toggleNotificationDropdown()" style="position: relative; background: #F7F6F3; border: none; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s;">
-                        <i class="fas fa-bell" style="font-size: 20px; color: #063A1C;"></i>
-                        <span id="notificationBadge" style="position: absolute; top: -2px; right: -2px; background: #ef4444; color: white; border-radius: 50%; width: 20px; height: 20px; display: none; align-items: center; justify-content: center; font-size: 11px; font-weight: 600;">0</span>
-                    </button>
-                    <!-- Notification Dropdown -->
-                    <div id="notificationDropdown" style="position: absolute; top: 50px; right: 0; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); width: 380px; max-height: 500px; overflow-y: auto; z-index: 1000; display: none;">
-                        <div style="padding: 16px; border-bottom: 2px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
-                            <h3 style="font-size: 18px; font-weight: 600; color: #063A1C; margin: 0;">Notifications</h3>
-                            <button onclick="markAllNotificationsRead()" style="background: none; border: none; color: #205A44; font-size: 14px; cursor: pointer; font-weight: 500;">Mark all read</button>
-                        </div>
-                        <div id="notificationList" style="padding: 8px;">
-                            <div style="text-align: center; padding: 40px 20px; color: #B3B5B4;">
-                                <i class="fas fa-bell-slash" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
-                                <p>No notifications</p>
+            <div class="header-top">
+                <h1 class="header-title-mobile" style="font-size: 24px; font-weight: 700; color: #063A1C;">
+                    <span class="header-page-title-desktop">@yield('page-title', 'Sales Executive Dashboard')</span>
+                    <div class="header-user-info-mobile">
+                        <span class="header-user-name-mobile">{{ auth()->user()->name }}</span>
+                        <span class="header-user-role-mobile" style="display: none;">{{ auth()->user()->getDisplayRoleName() ?? 'User' }}</span>
+                        <!-- Date Range Selector - Mobile (replaces role) -->
+                        <div class="header-date-range-selector-mobile" id="headerDateRangeSelectorMobile" style="display: none;">
+                            <select id="headerDateRangeSelectMobile" onchange="handleHeaderDateRangeChange()" style="padding: 2px 5px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 10px; background: white; color: #063A1C; cursor: pointer; outline: none; width: 100%; max-width: 120px; height: 24px; margin-top: 4px;">
+                                <option value="today" {{ (request()->get('date_range') ?? 'today') === 'today' ? 'selected' : '' }}>Today</option>
+                                <option value="this_week" {{ request()->get('date_range') === 'this_week' ? 'selected' : '' }}>This Week</option>
+                                <option value="this_month" {{ request()->get('date_range') === 'this_month' ? 'selected' : '' }}>This Month</option>
+                                <option value="custom" {{ request()->get('date_range') === 'custom' ? 'selected' : '' }}>Custom</option>
+                            </select>
+                            <div class="header-custom-date-inputs-mobile" id="headerCustomDateInputsMobile" style="display: {{ request()->get('date_range') === 'custom' ? 'flex' : 'none' }}; gap: 3px; margin-top: 3px; flex-direction: column;">
+                                <input type="date" id="headerStartDateMobile" value="{{ request()->get('start_date') ?? '' }}" onchange="handleHeaderCustomDateChange()" style="padding: 2px 4px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 9px; width: 100%; max-width: 120px; height: 22px;">
+                                <input type="date" id="headerEndDateMobile" value="{{ request()->get('end_date') ?? '' }}" onchange="handleHeaderCustomDateChange()" style="padding: 2px 4px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 9px; width: 100%; max-width: 120px; height: 22px;">
                             </div>
                         </div>
                     </div>
+                </h1>
+            </div>
+            <div class="header-actions">
+                <div class="header-actions-row">
+                    <!-- Date/Time Clock -->
+                    <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-end;">
+                        <div id="datetimeClock" style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px 12px; font-family: 'Courier New', monospace; font-weight: 600; font-size: 12px; color: #063A1C; min-width: 160px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            <div id="clockTime" style="font-size: 16px; color: #205A44;">--:--:--</div>
+                            <div id="clockDate" style="font-size: 11px; color: #B3B5B4; margin-top: 2px;">-- -- ----</div>
+                        </div>
+                        <!-- Date Range Selector - Small, below clock (only on dashboard) -->
+                        <div class="header-date-range-selector" id="headerDateRangeSelector" style="display: none;">
+                            <select id="headerDateRangeSelect" onchange="handleHeaderDateRangeChange()" style="padding: 2px 5px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 10px; background: white; color: #063A1C; cursor: pointer; outline: none; width: 80px; max-width: 80px; height: 24px;">
+                                <option value="today" {{ (request()->get('date_range') ?? 'today') === 'today' ? 'selected' : '' }}>Today</option>
+                                <option value="this_week" {{ request()->get('date_range') === 'this_week' ? 'selected' : '' }}>This Week</option>
+                                <option value="this_month" {{ request()->get('date_range') === 'this_month' ? 'selected' : '' }}>This Month</option>
+                                <option value="custom" {{ request()->get('date_range') === 'custom' ? 'selected' : '' }}>Custom</option>
+                            </select>
+                            <div class="header-custom-date-inputs" id="headerCustomDateInputs" style="display: {{ request()->get('date_range') === 'custom' ? 'flex' : 'none' }}; gap: 3px; margin-top: 3px; flex-direction: column;">
+                                <input type="date" id="headerStartDate" value="{{ request()->get('start_date') ?? '' }}" onchange="handleHeaderCustomDateChange()" style="padding: 2px 4px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 9px; width: 80px; height: 22px;">
+                                <input type="date" id="headerEndDate" value="{{ request()->get('end_date') ?? '' }}" onchange="handleHeaderCustomDateChange()" style="padding: 2px 4px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 9px; width: 80px; height: 22px;">
+                            </div>
+                        </div>
+                    </div>
+                    <span class="header-user-name-desktop" style="color: #B3B5B4; font-size: 14px; white-space: nowrap;">{{ auth()->user()->name }}</span>
+                    <!-- Notification Bell -->
+                    <div style="position: relative;">
+                        <button id="notificationBell" onclick="toggleNotificationDropdown()" style="position: relative; background: #F7F6F3; border: none; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s;">
+                            <i class="fas fa-bell" style="font-size: 20px; color: #063A1C;"></i>
+                            <span id="notificationBadge" style="position: absolute; top: -2px; right: -2px; background: #ef4444; color: white; border-radius: 50%; width: 20px; height: 20px; display: none; align-items: center; justify-content: center; font-size: 11px; font-weight: 600;">0</span>
+                        </button>
+                        <!-- Notification Dropdown -->
+                        <div id="notificationDropdown" style="position: absolute; top: 50px; right: 0; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); width: 380px; max-height: 500px; overflow-y: auto; z-index: 1000; display: none;">
+                            <div style="padding: 16px; border-bottom: 2px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
+                                <h3 style="font-size: 18px; font-weight: 600; color: #063A1C; margin: 0;">Notifications</h3>
+                                <button onclick="markAllNotificationsRead()" style="background: none; border: none; color: #205A44; font-size: 14px; cursor: pointer; font-weight: 500;">Mark all read</button>
+                            </div>
+                            <div id="notificationList" style="padding: 8px;">
+                                <div style="text-align: center; padding: 40px 20px; color: #B3B5B4;">
+                                    <i class="fas fa-bell-slash" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
+                                    <p>No notifications</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Logout button - hidden on mobile (should be in profile) -->
+                    <button onclick="logout()" class="btn btn-danger" style="display: block;">Logout</button>
                 </div>
-                <button onclick="logout()" class="btn btn-danger">Logout</button>
             </div>
         </div>
 
@@ -400,6 +817,30 @@
             @yield('content')
         </main>
     </div>
+
+    <!-- Mobile Footer Navigation -->
+    <nav id="mobileFooterNav">
+        <a href="{{ route('telecaller.dashboard') }}" class="footer-nav-link {{ request()->routeIs('telecaller.dashboard') ? 'active' : '' }}">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="{{ route('telecaller.tasks') }}" class="footer-nav-link {{ request()->routeIs('telecaller.tasks*') ? 'active' : '' }}">
+            <i class="fas fa-tasks"></i>
+            <span>Tasks</span>
+        </a>
+        <a href="{{ route('telecaller.leads') }}" class="footer-nav-link {{ request()->routeIs('telecaller.leads*') ? 'active' : '' }}">
+            <i class="fas fa-user-friends"></i>
+            <span>Leads</span>
+        </a>
+        <a href="{{ route('telecaller.verification-pending') }}" class="footer-nav-link {{ request()->routeIs('telecaller.verification-pending*') ? 'active' : '' }}">
+            <i class="fas fa-clock"></i>
+            <span>Verification</span>
+        </a>
+        <a href="{{ route('telecaller.profile') }}" class="footer-nav-link {{ request()->routeIs('telecaller.profile*') ? 'active' : '' }}">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
 
     <!-- Custom Notification Component -->
     <div id="notificationOverlay" class="notification-overlay" style="display: none;"></div>
@@ -418,7 +859,7 @@
         var API_BASE_URL = '{{ url("/api") }}';
         
         // Initialize token from session on page load for web-logged-in telecallers
-        @if(auth()->check() && auth()->user()->isTelecaller())
+        @if(auth()->check() && auth()->user()->isSalesExecutive())
             @php
                 $token = session('telecaller_api_token');
                 $user = auth()->user()->load('role', 'manager');
@@ -466,7 +907,7 @@
                 } catch (e) {
                     console.error('Error parsing user data:', e);
                     // Try to get user from session as fallback
-                    @if(auth()->check() && auth()->user()->isTelecaller())
+                    @if(auth()->check() && auth()->user()->isSalesExecutive())
                         @php
                             $user = auth()->user();
                         @endphp
@@ -478,7 +919,7 @@
                 }
             } else {
                 // If no user in localStorage but user is logged in via session, use session data
-                @if(auth()->check() && auth()->user()->isTelecaller())
+                @if(auth()->check() && auth()->user()->isSalesExecutive())
                     @php
                         $user = auth()->user();
                     @endphp
@@ -649,13 +1090,21 @@
         
         // Responsive container margin
         function adjustContainerMargin() {
-            const container = document.getElementById('mainContainer');
+            const container = document.getElementById('mainContent');
             const sidebar = document.getElementById('sidebar');
             
-            if (window.innerWidth <= 1024) {
+            if (window.innerWidth <= 767) {
+                // Mobile: no sidebar, full width
+                container.style.marginLeft = '0';
+                container.style.width = '100%';
+                container.style.paddingBottom = '70px'; // Space for footer
+            } else if (window.innerWidth <= 1024) {
+                // Tablet: sidebar toggleable
                 container.style.marginLeft = '0';
             } else {
-                container.style.marginLeft = '256px';
+                // Desktop: sidebar always visible
+                container.style.marginLeft = '64px';
+                container.style.paddingBottom = '0';
             }
         }
         
@@ -713,7 +1162,88 @@
         // Update clock immediately and then every second
         updateClock();
         setInterval(updateClock, 1000);
+
+        // Show date range selector only on dashboard page
+        if (window.location.pathname.includes('/telecaller/dashboard')) {
+            // Show desktop version (below clock)
+            const dateRangeSelector = document.getElementById('headerDateRangeSelector');
+            if (dateRangeSelector && window.innerWidth >= 768) {
+                dateRangeSelector.style.display = 'block';
+            }
+            
+            // Show mobile version (in header user info area)
+            const dateRangeSelectorMobile = document.getElementById('headerDateRangeSelectorMobile');
+            if (dateRangeSelectorMobile && window.innerWidth < 768) {
+                dateRangeSelectorMobile.style.display = 'block';
+            }
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (window.location.pathname.includes('/telecaller/dashboard')) {
+                const dateRangeSelector = document.getElementById('headerDateRangeSelector');
+                const dateRangeSelectorMobile = document.getElementById('headerDateRangeSelectorMobile');
+                
+                if (window.innerWidth >= 768) {
+                    // Desktop: show below clock, hide in user info
+                    if (dateRangeSelector) dateRangeSelector.style.display = 'block';
+                    if (dateRangeSelectorMobile) dateRangeSelectorMobile.style.display = 'none';
+                } else {
+                    // Mobile: show in user info, hide below clock
+                    if (dateRangeSelector) dateRangeSelector.style.display = 'none';
+                    if (dateRangeSelectorMobile) dateRangeSelectorMobile.style.display = 'block';
+                }
+            }
+        });
+
+        // Handle header date range change (works for both desktop and mobile)
+        function handleHeaderDateRangeChange() {
+            // Check which selector was used (desktop or mobile)
+            const select = document.getElementById('headerDateRangeSelect') || document.getElementById('headerDateRangeSelectMobile');
+            const customInputs = document.getElementById('headerCustomDateInputs') || document.getElementById('headerCustomDateInputsMobile');
+            const dateRange = select.value;
+
+            if (dateRange === 'custom') {
+                if (customInputs) {
+                    customInputs.style.display = 'flex';
+                }
+            } else {
+                if (customInputs) {
+                    customInputs.style.display = 'none';
+                }
+                // Reload page with new date range
+                const url = new URL(window.location.href);
+                url.searchParams.set('date_range', dateRange);
+                url.searchParams.delete('start_date');
+                url.searchParams.delete('end_date');
+                window.location.href = url.toString();
+            }
+        }
+
+        // Handle header custom date change (works for both desktop and mobile)
+        function handleHeaderCustomDateChange() {
+            const startDate = document.getElementById('headerStartDate')?.value || document.getElementById('headerStartDateMobile')?.value;
+            const endDate = document.getElementById('headerEndDate')?.value || document.getElementById('headerEndDateMobile')?.value;
+
+            if (startDate && endDate) {
+                // Validate: end date should be >= start date
+                if (new Date(endDate) < new Date(startDate)) {
+                    alert('End date must be greater than or equal to start date');
+                    return;
+                }
+
+                // Reload page with custom dates
+                const url = new URL(window.location.href);
+                url.searchParams.set('date_range', 'custom');
+                url.searchParams.set('start_date', startDate);
+                url.searchParams.set('end_date', endDate);
+                window.location.href = url.toString();
+            }
+        }
     </script>
+    
+    <!-- Include Meeting Post-Call Popup Component -->
+    @include('components.meeting-post-call-popup')
 </body>
 </html>
 

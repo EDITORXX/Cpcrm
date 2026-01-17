@@ -60,24 +60,27 @@
 
             <h2 class="section-title">User Targets</h2>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Prospects to Extract</label>
-                    <input type="number" name="target_prospects_extract" value="{{ old('target_prospects_extract', $target->target_prospects_extract) }}" min="0" placeholder="0">
-                    <small style="color: #666;">Number of prospects the user should extract/create</small>
+            <!-- Prospect Targets (Hidden for Sales Managers) -->
+            <div id="prospect-targets-section" style="display: {{ $target->user->isSalesManager() ? 'none' : 'block' }};">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Prospects to Extract</label>
+                        <input type="number" name="target_prospects_extract" value="{{ old('target_prospects_extract', $target->target_prospects_extract) }}" min="0" placeholder="0">
+                        <small style="color: #666;">Number of prospects the user should extract/create</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Prospects to Verify</label>
+                        <input type="number" name="target_prospects_verified" value="{{ old('target_prospects_verified', $target->target_prospects_verified) }}" min="0" placeholder="0">
+                        <small style="color: #666;">Number of prospects that should be verified/approved</small>
+                    </div>
                 </div>
 
                 <div class="form-group">
-                    <label>Prospects to Verify</label>
-                    <input type="number" name="target_prospects_verified" value="{{ old('target_prospects_verified', $target->target_prospects_verified) }}" min="0" placeholder="0">
-                    <small style="color: #666;">Number of prospects that should be verified/approved</small>
+                    <label>Calls to Make</label>
+                    <input type="number" name="target_calls" value="{{ old('target_calls', $target->target_calls) }}" min="0" placeholder="0">
+                    <small style="color: #666;">Number of phone calls the user should complete</small>
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label>Calls to Make</label>
-                <input type="number" name="target_calls" value="{{ old('target_calls', $target->target_calls) }}" min="0" placeholder="0">
-                <small style="color: #666;">Number of phone calls the user should complete</small>
             </div>
 
             <h2 class="section-title">Additional Targets (Optional)</h2>
@@ -94,9 +97,61 @@
                 </div>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="closers-field" style="display: {{ ($target->user->isSalesManager() || $target->user->isSalesExecutive()) ? 'block' : 'none' }};">
                 <label>Closers</label>
                 <input type="number" name="target_closers" value="{{ old('target_closers', $target->target_closers) }}" min="0" placeholder="0">
+                <small style="color: #666;">Only for Sales Managers and Sales Executives</small>
+            </div>
+
+            <!-- Incentive Rates Section -->
+            <h2 class="section-title">Incentive Rates (Optional)</h2>
+            
+            <div class="form-group" id="incentive-per-closer-field" style="display: {{ ($target->user->isSalesManager() || $target->user->isSalesExecutive()) ? 'block' : 'none' }};">
+                <label>Incentive per Closer (₹)</label>
+                <input type="number" name="incentive_per_closer" id="incentive_per_closer" step="0.01" min="0" value="{{ old('incentive_per_closer', $target->incentive_per_closer ?? '') }}" placeholder="0.00">
+                <small style="color: #666;">Incentive amount per closer for Managers and Sales Executives</small>
+            </div>
+
+            <div class="form-group" id="incentive-per-visit-field" style="display: {{ $target->user->isTelecaller() ? 'block' : 'none' }};">
+                <label>Incentive per Visit (₹)</label>
+                <input type="number" name="incentive_per_visit" id="incentive_per_visit" step="0.01" min="0" value="{{ old('incentive_per_visit', $target->incentive_per_visit ?? '') }}" placeholder="0.00">
+                <small style="color: #666;">Incentive amount per site visit for Telecallers</small>
+            </div>
+
+            <!-- Manager Target Calculation Logic (Only for Sales Managers) -->
+            <div id="manager-logic-section" style="display: {{ $target->user->isSalesManager() ? 'block' : 'none' }};">
+                <h2 class="section-title">Manager Target Calculation Logic</h2>
+                
+                <div class="form-group">
+                    <label>Calculation Logic <span class="required">*</span></label>
+                    <select name="manager_target_calculation_logic" id="manager_target_calculation_logic" {{ $target->user->isSalesManager() ? 'required' : '' }}>
+                        <option value="">-- Select Logic --</option>
+                        <option value="juniors_sum" {{ old('manager_target_calculation_logic', $target->manager_target_calculation_logic ?? '') == 'juniors_sum' ? 'selected' : '' }}>
+                            Sum of Juniors' Targets (Logic 1)
+                        </option>
+                        <option value="individual_plus_team" {{ old('manager_target_calculation_logic', $target->manager_target_calculation_logic ?? '') == 'individual_plus_team' ? 'selected' : '' }}>
+                            Individual Target + Team Consolidated (Logic 2)
+                        </option>
+                    </select>
+                    <small style="color: #666;">
+                        <strong>Logic 1:</strong> Manager's target = Sum of all juniors' targets<br>
+                        <strong>Logic 2:</strong> Manager's target = Individual target + Sum of juniors' targets
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label>Junior Scope <span class="required">*</span></label>
+                    <select name="manager_junior_scope" id="manager_junior_scope" {{ $target->user->isSalesManager() ? 'required' : '' }}>
+                        <option value="">-- Select Scope --</option>
+                        <option value="executives_only" {{ old('manager_junior_scope', $target->manager_junior_scope ?? '') == 'executives_only' ? 'selected' : '' }}>
+                            Executives Only
+                        </option>
+                        <option value="executives_and_telecallers" {{ old('manager_junior_scope', $target->manager_junior_scope ?? '') == 'executives_and_telecallers' ? 'selected' : '' }}>
+                            Executives + Telecallers
+                        </option>
+                    </select>
+                    <small style="color: #666;">Select which juniors to include in target calculation</small>
+                </div>
             </div>
 
             <div style="margin-top: 30px; display: flex; gap: 10px;">

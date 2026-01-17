@@ -171,7 +171,7 @@ class DebugController extends Controller
             $request->session()->regenerate();
             
             // Generate API tokens based on role
-            if ($user->isTelecaller()) {
+            if ($user->isSalesExecutive()) {
                 $token = $user->createToken('web-login-token')->plainTextToken;
                 $request->session()->put('telecaller_api_token', $token);
             }

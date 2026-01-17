@@ -20,8 +20,8 @@ class SendLeadAssignedNotification implements ShouldQueue
         if ($assignedUser) {
             $assignedUser->notify(new \App\Notifications\LeadAssignedNotification($event->lead, $event->assignedBy));
             
-            // Broadcast dashboard update for telecallers
-            if ($assignedUser->isTelecaller()) {
+            // Broadcast dashboard update for sales executives
+            if ($assignedUser->isSalesExecutive()) {
                 event(new DashboardUpdate($assignedUser->id, 'lead_assigned', [
                     'lead_id' => $event->lead->id,
                     'lead_name' => $event->lead->name,

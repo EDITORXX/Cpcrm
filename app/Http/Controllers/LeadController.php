@@ -12,6 +12,7 @@ use App\Events\LeadAssigned;
 use App\Services\LeadActivityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class LeadController extends Controller
 {
@@ -131,10 +132,10 @@ class LeadController extends Controller
         $leads = $query->latest()->paginate(15);
         $statuses = ['new', 'connected', 'verified_prospect', 'meeting_scheduled', 'meeting_completed', 'visit_scheduled', 'visit_done', 'revisited_scheduled', 'revisited_completed', 'closed', 'dead', 'on_hold'];
         
-        // Get telecallers for filter dropdown
+        // Get sales executives (previously telecallers) for filter dropdown
         $telecallers = User::where('is_active', true)
             ->whereHas('role', function($q) {
-                $q->where('slug', Role::TELECALLER);
+                $q->where('slug', Role::SALES_EXECUTIVE);
             })
             ->orderBy('name')
             ->get();
@@ -146,8 +147,8 @@ class LeadController extends Controller
     {
         $user = auth()->user();
         
-        // Disable old form for telecaller and manager - use centralized form instead
-        if ($user->isTelecaller() || $user->isSalesManager() || $user->isSalesHead()) {
+        // Disable old form for sales executive and manager - use centralized form instead
+        if ($user->isSalesExecutive() || $user->isSalesManager() || $user->isSalesHead()) {
             return redirect()
                 ->route('leads.index')
                 ->with('info', 'Old lead creation form is disabled. Please use the centralized lead requirement form by editing an existing lead or contact admin for new lead creation.');
@@ -252,40 +253,99 @@ class LeadController extends Controller
 
     public function show(Request $request, Lead $lead)
     {
-        $user = $request->user();
+        try {
+            $user = $request->user();
+            
+            // Explicitly load user role to ensure it's available in the view
+            if ($user && !$user->relationLoaded('role')) {
+                $user->load('role');
+            }
 
-        // Check access permissions
-        if (!$this->canAccessLead($user, $lead)) {
-            abort(403, 'You do not have permission to view this lead.');
+            // Check access permissions
+            if (!$this->canAccessLead($user, $lead)) {
+                abort(403, 'You do not have permission to view this lead.');
+            }
+
+            $layout = 'layouts.app';
+            if ($user) {
+                if ($user->isAdmin() || $user->isCrm()) {
+                    $layout = 'layouts.app';
+                } elseif ($user->isSalesHead() && !$user->isAdmin() && !$user->isCrm()) {
+                    $layout = 'sales-head.layout';
+                } elseif ($user->isSalesManager()) {
+                    $layout = 'sales-manager.layout';
+                } elseif ($user->isAssistantSalesManager()) {
+                    $layout = 'sales-head.layout';
+                } elseif ($user->isSalesExecutive()) {
+                    $layout = 'telecaller.layout';
+                } elseif ($user->relationLoaded('role') && $user->role) {
+                    switch ($user->role->slug) {
+                        case \App\Models\Role::SALES_MANAGER:
+                            $layout = 'sales-manager.layout';
+                            break;
+                        case \App\Models\Role::ASSISTANT_SALES_MANAGER:
+                            $layout = 'sales-head.layout';
+                            break;
+                        case \App\Models\Role::SALES_EXECUTIVE:
+                            $layout = 'telecaller.layout';
+                            break;
+                        default:
+                            $layout = 'layouts.app';
+                    }
+                }
+            }
+
+            // Load all relationships
+            $lead->load([
+                'creator',
+                'assignments.assignedTo',
+                'assignments.assignedBy',
+                'activeAssignments.assignedTo',
+                'formFieldValues',
+                'callLogs' => function($query) use ($user) {
+                    $query->where('user_id', $user->id)
+                          ->orderBy('start_time', 'asc');
+                },
+                'siteVisits.creator',
+                'siteVisits.assignedTo',
+                'siteVisits.verifiedBy',
+                'followUps.creator',
+                'meetings.creator',
+                'meetings.assignedTo',
+                'meetings.verifiedBy',
+                'prospects.createdBy',
+                'prospects.verifiedBy',
+                'prospects.interestedProjects',
+                'callLogs.user',
+                'tasks.assignedTo',
+                'markedDeadBy',
+                'verifiedBy',
+            ]);
+
+            // Get activity timeline
+            $activityService = new LeadActivityService();
+            $timeline = $activityService->getTimeline($lead);
+            
+            // Calculate response time data
+            $responseTimeData = $this->calculateResponseTime($lead, $user);
+
+            return view('leads.show', compact('lead', 'timeline', 'responseTimeData', 'layout'));
+        } catch (\Exception $e) {
+            Log::error('Error loading lead details: ' . $e->getMessage(), [
+                'lead_id' => $lead->id ?? null,
+                'user_id' => $request->user()?->id,
+                'error' => $e->getTraceAsString(),
+            ]);
+
+            // Return view with error message instead of throwing
+            return view('leads.show', [
+                'lead' => $lead,
+                'timeline' => [],
+                'responseTimeData' => null,
+                'layout' => $layout ?? 'layouts.app',
+                'error' => 'An error occurred while loading lead details. Please refresh the page.',
+            ]);
         }
-
-        // Load all relationships
-        $lead->load([
-            'creator',
-            'assignments.assignedTo',
-            'assignments.assignedBy',
-            'activeAssignments.assignedTo',
-            'siteVisits.creator',
-            'siteVisits.assignedTo',
-            'siteVisits.verifiedBy',
-            'followUps.creator',
-            'meetings.creator',
-            'meetings.assignedTo',
-            'meetings.verifiedBy',
-            'prospects.createdBy',
-            'prospects.verifiedBy',
-            'prospects.interestedProjects',
-            'callLogs.user',
-            'tasks.assignedTo',
-            'markedDeadBy',
-            'verifiedBy',
-        ]);
-
-        // Get activity timeline
-        $activityService = new LeadActivityService();
-        $timeline = $activityService->getTimeline($lead);
-
-        return view('leads.show', compact('lead', 'timeline'));
     }
 
     public function edit(Request $request, Lead $lead)
@@ -443,6 +503,7 @@ class LeadController extends Controller
         $lead->load([
             'activeAssignments.assignedTo.role',
             'creator',
+            'formFieldValues',
             'prospects' => function($query) {
                 $query->whereNotNull('lead_score')
                       ->orderBy('lead_score', 'desc')
@@ -452,11 +513,69 @@ class LeadController extends Controller
 
         // Get the highest lead score from prospects
         $leadScore = $lead->prospects->max('lead_score');
+        
+        // Get form fields array
+        $formFields = $lead->getFormFieldsArray();
 
         return response()->json([
             'data' => $lead,
-            'lead_score' => $leadScore
+            'lead_score' => $leadScore,
+            'form_fields' => $formFields
         ]);
+    }
+
+    /**
+     * Calculate response time for current user
+     */
+    private function calculateResponseTime(Lead $lead, $user): array
+    {
+        $assignedAt = null;
+        $calledAt = null;
+        $responseTime = null;
+        
+        // Get assignment time for current user
+        $assignment = $lead->activeAssignments()
+            ->where('assigned_to', $user->id)
+            ->first();
+        
+        if ($assignment) {
+            $assignedAt = $assignment->assigned_at;
+        }
+        
+        // Get call time - check CallLog first, then CrmAssignment, then Lead.last_contacted_at
+        $callLog = $lead->callLogs()
+            ->where('user_id', $user->id)
+            ->orderBy('start_time', 'asc')
+            ->first();
+        
+        if ($callLog && $callLog->start_time) {
+            $calledAt = $callLog->start_time;
+        } else {
+            // Check CrmAssignment
+            $crmAssignment = \App\Models\CrmAssignment::where('lead_id', $lead->id)
+                ->where('assigned_to', $user->id)
+                ->whereNotNull('called_at')
+                ->orderBy('called_at', 'asc')
+                ->first();
+            
+            if ($crmAssignment && $crmAssignment->called_at) {
+                $calledAt = $crmAssignment->called_at;
+            } elseif ($lead->last_contacted_at) {
+                $calledAt = $lead->last_contacted_at;
+            }
+        }
+        
+        // Calculate response time
+        if ($assignedAt && $calledAt && $calledAt->gt($assignedAt)) {
+            $responseTime = $assignedAt->diffInMinutes($calledAt);
+        }
+        
+        return [
+            'assigned_at' => $assignedAt,
+            'called_at' => $calledAt,
+            'response_time_minutes' => $responseTime,
+            'has_responded' => $calledAt !== null,
+        ];
     }
 
     private function canAccessLead($user, Lead $lead): bool
@@ -501,8 +620,8 @@ class LeadController extends Controller
             return false;
         }
 
-        // Telecaller and Sales Executive can see assigned leads or leads from their prospects
-        if ($user->isTelecaller() || $user->isSalesExecutive()) {
+        // Sales Executive and Assistant Sales Manager can see assigned leads or leads from their prospects
+        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             return $lead->activeAssignments()->where('assigned_to', $user->id)->exists() ||
                    $lead->prospects()->where('telecaller_id', $user->id)->exists();
         }

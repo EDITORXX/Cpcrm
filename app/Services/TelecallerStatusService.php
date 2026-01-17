@@ -89,9 +89,9 @@ class TelecallerStatusService
      */
     public function getAvailableTelecallers(?array $excludeUserIds = []): \Illuminate\Database\Eloquent\Collection
     {
-        $telecallerRoleId = Role::where('slug', Role::TELECALLER)->value('id');
+        $salesExecutiveRoleId = Role::where('slug', Role::SALES_EXECUTIVE)->value('id');
 
-        $query = User::where('role_id', $telecallerRoleId)
+        $query = User::where('role_id', $salesExecutiveRoleId)
             ->where('is_active', true)
             ->whereDoesntHave('telecallerProfile', function ($q) {
                 $q->where('is_absent', true)

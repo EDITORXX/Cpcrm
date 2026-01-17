@@ -71,9 +71,9 @@ class LeadAssignmentController extends Controller
 
         // Get all eligible users (telecaller, sales_manager, sales_executive)
         $eligibleRoleIds = Role::whereIn('slug', [
-            Role::TELECALLER,
+            Role::SALES_EXECUTIVE,
             Role::SALES_MANAGER,
-            Role::SALES_EXECUTIVE
+            Role::ASSISTANT_SALES_MANAGER
         ])->pluck('id');
         
         $eligibleUsers = User::whereIn('role_id', $eligibleRoleIds)
@@ -114,7 +114,7 @@ class LeadAssignmentController extends Controller
         
         // Check if user has eligible role (telecaller, sales_manager, or sales_executive)
         $userRole = $assignedUser->role->slug ?? '';
-        $eligibleRoles = [Role::TELECALLER, Role::SALES_MANAGER, Role::SALES_EXECUTIVE];
+        $eligibleRoles = [Role::SALES_EXECUTIVE, Role::SALES_MANAGER, Role::ASSISTANT_SALES_MANAGER];
         
         if (!in_array($userRole, $eligibleRoles)) {
             return response()->json([
@@ -123,8 +123,8 @@ class LeadAssignmentController extends Controller
             ], 422);
         }
 
-        // Check if user can receive assignment (only for telecallers)
-        if ($assignedUser->isTelecaller()) {
+        // Check if user can receive assignment (only for sales executives)
+        if ($assignedUser->isSalesExecutive()) {
             $canReceive = $this->statusService->canReceiveAssignment($assignedUser->id);
             if (!$canReceive['can_receive']) {
                 return response()->json([
@@ -198,9 +198,9 @@ class LeadAssignmentController extends Controller
      */
     protected function getStats(): array
     {
-        $telecallerRoleId = Role::where('slug', Role::TELECALLER)->value('id');
-        
-        $totalTelecallers = User::where('role_id', $telecallerRoleId)
+        $salesExecutiveRoleId = Role::where('slug', Role::SALES_EXECUTIVE)->value('id');
+
+        $totalTelecallers = User::where('role_id', $salesExecutiveRoleId)
             ->where('is_active', true)
             ->count();
 

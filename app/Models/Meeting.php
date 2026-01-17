@@ -51,6 +51,16 @@ class Meeting extends Model
         'is_rescheduled',
         'converted_to_site_visit_id',
         'is_converted',
+        // Simplified meeting fields
+        'meeting_sequence',
+        'meeting_mode',
+        'meeting_link',
+        'location',
+        'reminder_enabled',
+        'reminder_minutes',
+        'pre_meeting_call_task_id',
+        'customer_confirmation_status',
+        'original_meeting_id',
     ];
 
     protected $casts = [
@@ -66,6 +76,9 @@ class Meeting extends Model
         'rescheduled_at' => 'datetime',
         'is_rescheduled' => 'boolean',
         'is_converted' => 'boolean',
+        'reminder_enabled' => 'boolean',
+        'meeting_sequence' => 'integer',
+        'reminder_minutes' => 'integer',
     ];
 
     // Relationships
@@ -107,6 +120,16 @@ class Meeting extends Model
     public function convertedToSiteVisit(): BelongsTo
     {
         return $this->belongsTo(SiteVisit::class, 'converted_to_site_visit_id');
+    }
+
+    public function preMeetingCallTask(): BelongsTo
+    {
+        return $this->belongsTo(TelecallerTask::class, 'pre_meeting_call_task_id');
+    }
+
+    public function originalMeeting(): BelongsTo
+    {
+        return $this->belongsTo(Meeting::class, 'original_meeting_id');
     }
 
     /**
@@ -207,5 +230,25 @@ class Meeting extends Model
             }
             return asset('storage/' . $photo);
         }, $this->photos);
+    }
+
+    /**
+     * Cancel meeting
+     */
+    public function cancelMeeting(int $userId, string $reason = 'Cancelled by user'): void
+    {
+        $this->status = 'cancelled';
+        $this->customer_confirmation_status = 'cancelled';
+        $this->meeting_notes = ($this->meeting_notes ? $this->meeting_notes . "\n" : '') . "Cancelled: $reason";
+        $this->save();
+    }
+
+    /**
+     * Confirm meeting (customer will join)
+     */
+    public function confirmMeeting(): void
+    {
+        $this->customer_confirmation_status = 'confirmed';
+        $this->save();
     }
 }

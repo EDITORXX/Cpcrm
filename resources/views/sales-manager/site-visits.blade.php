@@ -144,6 +144,13 @@
         padding: 60px 20px;
         color: #9ca3af;
     }
+    
+    /* Hide empty states on mobile */
+    @media (max-width: 767px) {
+        .empty-state {
+            display: none !important;
+        }
+    }
     .filters {
         background: white;
         padding: 16px;
@@ -322,10 +329,10 @@
             const dateFilter = document.getElementById('dateFilter').value;
             
             let url = '/site-visits?';
-            if (status) url += `status=${status}&`;
-            if (verification) url += `verification_status=${verification}&`;
-            if (closer) url += `closer_status=${closer}&`;
-            if (dateFilter) {
+            if (status && status !== 'all') url += `status=${status}&`;
+            if (verification && verification !== 'all') url += `verification_status=${verification}&`;
+            if (closer && closer !== 'all') url += `closer_status=${closer}&`;
+            if (dateFilter && dateFilter !== 'all') {
                 url += `date_filter=${dateFilter}&`;
                 if (dateFilter === 'custom') {
                     const dateFrom = document.getElementById('dateFrom').value;
@@ -336,16 +343,24 @@
             }
 
             const response = await apiCall(url);
-            const visits = response?.data || [];
+            
+            // Handle paginated response
+            let visits = [];
+            if (response) {
+                if (Array.isArray(response.data)) {
+                    visits = response.data;
+                } else if (Array.isArray(response)) {
+                    visits = response;
+                } else if (response.visits && Array.isArray(response.visits)) {
+                    visits = response.visits;
+                }
+            }
+            
+            console.log('Site Visits Response:', { response, visitsCount: visits.length, visits });
 
-            if (visits.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state" style="grid-column: 1 / -1;">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <h3 style="font-size: 18px; font-weight: 600; color: #333; margin: 16px 0 8px;">No Site Visits Found</h3>
-                        <p>Schedule your first site visit to get started.</p>
-                    </div>
-                `;
+            if (!visits || visits.length === 0) {
+                // Hide empty state on mobile - show nothing
+                container.innerHTML = '';
                 return;
             }
 
@@ -406,19 +421,27 @@
                                     <span class="badge badge-pending">Awaiting Verification</span>
                                 </div>
                             ` : ''}
-                            ${visit.verification_status === 'verified' && !visit.closer_status ? `
+                            ${visit.verification_status === 'verified' && !visit.closer_status && !visit.closing_verification_status ? `
                                 <button class="btn btn-primary" onclick="showRequestCloserModal(${visit.id})">
-                                    <i class="fas fa-handshake mr-2"></i>Request for Closer
+                                    <i class="fas fa-handshake mr-2"></i>Request Closing
                                 </button>
                             ` : ''}
-                            ${visit.closer_status === 'pending' ? `
+                            ${visit.closing_verification_status === 'pending' ? `
                                 <div style="text-align: center; padding: 8px;">
-                                    <span class="badge badge-closer-pending">Closer Awaiting Verification</span>
+                                    <span class="badge badge-closer-pending">Closing Awaiting CRM Verification</span>
                                 </div>
                             ` : ''}
-                            ${visit.closer_status === 'verified' ? `
+                            ${visit.closing_verification_status === 'verified' && visit.closer_status === 'verified' ? `
+                                <div style="text-align: center; padding: 8px; margin-bottom: 8px;">
+                                    <span class="badge badge-closer-verified">Closing Verified ✓</span>
+                                </div>
+                                <button class="btn btn-success" onclick="showRequestIncentiveModal(${visit.id})" style="width: 100%;">
+                                    <i class="fas fa-money-bill-wave mr-2"></i>Request Incentive
+                                </button>
+                            ` : ''}
+                            ${visit.closing_verification_status === 'rejected' ? `
                                 <div style="text-align: center; padding: 8px;">
-                                    <span class="badge badge-closer-verified">Closer Verified ✓</span>
+                                    <span class="badge" style="background: #ef4444; color: white;">Closing Rejected</span>
                                 </div>
                             ` : ''}
                             ${visit.status === 'completed' ? `
@@ -445,16 +468,152 @@
 
     let currentSiteVisitId = null;
 
-    function showCompleteSiteVisitModal(id) {
+    async function showCompleteSiteVisitModal(id) {
         currentSiteVisitId = id;
-        document.getElementById('completeSiteVisitModal').classList.add('show');
+        
+        try {
+            // Fetch site visit data to get existing project
+            // Use direct fetch since apiResource route is at /api/site-visits
+            const token = getToken();
+            const fetchResponse = await fetch(`/api/site-visits/${id}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+            
+            if (!fetchResponse.ok) {
+                throw new Error('Failed to fetch site visit data');
+            }
+            
+            const siteVisit = await fetchResponse.json();
+            
+            // Reset form fields
+            document.getElementById('siteVisitProofPhotosInput').value = '';
+            document.getElementById('siteVisitProofPhotosPreview').innerHTML = '';
+            document.getElementById('siteVisitFeedback').value = '';
+            document.getElementById('siteVisitRating').value = '';
+            document.getElementById('siteVisitNotes').value = '';
+            document.getElementById('completeTentativeClosingTime').value = '';
+            
+            // Clear and initialize project tags
+            const container = document.getElementById('completeProjectTagsContainer');
+            const hiddenInput = document.getElementById('completeProjectHidden');
+            const input = document.getElementById('completeProjectInput');
+            
+            if (container) container.innerHTML = '';
+            if (hiddenInput) hiddenInput.value = '';
+            if (input) input.value = '';
+            
+            // Initialize project tags from existing project field
+            if (siteVisit && siteVisit.project) {
+                const projects = siteVisit.project.split(',').map(p => p.trim()).filter(p => p);
+                projects.forEach(projectName => {
+                    addCompleteProjectTag(projectName);
+                });
+            }
+            
+            // Setup project input handler
+            setupCompleteProjectInput();
+            
+            // Show modal
+            document.getElementById('completeSiteVisitModal').classList.add('show');
+        } catch (error) {
+            console.error('Error loading site visit data:', error);
+            // Still show modal even if fetch fails
+            document.getElementById('completeSiteVisitModal').classList.add('show');
+            setupCompleteProjectInput();
+        }
     }
 
     function closeCompleteSiteVisitModal() {
         document.getElementById('completeSiteVisitModal').classList.remove('show');
         document.getElementById('siteVisitProofPhotosInput').value = '';
         document.getElementById('siteVisitProofPhotosPreview').innerHTML = '';
+        document.getElementById('siteVisitFeedback').value = '';
+        document.getElementById('siteVisitRating').value = '';
+        document.getElementById('siteVisitNotes').value = '';
+        document.getElementById('completeTentativeClosingTime').value = '';
+        document.getElementById('completeProjectTagsContainer').innerHTML = '';
+        document.getElementById('completeProjectHidden').value = '';
+        document.getElementById('completeProjectInput').value = '';
         currentSiteVisitId = null;
+    }
+    
+    // Project Tags Functions for Complete Site Visit
+    function setupCompleteProjectInput() {
+        const input = document.getElementById('completeProjectInput');
+        if (input) {
+            // Remove any existing event listeners by cloning the input
+            const newInput = input.cloneNode(true);
+            input.parentNode.replaceChild(newInput, input);
+            
+            newInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const value = this.value.trim();
+                    if (value) {
+                        addCompleteProjectTag(value);
+                        this.value = '';
+                    }
+                }
+            });
+        }
+    }
+    
+    function addCompleteProjectTag(tagName) {
+        const container = document.getElementById('completeProjectTagsContainer');
+        const hiddenInput = document.getElementById('completeProjectHidden');
+        
+        if (!container || !hiddenInput) return;
+        
+        // Check if tag already exists
+        const existingTags = Array.from(container.querySelectorAll('.complete-project-tag-text'));
+        const tagExists = existingTags.some(tag => tag.textContent.trim() === tagName.trim());
+        
+        if (tagExists) {
+            return; // Don't add duplicate
+        }
+        
+        // Create tag element
+        const tagElement = document.createElement('span');
+        tagElement.className = 'complete-project-tag';
+        tagElement.innerHTML = `
+            <span class="complete-project-tag-text">${escapeHtml(tagName)}</span>
+            <span class="complete-project-tag-remove" onclick="removeCompleteProjectTag(this)">×</span>
+        `;
+        
+        container.appendChild(tagElement);
+        
+        // Update hidden input with comma-separated values
+        updateCompleteProjectHiddenInput();
+    }
+    
+    function removeCompleteProjectTag(element) {
+        const tagElement = element.closest('.complete-project-tag');
+        if (tagElement) {
+            tagElement.remove();
+            updateCompleteProjectHiddenInput();
+        }
+    }
+    
+    function updateCompleteProjectHiddenInput() {
+        const container = document.getElementById('completeProjectTagsContainer');
+        const hiddenInput = document.getElementById('completeProjectHidden');
+        
+        if (!container || !hiddenInput) return;
+        
+        const tags = Array.from(container.querySelectorAll('.complete-project-tag-text'));
+        const projectNames = tags.map(tag => tag.textContent.trim()).filter(name => name);
+        hiddenInput.value = projectNames.join(',');
+    }
+    
+    // Escape HTML helper
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     function handleSiteVisitProofPhotosChange(event) {
@@ -479,6 +638,62 @@
         }
     }
 
+    function parseJsonFromResponseText(responseText) {
+        if (!responseText) return null;
+
+        const trimmed = responseText.trim();
+        try {
+            return JSON.parse(trimmed);
+        } catch (error) {
+            const firstBrace = trimmed.indexOf('{');
+            const lastBrace = trimmed.lastIndexOf('}');
+            if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+                return null;
+            }
+            const jsonCandidate = trimmed.slice(firstBrace, lastBrace + 1);
+            try {
+                return JSON.parse(jsonCandidate);
+            } catch (parseError) {
+                return null;
+            }
+        }
+    }
+
+    function showSiteVisitSuccessModal(message) {
+        const modal = document.getElementById('siteVisitSuccessModal');
+        const messageElement = document.getElementById('siteVisitSuccessMessage');
+        if (messageElement) {
+            messageElement.textContent = message;
+        }
+        if (modal) {
+            modal.classList.add('show');
+        }
+    }
+
+    function closeSiteVisitSuccessModal() {
+        const modal = document.getElementById('siteVisitSuccessModal');
+        if (modal) {
+            modal.classList.remove('show');
+        }
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('siteVisitSuccessModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeSiteVisitSuccessModal();
+        }
+    });
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('siteVisitSuccessModal');
+            if (modal && modal.classList.contains('show')) {
+                closeSiteVisitSuccessModal();
+            }
+        }
+    });
+
     async function submitCompleteSiteVisit() {
         if (!currentSiteVisitId) return;
 
@@ -497,10 +712,14 @@
         const feedback = document.getElementById('siteVisitFeedback').value;
         const rating = document.getElementById('siteVisitRating').value;
         const notes = document.getElementById('siteVisitNotes').value;
+        const visitedProjects = document.getElementById('completeProjectHidden').value;
+        const tentativeClosingTime = document.getElementById('completeTentativeClosingTime').value;
 
         if (feedback) formData.append('feedback', feedback);
         if (rating) formData.append('rating', rating);
         if (notes) formData.append('visit_notes', notes);
+        if (visitedProjects) formData.append('visited_projects', visitedProjects);
+        if (tentativeClosingTime) formData.append('tentative_closing_time', tentativeClosingTime);
 
         try {
             const token = getToken();
@@ -513,17 +732,61 @@
                 body: formData,
             });
 
-            const result = await response.json();
+            // Read response as text first (can only read once)
+            let responseText;
+            let result;
 
-            if (result && result.success) {
-                alert('Site visit completed with proof photos! Awaiting verification.');
+            try {
+                responseText = await response.text();
+                result = parseJsonFromResponseText(responseText);
+                if (!result) {
+                    console.error('Invalid JSON response:', responseText.substring(0, 500));
+                    alert('Server returned invalid JSON. Please try again.');
+                    return;
+                }
+            } catch (textError) {
+                console.error('Error reading response:', textError);
+                alert('Network error. Please try again.');
+                return;
+            }
+
+            if (response.ok && result && result.success) {
+                showSiteVisitSuccessModal('Site visit completed with proof photos! Awaiting verification.');
                 closeCompleteSiteVisitModal();
                 loadSiteVisits();
             } else {
-                alert(result.message || 'Failed to complete site visit');
+                // Handle validation errors or other errors
+                let errorMessage = result.message || 'Failed to complete site visit';
+                
                 if (result.errors) {
                     console.error('Validation errors:', result.errors);
+                    // Format validation errors
+                    const errorMessages = [];
+                    if (result.errors.proof_photos) {
+                        errorMessages.push('Proof photos: ' + (Array.isArray(result.errors.proof_photos) ? result.errors.proof_photos.join(', ') : result.errors.proof_photos));
+                    }
+                    if (result.errors.feedback) {
+                        errorMessages.push('Feedback: ' + (Array.isArray(result.errors.feedback) ? result.errors.feedback.join(', ') : result.errors.feedback));
+                    }
+                    if (result.errors.rating) {
+                        errorMessages.push('Rating: ' + (Array.isArray(result.errors.rating) ? result.errors.rating.join(', ') : result.errors.rating));
+                    }
+                    if (result.errors.visit_notes) {
+                        errorMessages.push('Notes: ' + (Array.isArray(result.errors.visit_notes) ? result.errors.visit_notes.join(', ') : result.errors.visit_notes));
+                    }
+                    if (result.errors.visited_projects) {
+                        errorMessages.push('Visited Projects: ' + (Array.isArray(result.errors.visited_projects) ? result.errors.visited_projects.join(', ') : result.errors.visited_projects));
+                    }
+                    if (result.errors.tentative_closing_time) {
+                        errorMessages.push('Tentative Closing Time: ' + (Array.isArray(result.errors.tentative_closing_time) ? result.errors.tentative_closing_time.join(', ') : result.errors.tentative_closing_time));
+                    }
+                    
+                    if (errorMessages.length > 0) {
+                        errorMessage = errorMessages.join('\n');
+                    }
                 }
+                
+                alert(errorMessage);
             }
         } catch (error) {
             console.error('Error:', error);
@@ -536,10 +799,50 @@
         document.getElementById('requestCloserModal').classList.add('show');
     }
 
+    function showRequestIncentiveModal(id) {
+        currentSiteVisitId = id;
+        // Show a simple prompt or modal for incentive request
+        const amount = prompt('Enter incentive amount:');
+        if (amount && parseFloat(amount) > 0) {
+            requestIncentive(id, parseFloat(amount));
+        }
+    }
+
+    async function requestIncentive(siteVisitId, amount) {
+        try {
+            const token = getToken();
+            const response = await fetch(`${API_BASE_URL}/site-visits/${siteVisitId}/request-incentive`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    type: 'closer',
+                    amount: amount,
+                }),
+            });
+
+            const result = await response.json();
+            if (result && result.success) {
+                showSiteVisitSuccessModal('Incentive request submitted! Awaiting Finance Manager approval.');
+                loadSiteVisits();
+            } else {
+                alert(result.message || 'Failed to request incentive');
+            }
+        } catch (error) {
+            console.error('Error requesting incentive:', error);
+            alert('Network error. Please try again.');
+        }
+    }
+
     function closeRequestCloserModal() {
         document.getElementById('requestCloserModal').classList.remove('show');
-        document.getElementById('closerProofPhotosInput').value = '';
+        // Reset form
+        document.getElementById('closingRequestForm').reset();
         document.getElementById('closerProofPhotosPreview').innerHTML = '';
+        document.getElementById('closerKycDocumentsPreview').innerHTML = '';
         currentSiteVisitId = null;
     }
 
@@ -565,20 +868,114 @@
         }
     }
 
+    function handleCloserKycDocumentsChange(event) {
+        const files = event.target.files;
+        const preview = document.getElementById('closerKycDocumentsPreview');
+        preview.innerHTML = '';
+        
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const div = document.createElement('div');
+                div.style.margin = '5px';
+                div.style.position = 'relative';
+                
+                if (file.type.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.width = '100px';
+                    img.style.height = '100px';
+                    img.style.objectFit = 'cover';
+                    img.style.borderRadius = '8px';
+                    img.style.border = '2px solid #e0e0e0';
+                    div.appendChild(img);
+                } else {
+                    const icon = document.createElement('div');
+                    icon.innerHTML = '<i class="fas fa-file-pdf" style="font-size: 48px; color: #ef4444;"></i>';
+                    icon.style.textAlign = 'center';
+                    icon.style.padding = '20px';
+                    icon.style.border = '2px solid #e0e0e0';
+                    icon.style.borderRadius = '8px';
+                    icon.style.background = '#f9fafb';
+                    div.appendChild(icon);
+                }
+                
+                const fileName = document.createElement('div');
+                fileName.textContent = file.name.length > 15 ? file.name.substring(0, 15) + '...' : file.name;
+                fileName.style.fontSize = '11px';
+                fileName.style.marginTop = '4px';
+                fileName.style.textAlign = 'center';
+                fileName.style.color = '#6b7280';
+                div.appendChild(fileName);
+                
+                preview.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
     async function submitRequestCloser() {
         if (!currentSiteVisitId) return;
 
+        // Validate form
+        const form = document.getElementById('closingRequestForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
         const formData = new FormData();
-        const photosInput = document.getElementById('closerProofPhotosInput');
         
+        // KYC fields
+        const customerName = document.getElementById('closerCustomerName').value.trim();
+        const nomineeName = document.getElementById('closerNomineeName').value.trim();
+        const secondCustomerName = document.getElementById('closerSecondCustomerName').value.trim();
+        const customerDob = document.getElementById('closerCustomerDob').value;
+        const panCard = document.getElementById('closerPanCard').value.trim().toUpperCase();
+        const aadhaarCard = document.getElementById('closerAadhaarCard').value.trim();
+        
+        if (!customerName || !nomineeName || !customerDob || !panCard || !aadhaarCard) {
+            alert('Please fill all required KYC fields');
+            return;
+        }
+
+        formData.append('customer_name', customerName);
+        formData.append('nominee_name', nomineeName);
+        if (secondCustomerName) {
+            formData.append('second_customer_name', secondCustomerName);
+        }
+        formData.append('customer_dob', customerDob);
+        formData.append('pan_card', panCard);
+        formData.append('aadhaar_card_no', aadhaarCard);
+
+        // KYC Documents
+        const kycDocumentsInput = document.getElementById('closerKycDocumentsInput');
+        if (!kycDocumentsInput.files || kycDocumentsInput.files.length === 0) {
+            alert('Please upload at least one KYC document');
+            return;
+        }
+        for (let i = 0; i < kycDocumentsInput.files.length; i++) {
+            formData.append('kyc_documents[]', kycDocumentsInput.files[i]);
+        }
+
+        // Proof Photos
+        const photosInput = document.getElementById('closerProofPhotosInput');
         if (!photosInput.files || photosInput.files.length === 0) {
             alert('Please upload at least one proof photo');
             return;
         }
-
         for (let i = 0; i < photosInput.files.length; i++) {
             formData.append('proof_photos[]', photosInput.files[i]);
         }
+        
+        // Incentive Amount
+        const incentiveAmount = document.getElementById('closerIncentiveAmount').value;
+        if (!incentiveAmount || parseFloat(incentiveAmount) <= 0) {
+            alert('Please enter a valid incentive amount');
+            return;
+        }
+        formData.append('incentive_amount', incentiveAmount);
 
         try {
             const token = getToken();
@@ -591,11 +988,31 @@
                 body: formData,
             });
 
-            const result = await response.json();
+            // Read response as text first (can only read once)
+            let responseText;
+            let result;
+
+            try {
+                responseText = await response.text();
+                result = parseJsonFromResponseText(responseText);
+                if (!result) {
+                    console.error('Invalid JSON response:', responseText.substring(0, 500));
+                    alert('Server returned invalid JSON. Please try again.');
+                    return;
+                }
+            } catch (textError) {
+                console.error('Error reading response:', textError);
+                alert('Network error. Please try again.');
+                return;
+            }
 
             if (result && result.success) {
-                alert('Closer request submitted with proof photos! Awaiting verification.');
+                showSiteVisitSuccessModal('Closing request submitted with KYC details! Awaiting CRM verification.');
                 closeRequestCloserModal();
+                // Reset form
+                document.getElementById('closingRequestForm').reset();
+                document.getElementById('closerProofPhotosPreview').innerHTML = '';
+                document.getElementById('closerKycDocumentsPreview').innerHTML = '';
                 loadSiteVisits();
             } else {
                 alert(result.message || 'Failed to request closer');
@@ -651,7 +1068,7 @@
         const minDateTime = new Date();
         minDateTime.setDate(minDateTime.getDate() + 1);
         minDateTime.setHours(0, 0, 0, 0);
-        
+
         document.getElementById('rescheduleSiteVisitScheduledAt').value = '';
         document.getElementById('rescheduleSiteVisitReason').value = '';
         document.getElementById('rescheduleSiteVisitModalTitle').textContent = 'Reschedule Site Visit';
@@ -659,21 +1076,6 @@
         document.getElementById('rescheduleSiteVisitModalId').value = id;
         document.getElementById('rescheduleSiteVisitScheduledAt').min = minDateTime.toISOString().slice(0, 16);
         document.getElementById('rescheduleSiteVisitModal').classList.add('show');
-            if (visit && visit.id) {
-                const scheduledDate = new Date(visit.scheduled_at);
-                const minDateTime = new Date();
-                minDateTime.setDate(minDateTime.getDate() + 1);
-                minDateTime.setHours(0, 0, 0, 0);
-                
-                document.getElementById('rescheduleSiteVisitScheduledAt').value = '';
-                document.getElementById('rescheduleSiteVisitReason').value = '';
-                document.getElementById('rescheduleSiteVisitModalTitle').textContent = 'Reschedule Site Visit';
-                document.getElementById('rescheduleSiteVisitModalType').value = 'site-visit';
-                document.getElementById('rescheduleSiteVisitModalId').value = id;
-                document.getElementById('rescheduleSiteVisitScheduledAt').min = minDateTime.toISOString().slice(0, 16);
-                document.getElementById('rescheduleSiteVisitModal').classList.add('show');
-            }
-        });
     }
 
     function closeRescheduleSiteVisitModal() {
@@ -761,6 +1163,180 @@
     </div>
 </div>
 
+<!-- Complete Site Visit Modal -->
+<div id="completeSiteVisitModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 20px;">Complete Site Visit</h3>
+        <p style="color: #ef4444; margin-bottom: 16px;"><strong>Proof photos are required to complete the site visit.</strong></p>
+        
+        <div class="form-group">
+            <label>Proof Photos <span style="color: #ef4444;">*</span></label>
+            <input type="file" id="siteVisitProofPhotosInput" multiple accept="image/*" onchange="handleSiteVisitProofPhotosChange(event)" required>
+            <div id="siteVisitProofPhotosPreview" style="display: flex; flex-wrap: wrap; margin-top: 10px;"></div>
+            <small style="color: #6b7280;">Upload at least one photo as proof. Max 5MB per image.</small>
+        </div>
+
+        <div class="form-group">
+            <label>Visited Project</label>
+            <div id="completeProjectTagsContainer" class="complete-project-tags-container" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; border: 2px solid #e0e0e0; border-radius: 8px; min-height: 42px; background: white; margin-bottom: 8px;">
+                <!-- Tags will be dynamically added here -->
+            </div>
+            <input type="text" id="completeProjectInput" placeholder="Type project name and press Enter" 
+                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; margin-bottom: 4px;">
+            <input type="hidden" id="completeProjectHidden" name="visited_projects">
+            <small style="color: #6b7280;">Type project name and press Enter to add. Click × to remove.</small>
+        </div>
+
+        <div class="form-group">
+            <label>Tentative Closing Time</label>
+            <select id="completeTentativeClosingTime" name="tentative_closing_time" 
+                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                <option value="">Select an option</option>
+                <option value="within_3_days">Within 3 Days</option>
+                <option value="tomorrow">Tomorrow</option>
+                <option value="this_week">This Week</option>
+                <option value="this_month">This Month</option>
+                <option value="it_will_take_time">It Will Take Time</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Feedback</label>
+            <textarea id="siteVisitFeedback" rows="3" placeholder="Site visit feedback..." 
+                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Rating</label>
+            <select id="siteVisitRating" 
+                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                <option value="">Select rating</option>
+                <option value="1">1 - Poor</option>
+                <option value="2">2 - Fair</option>
+                <option value="3">3 - Good</option>
+                <option value="4">4 - Very Good</option>
+                <option value="5">5 - Excellent</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Notes</label>
+            <textarea id="siteVisitNotes" rows="3" placeholder="Additional notes..." 
+                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <button type="button" class="btn btn-secondary" onclick="closeCompleteSiteVisitModal()">Cancel</button>
+            <button type="button" class="btn btn-success" onclick="submitCompleteSiteVisit()">Submit</button>
+        </div>
+    </div>
+</div>
+
+<!-- Request Closer Modal -->
+<div id="requestCloserModal" class="modal">
+    <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
+        <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 20px;">Request for Closing with KYC Details</h3>
+        <p style="color: #ef4444; margin-bottom: 16px;"><strong>All fields are required. Please fill complete KYC details.</strong></p>
+        
+        <form id="closingRequestForm">
+            <!-- Customer Information -->
+            <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #e0e0e0;">
+                <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #063A1C;">Customer Information</h4>
+                
+                <div class="form-group">
+                    <label>Customer Name <span style="color: #ef4444;">*</span></label>
+                    <input type="text" id="closerCustomerName" placeholder="Enter customer name" required
+                        style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                </div>
+
+                <div class="form-group">
+                    <label>Nominee Name <span style="color: #ef4444;">*</span></label>
+                    <input type="text" id="closerNomineeName" placeholder="Enter nominee name" required
+                        style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                </div>
+
+                <div class="form-group">
+                    <label>Second Customer Name (if available)</label>
+                    <input type="text" id="closerSecondCustomerName" placeholder="Enter second customer name (optional)"
+                        style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                </div>
+
+                <div class="form-group">
+                    <label>Date of Birth <span style="color: #ef4444;">*</span></label>
+                    <input type="date" id="closerCustomerDob" required
+                        style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                </div>
+
+                <div class="form-group">
+                    <label>PAN Card Number <span style="color: #ef4444;">*</span></label>
+                    <input type="text" id="closerPanCard" placeholder="Enter PAN card number" required
+                        style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; text-transform: uppercase;"
+                        maxlength="10" pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}">
+                    <small style="color: #6b7280;">Format: ABCDE1234F</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Aadhaar Card Number <span style="color: #ef4444;">*</span></label>
+                    <input type="text" id="closerAadhaarCard" placeholder="Enter Aadhaar card number" required
+                        style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;"
+                        maxlength="12" pattern="[0-9]{12}">
+                    <small style="color: #6b7280;">12-digit Aadhaar number</small>
+                </div>
+            </div>
+
+            <!-- KYC Documents -->
+            <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #e0e0e0;">
+                <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #063A1C;">KYC Documents</h4>
+                
+                <div class="form-group">
+                    <label>KYC Documents <span style="color: #ef4444;">*</span></label>
+                    <input type="file" id="closerKycDocumentsInput" multiple accept="image/*,.pdf" onchange="handleCloserKycDocumentsChange(event)" required>
+                    <div id="closerKycDocumentsPreview" style="display: flex; flex-wrap: wrap; margin-top: 10px;"></div>
+                    <small style="color: #6b7280;">Upload KYC documents (images or PDF). Max 5MB per file.</small>
+                </div>
+            </div>
+
+            <!-- Proof Photos and Incentive -->
+            <div style="margin-bottom: 20px;">
+                <h4 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #063A1C;">Proof & Incentive</h4>
+                
+                <div class="form-group">
+                    <label>Proof Photos <span style="color: #ef4444;">*</span></label>
+                    <input type="file" id="closerProofPhotosInput" multiple accept="image/*" onchange="handleCloserProofPhotosChange(event)" required>
+                    <div id="closerProofPhotosPreview" style="display: flex; flex-wrap: wrap; margin-top: 10px;"></div>
+                    <small style="color: #6b7280;">Upload at least one photo as proof. Max 5MB per image.</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Incentive Amount <span style="color: #ef4444;">*</span></label>
+                    <input type="number" id="closerIncentiveAmount" step="0.01" min="0" placeholder="Enter incentive amount" required
+                        style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                    <small style="color: #6b7280;">Enter the incentive amount for this closer.</small>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" onclick="closeRequestCloserModal()">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="submitRequestCloser()">Submit Request</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div id="siteVisitSuccessModal" class="modal">
+    <div class="modal-content" style="max-width: 400px; text-align: center; padding: 40px 30px;">
+        <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+            <i class="fas fa-check" style="font-size: 40px; color: white; font-weight: bold;"></i>
+        </div>
+        <h3 style="font-size: 20px; font-weight: 600; color: #333; margin-bottom: 12px;">Success!</h3>
+        <p id="siteVisitSuccessMessage" style="font-size: 16px; color: #666; margin-bottom: 30px; line-height: 1.5;"></p>
+        <button onclick="closeSiteVisitSuccessModal()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 12px 32px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); transition: all 0.2s;" onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 16px rgba(16, 185, 129, 0.4)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.3)';">
+            <i class="fas fa-check mr-2"></i>OK
+        </button>
+    </div>
+</div>
+
 <style>
 .modal {
     display: none;
@@ -804,6 +1380,49 @@
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     background: #4b5563;
+}
+
+/* Project Tags Styling */
+.complete-project-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    min-height: 42px;
+    background: white;
+    margin-bottom: 8px;
+}
+
+.complete-project-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.complete-project-tag-text {
+    user-select: none;
+}
+
+.complete-project-tag-remove {
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+    line-height: 1;
+    margin-left: 4px;
+    opacity: 0.9;
+    transition: opacity 0.2s;
+}
+
+.complete-project-tag-remove:hover {
+    opacity: 1;
 }
 </style>
 @endpush

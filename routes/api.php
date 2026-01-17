@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\Crm\VerificationController as CrmVerificationContro
 use App\Http\Controllers\Api\TargetController;
 use App\Http\Controllers\Api\InterestedProjectNameController;
 use App\Http\Controllers\Api\PabblyWebhookController;
+use App\Http\Controllers\Api\IncentiveController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -144,6 +145,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Interested Project Names
     Route::get('/interested-project-names', [InterestedProjectNameController::class, 'index']);
 
+    // Telecallers list
+    Route::get('/telecallers', [TelecallerController::class, 'getTelecallers']);
+
     // Users (Admin only)
     Route::apiResource('users', UserController::class)->middleware('permission:manage_users');
 
@@ -223,6 +227,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/call-logs', [TelecallerController::class, 'saveCallLog']);
         Route::get('/call-logs', [TelecallerController::class, 'getCallLogs']);
         Route::get('/call-statistics', [TelecallerController::class, 'getCallStatistics']);
+        
+        // Site Visit Incentives (for Telecallers)
+        Route::get('/site-visits/eligible-for-incentive', [TelecallerController::class, 'getEligibleSiteVisitsForIncentive']);
+        Route::post('/site-visits/{siteVisit}/request-incentive', [TelecallerController::class, 'requestSiteVisitIncentive']);
+        Route::get('/incentives', [IncentiveController::class, 'index']);
+        Route::get('/incentives/{incentive}', [IncentiveController::class, 'show']);
     });
 
     // Enhanced Call Logs API (for all roles)
@@ -268,20 +278,26 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/tasks/{task}/verify', [\App\Http\Controllers\Api\SalesManagerController::class, 'verifyProspectFromTask']);
         Route::post('/tasks/{task}/reject', [\App\Http\Controllers\Api\SalesManagerController::class, 'rejectProspectFromTask']);
         Route::post('/tasks/{task}/cnp', [\App\Http\Controllers\Api\SalesManagerController::class, 'markAsCNP']);
+        Route::post('/tasks/{task}/complete', [\App\Http\Controllers\Api\SalesManagerController::class, 'completeTask']);
         Route::post('/tasks/remove-all-overdue', [\App\Http\Controllers\Api\SalesManagerController::class, 'removeAllOverdueTasks']);
         
         // Meetings
         Route::get('/meetings', [\App\Http\Controllers\Api\MeetingController::class, 'index']);
+        Route::get('/meetings/lead-options', [\App\Http\Controllers\Api\MeetingController::class, 'leadOptions']);
+        Route::post('/meetings/quick', [\App\Http\Controllers\Api\MeetingController::class, 'quickStore']);
+        Route::post('/meetings/quick-schedule-with-reminder', [\App\Http\Controllers\Api\MeetingController::class, 'quickScheduleWithReminder']);
         Route::post('/meetings', [\App\Http\Controllers\Api\MeetingController::class, 'store']);
         Route::get('/meetings/{meeting}', [\App\Http\Controllers\Api\MeetingController::class, 'show']);
         Route::put('/meetings/{meeting}', [\App\Http\Controllers\Api\MeetingController::class, 'update']);
         Route::post('/meetings/{meeting}/complete', [\App\Http\Controllers\Api\MeetingController::class, 'complete']);
-        Route::post('/meetings/{meeting}/cancel', [\App\Http\Controllers\Api\MeetingController::class, 'cancel']);
+        Route::post('/meetings/{meeting}/complete-pre-call', [\App\Http\Controllers\Api\MeetingController::class, 'completePreCall']);
+        Route::post('/meetings/{meeting}/cancel', [\App\Http\Controllers\Api\MeetingController::class, 'cancelMeeting']);
         Route::post('/meetings/{meeting}/reschedule', [\App\Http\Controllers\Api\MeetingController::class, 'reschedule']);
         Route::post('/meetings/{meeting}/convert-to-site-visit', [\App\Http\Controllers\Api\MeetingController::class, 'convertToSiteVisit']);
         Route::post('/meetings/{meeting}/mark-dead', [\App\Http\Controllers\Api\MeetingController::class, 'markDead']);
         Route::post('/meetings/{meeting}/verify', [\App\Http\Controllers\Api\MeetingController::class, 'verify']);
         Route::post('/meetings/{meeting}/reject', [\App\Http\Controllers\Api\MeetingController::class, 'reject']);
+        Route::get('/leads/{leadId}/meeting-history', [\App\Http\Controllers\Api\MeetingController::class, 'getMeetingHistory']);
         
         // Site Visits
         Route::get('/site-visits', [\App\Http\Controllers\Api\SiteVisitController::class, 'index']);
@@ -291,6 +307,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/site-visits/{siteVisit}/convert-to-closer', [\App\Http\Controllers\Api\SiteVisitController::class, 'convertToCloser']);
         Route::post('/site-visits/{siteVisit}/request-closer', [\App\Http\Controllers\Api\SiteVisitController::class, 'requestCloser']);
         Route::post('/site-visits/{siteVisit}/mark-dead', [\App\Http\Controllers\Api\SiteVisitController::class, 'markDead']);
+        
+        // Incentives (for Managers/Sales Executives - closer incentives)
+        Route::get('/incentives', [IncentiveController::class, 'index']);
+        Route::get('/incentives/{incentive}', [IncentiveController::class, 'show']);
+        // Request incentive after closing is verified
+        Route::post('/site-visits/{siteVisit}/request-incentive', [IncentiveController::class, 'requestIncentive']);
     });
 
     // CRM routes
@@ -346,7 +368,31 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/site-visits/{siteVisit}/reject', [\App\Http\Controllers\Api\SiteVisitController::class, 'reject']);
             Route::post('/site-visits/{siteVisit}/verify-closer', [\App\Http\Controllers\Api\SiteVisitController::class, 'verifyCloser']);
             Route::post('/site-visits/{siteVisit}/reject-closer', [\App\Http\Controllers\Api\SiteVisitController::class, 'rejectCloser']);
+            
+            // Closing Verification (CRM) - New flow
+            Route::post('/site-visits/{siteVisit}/verify-closing', [\App\Http\Controllers\Api\SiteVisitController::class, 'verifyClosing']);
+            Route::post('/site-visits/{siteVisit}/reject-closing', [\App\Http\Controllers\Api\SiteVisitController::class, 'rejectClosing']);
+            
+            // Incentive Verifications (CRM) - Deprecated, kept for backward compatibility
+            Route::post('/incentives/{incentive}/verify', [IncentiveController::class, 'verifyByCrm']);
+            Route::post('/incentives/{incentive}/reject', [IncentiveController::class, 'rejectByCrm']);
         });
+    });
+
+    // Sales Head routes (for incentive verification - DEPRECATED)
+    Route::prefix('sales-head')->middleware(['auth:sanctum', 'role:sales_head'])->group(function () {
+        // Incentive Verifications (Sales Head) - Deprecated, kept for backward compatibility
+        Route::post('/incentives/{incentive}/verify', [IncentiveController::class, 'verifyBySalesHead']);
+        Route::post('/incentives/{incentive}/reject', [IncentiveController::class, 'rejectBySalesHead']);
+    });
+
+    // Finance Manager routes (for incentive verification)
+    Route::prefix('finance-manager')->middleware(['auth:sanctum', 'role:finance_manager'])->group(function () {
+        // Incentive Verifications (Finance Manager)
+        Route::get('/incentives', [IncentiveController::class, 'index']);
+        Route::get('/incentives/{incentive}', [IncentiveController::class, 'show']);
+        Route::post('/incentives/{incentive}/verify', [IncentiveController::class, 'verifyByFinanceManager']);
+        Route::post('/incentives/{incentive}/reject', [IncentiveController::class, 'rejectByFinanceManager']);
     });
 
     // Admin routes (for verification)
@@ -567,10 +613,12 @@ Route::middleware('auth:sanctum')->group(function () {
                         'id', 'customer_name', 'phone', 'scheduled_at', 'completed_at',
                         'status', 'verification_status', 'property_name', 'budget_range',
                         'visit_notes', 'closer_status', 'lead_id', 'created_by', 'assigned_to',
-                        'photos', 'completion_proof_photos', 'closer_request_proof_photos'
+                        'photos', 'completion_proof_photos', 'closer_request_proof_photos', 'incentive_amount'
                     ])
+                    ->with('incentives')
                     ->get()
                     ->map(function($visit) {
+                        $incentive = $visit->incentives()->where('type', 'closer')->first();
                         return [
                             'id' => $visit->id,
                             'customer_name' => $visit->customer_name,
@@ -584,6 +632,8 @@ Route::middleware('auth:sanctum')->group(function () {
                             'budget_range' => $visit->budget_range,
                             'visit_notes' => $visit->visit_notes,
                             'closer_status' => $visit->closer_status,
+                            'incentive_amount' => $visit->incentive_amount ?? ($incentive ? $incentive->amount : 0),
+                            'incentive_id' => $incentive ? $incentive->id : null,
                             'photos' => $visit->photos ?? [],
                             'completion_proof_photos' => $visit->completion_proof_photos ?? [],
                             'closer_request_proof_photos' => $visit->closer_request_proof_photos ?? [],
@@ -606,6 +656,191 @@ Route::middleware('auth:sanctum')->group(function () {
                     'error' => 'Failed to load pending closers',
                     'message' => $e->getMessage(),
                     'data' => [],
+                ], 500);
+            }
+        });
+        
+        Route::get('/verifications/verified', function (Request $request) {
+            try {
+                $user = $request->user();
+                if (!$user) {
+                    return response()->json(['error' => 'Unauthorized'], 401);
+                }
+
+                // Get all verified meetings
+                $meetings = \App\Models\Meeting::where('verification_status', 'verified')
+                    ->where('status', 'completed')
+                    ->with([
+                        'lead:id,name,phone',
+                        'prospect:id,customer_name',
+                        'creator:id,name',
+                        'assignedTo:id,name',
+                        'verifiedBy:id,name'
+                    ])
+                    ->select([
+                        'id', 'customer_name', 'phone', 'scheduled_at', 'completed_at',
+                        'status', 'verification_status', 'budget_range', 'property_type',
+                        'meeting_notes', 'employee', 'occupation', 'date_of_visit',
+                        'project', 'payment_mode', 'tentative_period', 'lead_type',
+                        'team_leader', 'lead_id', 'prospect_id', 'created_by', 'assigned_to',
+                        'verified_by', 'verified_at', 'photos', 'completion_proof_photos'
+                    ])
+                    ->orderBy('verified_at', 'desc')
+                    ->get()
+                    ->map(function($meeting) {
+                        return [
+                            'id' => $meeting->id,
+                            'customer_name' => $meeting->customer_name,
+                            'phone' => $meeting->phone,
+                            'scheduled_at' => $meeting->scheduled_at ? $meeting->scheduled_at->toIso8601String() : null,
+                            'completed_at' => $meeting->completed_at ? $meeting->completed_at->toIso8601String() : null,
+                            'verified_at' => $meeting->verified_at ? $meeting->verified_at->toIso8601String() : null,
+                            'status' => $meeting->status,
+                            'verification_status' => $meeting->verification_status,
+                            'budget_range' => $meeting->budget_range,
+                            'property_type' => $meeting->property_type,
+                            'meeting_notes' => $meeting->meeting_notes,
+                            'employee' => $meeting->employee,
+                            'occupation' => $meeting->occupation,
+                            'date_of_visit' => $meeting->date_of_visit ? $meeting->date_of_visit->toIso8601String() : null,
+                            'project' => $meeting->project,
+                            'payment_mode' => $meeting->payment_mode,
+                            'tentative_period' => $meeting->tentative_period,
+                            'lead_type' => $meeting->lead_type,
+                            'team_leader' => $meeting->team_leader,
+                            'photos' => $meeting->photos ?? [],
+                            'completion_proof_photos' => $meeting->completion_proof_photos ?? [],
+                            'lead' => $meeting->lead ? ['id' => $meeting->lead->id, 'name' => $meeting->lead->name, 'phone' => $meeting->lead->phone] : null,
+                            'prospect' => $meeting->prospect ? ['id' => $meeting->prospect->id, 'customer_name' => $meeting->prospect->customer_name] : null,
+                            'creator' => $meeting->creator ? ['id' => $meeting->creator->id, 'name' => $meeting->creator->name] : null,
+                            'assignedTo' => $meeting->assignedTo ? ['id' => $meeting->assignedTo->id, 'name' => $meeting->assignedTo->name] : null,
+                            'verifiedBy' => $meeting->verifiedBy ? ['id' => $meeting->verifiedBy->id, 'name' => $meeting->verifiedBy->name] : null,
+                        ];
+                    });
+                
+                // Get verified site visits (not closers) - verification_status = 'verified' but closer_status is NOT 'verified'
+                $siteVisits = \App\Models\SiteVisit::where('verification_status', 'verified')
+                    ->where('status', 'completed')
+                    ->where(function($query) {
+                        $query->whereNull('closer_status')
+                              ->orWhere('closer_status', '!=', 'verified');
+                    })
+                    ->with([
+                        'lead:id,name,phone',
+                        'creator:id,name',
+                        'assignedTo:id,name',
+                        'verifiedBy:id,name'
+                    ])
+                    ->select([
+                        'id', 'customer_name', 'phone', 'scheduled_at', 'completed_at',
+                        'status', 'verification_status', 'property_name', 'property_address',
+                        'budget_range', 'visit_notes', 'closer_status', 'project',
+                        'property_type', 'lead_type', 'lead_id', 'created_by', 'assigned_to',
+                        'verified_by', 'verified_at', 'photos', 'completion_proof_photos'
+                    ])
+                    ->orderBy('verified_at', 'desc')
+                    ->get()
+                    ->map(function($visit) {
+                        return [
+                            'id' => $visit->id,
+                            'customer_name' => $visit->customer_name,
+                            'phone' => $visit->phone,
+                            'scheduled_at' => $visit->scheduled_at ? $visit->scheduled_at->toIso8601String() : null,
+                            'completed_at' => $visit->completed_at ? $visit->completed_at->toIso8601String() : null,
+                            'verified_at' => $visit->verified_at ? $visit->verified_at->toIso8601String() : null,
+                            'status' => $visit->status,
+                            'verification_status' => $visit->verification_status,
+                            'property_name' => $visit->property_name,
+                            'property_address' => $visit->property_address,
+                            'budget_range' => $visit->budget_range,
+                            'visit_notes' => $visit->visit_notes,
+                            'closer_status' => $visit->closer_status,
+                            'project' => $visit->project,
+                            'property_type' => $visit->property_type,
+                            'lead_type' => $visit->lead_type,
+                            'employee' => $visit->employee,
+                            'photos' => $visit->photos ?? [],
+                            'completion_proof_photos' => $visit->completion_proof_photos ?? [],
+                            'lead' => $visit->lead ? ['id' => $visit->lead->id, 'name' => $visit->lead->name, 'phone' => $visit->lead->phone] : null,
+                            'creator' => $visit->creator ? ['id' => $visit->creator->id, 'name' => $visit->creator->name] : null,
+                            'assignedTo' => $visit->assignedTo ? ['id' => $visit->assignedTo->id, 'name' => $visit->assignedTo->name] : null,
+                            'verifiedBy' => $visit->verifiedBy ? ['id' => $visit->verifiedBy->id, 'name' => $visit->verifiedBy->name] : null,
+                        ];
+                    });
+                
+                // Get verified closers - site visits with closer_status = 'verified' AND verification_status = 'verified'
+                $closers = \App\Models\SiteVisit::where('closer_status', 'verified')
+                    ->where('verification_status', 'verified')
+                    ->where('status', 'completed')
+                    ->with([
+                        'lead:id,name,phone',
+                        'creator:id,name',
+                        'assignedTo:id,name',
+                        'verifiedBy:id,name',
+                        'closerVerifiedBy:id,name'
+                    ])
+                    ->select([
+                        'id', 'customer_name', 'phone', 'scheduled_at', 'completed_at',
+                        'status', 'verification_status', 'property_name', 'property_address',
+                        'budget_range', 'visit_notes', 'closer_status', 'project',
+                        'property_type', 'lead_type', 'lead_id', 'created_by', 'assigned_to',
+                        'verified_by', 'verified_at', 'closer_verified_by', 'closer_verified_at',
+                        'photos', 'completion_proof_photos', 'closer_request_proof_photos'
+                    ])
+                    ->orderBy('closer_verified_at', 'desc')
+                    ->get()
+                    ->map(function($visit) {
+                        return [
+                            'id' => $visit->id,
+                            'customer_name' => $visit->customer_name,
+                            'phone' => $visit->phone,
+                            'scheduled_at' => $visit->scheduled_at ? $visit->scheduled_at->toIso8601String() : null,
+                            'completed_at' => $visit->completed_at ? $visit->completed_at->toIso8601String() : null,
+                            'verified_at' => $visit->verified_at ? $visit->verified_at->toIso8601String() : null,
+                            'closer_verified_at' => $visit->closer_verified_at ? $visit->closer_verified_at->toIso8601String() : null,
+                            'status' => $visit->status,
+                            'verification_status' => $visit->verification_status,
+                            'closer_status' => $visit->closer_status,
+                            'property_name' => $visit->property_name,
+                            'property_address' => $visit->property_address,
+                            'budget_range' => $visit->budget_range,
+                            'visit_notes' => $visit->visit_notes,
+                            'project' => $visit->project,
+                            'property_type' => $visit->property_type,
+                            'lead_type' => $visit->lead_type,
+                            'employee' => $visit->employee,
+                            'photos' => $visit->photos ?? [],
+                            'completion_proof_photos' => $visit->completion_proof_photos ?? [],
+                            'closer_request_proof_photos' => $visit->closer_request_proof_photos ?? [],
+                            'lead' => $visit->lead ? ['id' => $visit->lead->id, 'name' => $visit->lead->name, 'phone' => $visit->lead->phone] : null,
+                            'creator' => $visit->creator ? ['id' => $visit->creator->id, 'name' => $visit->creator->name] : null,
+                            'assignedTo' => $visit->assignedTo ? ['id' => $visit->assignedTo->id, 'name' => $visit->assignedTo->name] : null,
+                            'verifiedBy' => $visit->verifiedBy ? ['id' => $visit->verifiedBy->id, 'name' => $visit->verifiedBy->name] : null,
+                            'closerVerifiedBy' => $visit->closerVerifiedBy ? ['id' => $visit->closerVerifiedBy->id, 'name' => $visit->closerVerifiedBy->name] : null,
+                        ];
+                    });
+                
+                $totalCount = $meetings->count() + $siteVisits->count() + $closers->count();
+                
+                return response()->json([
+                    'meetings' => array_values($meetings->toArray()),
+                    'site_visits' => array_values($siteVisits->toArray()),
+                    'closers' => array_values($closers->toArray()),
+                    'total_count' => $totalCount,
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Error loading verified items: ' . $e->getMessage(), [
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                return response()->json([
+                    'error' => 'Failed to load verified items',
+                    'message' => $e->getMessage(),
+                    'meetings' => [],
+                    'site_visits' => [],
+                    'closers' => [],
+                    'total_count' => 0,
                 ], 500);
             }
         });

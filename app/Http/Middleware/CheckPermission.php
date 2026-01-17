@@ -26,7 +26,7 @@ class CheckPermission
             'view_all_leads' => $user->canViewAllLeads(),
             'assign_leads' => $user->canAssignLeads(),
             'manage_users' => $user->canManageUsers(),
-            'manage_site_visits' => !$user->isTelecaller(),
+            'manage_site_visits' => !$user->isSalesExecutive(),
             default => false,
         };
 

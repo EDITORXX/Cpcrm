@@ -85,7 +85,7 @@ class Task extends Model
 
     /**
      * Check if task is overdue
-     * A task is overdue if scheduled_at is more than 15 minutes in the past and status is pending or in_progress
+     * A task is overdue if scheduled_at is more than 10 minutes in the past and status is pending or in_progress
      */
     public function isOverdue(): bool
     {
@@ -93,10 +93,10 @@ class Task extends Model
             return false;
         }
 
-        // Task is overdue if scheduled_at is more than 15 minutes ago
-        $fifteenMinutesAgo = now()->subMinutes(15);
+        // Task is overdue if scheduled_at is more than 10 minutes ago
+        $tenMinutesAgo = now()->subMinutes(10);
         
-        return $this->scheduled_at->lt($fifteenMinutesAgo)
+        return $this->scheduled_at->lt($tenMinutesAgo)
             && in_array($this->status, ['pending', 'in_progress']);
     }
 

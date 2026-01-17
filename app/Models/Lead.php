@@ -199,6 +199,11 @@ class Lead extends Model
         return $this->hasMany(TelecallerTask::class);
     }
 
+    public function managerTasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
+    }
+
     public function pendingTasks(): HasMany
     {
         return $this->hasMany(TelecallerTask::class)->where('status', 'pending');

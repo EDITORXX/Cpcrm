@@ -62,7 +62,12 @@ echo ========================================
 echo.
 
 REM Start the server
-php artisan serve --host=0.0.0.0 --port=8007
+REM Ensure writable upload tmp dir to avoid PHP Request::Startup notice
+if not exist "storage\app\tmp" (
+    mkdir "storage\app\tmp"
+)
+
+php -d upload_tmp_dir="%CD%\storage\app\tmp" artisan serve --host=0.0.0.0 --port=8007
 
 REM On exit, optionally restore original .env (commented out - keep network URL)
 REM if exist .env.backup (

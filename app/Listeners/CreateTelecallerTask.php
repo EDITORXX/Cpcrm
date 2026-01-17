@@ -52,8 +52,20 @@ class CreateTelecallerTask
             }
 
             // Check if assigned user has eligible role (telecaller, sales_manager, or sales_executive)
+            // EXCLUDE CRM and Admin roles
             $userRole = $assignedUser->role->slug ?? '';
-            $eligibleRoles = [\App\Models\Role::TELECALLER, \App\Models\Role::SALES_MANAGER, \App\Models\Role::SALES_EXECUTIVE];
+            $eligibleRoles = [\App\Models\Role::SALES_EXECUTIVE, \App\Models\Role::SALES_MANAGER, \App\Models\Role::ASSISTANT_SALES_MANAGER];
+            $excludedRoles = [\App\Models\Role::CRM, \App\Models\Role::ADMIN];
+            
+            // Explicitly exclude CRM and Admin
+            if (in_array($userRole, $excludedRoles)) {
+                Log::info("CreateTelecallerTask: User role excluded from task creation (CRM/Admin)", [
+                    'lead_id' => $event->lead->id,
+                    'assigned_to' => $event->assignedTo,
+                    'user_role' => $userRole,
+                ]);
+                return;
+            }
             
             if (!in_array($userRole, $eligibleRoles)) {
                 Log::info("CreateTelecallerTask: User role not eligible for task creation", [
@@ -75,8 +87,8 @@ class CreateTelecallerTask
                 'user_role' => $userRole,
             ]);
 
-            // Create CrmAssignment if it doesn't exist (only for telecallers)
-            if ($assignedUser->isTelecaller()) {
+            // Create CrmAssignment if it doesn't exist (only for sales executives)
+            if ($assignedUser->isSalesExecutive()) {
                 $crmAssignment = CrmAssignment::where('lead_id', $lead->id)
                     ->where('assigned_to', $assignedUser->id)
                     ->where('call_status', 'pending')
@@ -96,8 +108,8 @@ class CreateTelecallerTask
             }
 
             // For sales managers and sales executives, use Task model
-            // For telecallers, use TelecallerTask model
-            if (in_array($userRole, [\App\Models\Role::SALES_MANAGER, \App\Models\Role::SALES_EXECUTIVE])) {
+            // For managers and assistant sales managers, use Task model
+            if (in_array($userRole, [\App\Models\Role::SALES_MANAGER, \App\Models\Role::ASSISTANT_SALES_MANAGER])) {
                 // Check if Task already exists for this lead and user (any status to avoid duplicates)
                 $existingTask = \App\Models\Task::where('lead_id', $lead->id)
                     ->where('assigned_to', $assignedUser->id)
@@ -106,8 +118,7 @@ class CreateTelecallerTask
 
                 if (!$existingTask) {
                     // Create Task for sales manager/executive
-                    // Schedule task instantly - set scheduled_at to 15 minutes ago so it becomes overdue immediately
-                    // This ensures task is created instantly and shows as overdue after 15 minutes from creation
+                    // Schedule task 10 minutes from now - becomes overdue after 10 minutes
                     $task = \App\Models\Task::create([
                         'lead_id' => $lead->id,
                         'assigned_to' => $assignedUser->id,
@@ -115,7 +126,7 @@ class CreateTelecallerTask
                         'title' => "Call lead: {$lead->name}",
                         'description' => "Phone call task for lead: {$lead->name} ({$lead->phone})",
                         'status' => 'pending',
-                        'scheduled_at' => now()->subMinutes(15), // Set to 15 minutes ago - becomes overdue immediately
+                        'scheduled_at' => now()->addMinutes(10), // Set to 10 minutes from now - becomes overdue after 10 min
                         'created_by' => $event->assignedBy,
                     ]);
                     

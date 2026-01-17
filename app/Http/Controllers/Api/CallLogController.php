@@ -28,7 +28,7 @@ class CallLogController extends Controller
         $query = CallLog::with(['lead:id,name,phone', 'user:id,name', 'telecaller:id,name']);
 
         // Role-based filtering
-        if ($user->isTelecaller() || $user->isSalesExecutive()) {
+        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             $query->forUser($user->id);
         } elseif ($user->isSalesManager() || $user->isSalesHead()) {
             $teamMemberIds = $user->getAllTeamMemberIds();
@@ -189,7 +189,7 @@ class CallLogController extends Controller
         $callLog = CallLog::with(['lead', 'user', 'telecaller', 'task'])->findOrFail($id);
 
         // Check access
-        if ($user->isTelecaller() || $user->isSalesExecutive()) {
+        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             if ($callLog->user_id !== $user->id && $callLog->telecaller_id !== $user->id) {
                 return response()->json(['message' => 'Forbidden'], 403);
             }
@@ -245,7 +245,7 @@ class CallLogController extends Controller
         $user = $request->user();
         $dateRange = $request->get('date_range', 'today');
 
-        if ($user->isTelecaller() || $user->isSalesExecutive()) {
+        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             $stats = $this->callLogService->getCallStatistics($user->id, $dateRange);
         } elseif ($user->isSalesManager() || $user->isSalesHead()) {
             $stats = $this->callLogService->getTeamCallStatistics($user->id, $dateRange);
@@ -287,7 +287,7 @@ class CallLogController extends Controller
         $user = $request->user();
         $dateRange = $request->get('date_range', 'today');
 
-        if ($user->isTelecaller() || $user->isSalesExecutive()) {
+        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             $stats = $this->callLogService->getCallStatistics($user->id, $dateRange);
             // Add calls per hour
             $stats['calls_per_hour'] = $this->callLogService->getCallsPerHour($user->id, Carbon::today());
@@ -300,7 +300,7 @@ class CallLogController extends Controller
         // Get recent calls (last 5)
         $recentCallsQuery = CallLog::with(['lead:id,name,phone', 'user:id,name']);
         
-        if ($user->isTelecaller() || $user->isSalesExecutive()) {
+        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             $recentCallsQuery->forUser($user->id);
         } elseif ($user->isSalesManager() || $user->isSalesHead()) {
             $teamMemberIds = $user->getAllTeamMemberIds();

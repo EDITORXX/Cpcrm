@@ -13,13 +13,30 @@ class UserController extends Controller
 {
     public function getRoles()
     {
+        $currentUser = auth()->user();
         $roles = Role::where('is_active', true)->get();
+        
+        // Filter roles for CRM users - only allow Telecaller, Sales Executive, Sales Manager
+        if ($currentUser && $currentUser->isCrm() && !$currentUser->isAdmin()) {
+            $roles = $roles->filter(function($role) {
+                return in_array($role->slug, [Role::SALES_EXECUTIVE, Role::ASSISTANT_SALES_MANAGER, Role::SALES_MANAGER]);
+            });
+        }
+        
         return response()->json($roles);
     }
 
     public function index(Request $request)
     {
+        $currentUser = auth()->user();
         $query = User::with(['role', 'manager']);
+
+        // Hide admin users from CRM view
+        if ($currentUser && $currentUser->isCrm() && !$currentUser->isAdmin()) {
+            $query->whereHas('role', function($q) {
+                $q->where('slug', '!=', Role::ADMIN);
+            });
+        }
 
         if ($request->has('search')) {
             $search = $request->search;
@@ -45,6 +62,15 @@ class UserController extends Controller
             'manager_id' => 'nullable|exists:users,id',
             'is_active' => 'boolean',
         ]);
+
+        // Validate role_id - CRM users cannot create Admin or CRM users
+        $currentUser = auth()->user();
+        if ($currentUser && $currentUser->isCrm() && !$currentUser->isAdmin()) {
+            $role = Role::find($validated['role_id']);
+            if ($role && in_array($role->slug, [Role::ADMIN, Role::CRM])) {
+                return response()->json(['message' => 'CRM users cannot create Admin or CRM users'], 403);
+            }
+        }
 
         // Default password if not provided
         if (empty($validated['password'])) {
@@ -79,6 +105,15 @@ class UserController extends Controller
             unset($validated['password']);
         }
 
+        // CRM users cannot assign Admin or CRM roles
+        $currentUser = auth()->user();
+        if (isset($validated['role_id']) && $currentUser && $currentUser->isCrm() && !$currentUser->isAdmin()) {
+            $role = Role::find($validated['role_id']);
+            if ($role && in_array($role->slug, [Role::ADMIN, Role::CRM])) {
+                return response()->json(['message' => 'CRM users cannot assign Admin or CRM roles'], 403);
+            }
+        }
+
         $user->update($validated);
 
         return response()->json($user->load(['role', 'manager']));
@@ -86,9 +121,16 @@ class UserController extends Controller
 
     public function destroy($id)
     {
+        $currentUser = auth()->user();
+        
+        // Only Admin can delete users
+        if (!$currentUser || !$currentUser->isAdmin()) {
+            return response()->json(['message' => 'Only administrators can delete users'], 403);
+        }
+
         $user = User::findOrFail($id);
 
-        if ($user->id === auth()->id()) {
+        if ($user->id === $currentUser->id) {
             return response()->json(['message' => 'Cannot delete your own account'], 400);
         }
 

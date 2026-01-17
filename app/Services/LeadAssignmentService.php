@@ -157,7 +157,7 @@ class LeadAssignmentService
                         
                         // Verify task was created (for sales managers/executives)
                         $assignedUser = User::with('role')->find($assignedUserId);
-                        if ($assignedUser && in_array($assignedUser->role->slug ?? '', [\App\Models\Role::SALES_MANAGER, \App\Models\Role::SALES_EXECUTIVE])) {
+                        if ($assignedUser && in_array($assignedUser->role->slug ?? '', [\App\Models\Role::SALES_MANAGER, \App\Models\Role::ASSISTANT_SALES_MANAGER])) {
                             $taskCreated = \App\Models\Task::where('lead_id', $lead->id)
                                 ->where('assigned_to', $assignedUserId)
                                 ->where('type', 'phone_call')
@@ -176,7 +176,7 @@ class LeadAssignmentService
                                     'role' => $assignedUser->role->slug ?? 'unknown',
                                 ]);
                             }
-                        } elseif ($assignedUser && $assignedUser->isTelecaller()) {
+                        } elseif ($assignedUser && $assignedUser->isSalesExecutive()) {
                             $taskCreated = \App\Models\TelecallerTask::where('lead_id', $lead->id)
                                 ->where('assigned_to', $assignedUserId)
                                 ->where('task_type', 'calling')
@@ -264,8 +264,8 @@ class LeadAssignmentService
             return null;
         }
 
-        // For telecallers, check telecaller-specific limits
-        if ($user->isTelecaller()) {
+        // For sales executives, check sales executive-specific limits
+        if ($user->isSalesExecutive()) {
             $canReceive = $this->statusService->canReceiveAssignment($telecallerId);
             if (!$canReceive['can_receive']) {
                 return null;
@@ -314,8 +314,8 @@ class LeadAssignmentService
             return null;
         }
 
-        // For telecallers, check telecaller-specific limits
-        if ($user->isTelecaller()) {
+        // For sales executives, check sales executive-specific limits
+        if ($user->isSalesExecutive()) {
             $canReceive = $this->statusService->canReceiveAssignment($userId);
             if (!$canReceive['can_receive']) {
                 return null;
@@ -412,8 +412,8 @@ class LeadAssignmentService
                 continue;
             }
 
-            // For telecallers, check telecaller-specific limits
-            if ($telecaller->isTelecaller()) {
+            // For sales executives, check sales executive-specific limits
+            if ($telecaller->isSalesExecutive()) {
                 $canReceive = $this->statusService->canReceiveAssignment($telecaller->id);
                 $limitCheck = $this->limitService->checkDailyLimits($telecaller->id, $config->google_sheets_config_id, $config->id);
 
@@ -602,7 +602,7 @@ class LeadAssignmentService
                     
                     // Only increment count for telecallers
                     $assignedUser = User::with('role')->find($assigned);
-                    if ($assignedUser && $assignedUser->isTelecaller()) {
+                    if ($assignedUser && $assignedUser->isSalesExecutive()) {
                         try {
                             $this->limitService->incrementAssignedCount($assigned);
                         } catch (\Exception $e) {
@@ -628,7 +628,7 @@ class LeadAssignmentService
                             // Verify task creation
                             $assignedUser = User::with('role')->find($assigned);
                             if ($assignedUser) {
-                                if (in_array($assignedUser->role->slug ?? '', [\App\Models\Role::SALES_MANAGER, \App\Models\Role::SALES_EXECUTIVE])) {
+                                if (in_array($assignedUser->role->slug ?? '', [\App\Models\Role::SALES_MANAGER, \App\Models\Role::ASSISTANT_SALES_MANAGER])) {
                                     $taskCreated = \App\Models\Task::where('lead_id', $lead->id)
                                         ->where('assigned_to', $assigned)
                                         ->where('type', 'phone_call')
@@ -748,7 +748,7 @@ class LeadAssignmentService
                             // Verify task creation
                             $assignedUser = User::with('role')->find($assigned);
                             if ($assignedUser) {
-                                if (in_array($assignedUser->role->slug ?? '', [\App\Models\Role::SALES_MANAGER, \App\Models\Role::SALES_EXECUTIVE])) {
+                                if (in_array($assignedUser->role->slug ?? '', [\App\Models\Role::SALES_MANAGER, \App\Models\Role::ASSISTANT_SALES_MANAGER])) {
                                     $taskCreated = \App\Models\Task::where('lead_id', $lead->id)
                                         ->where('assigned_to', $assigned)
                                         ->where('type', 'phone_call')

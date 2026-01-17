@@ -27,8 +27,8 @@ class SendNewLeadNotification implements ShouldQueue
             // Create notification via NotificationService
             $actionUrl = url('/leads/' . $event->lead->id);
             
-            // For telecallers, use tasks URL
-            if ($assignedUser->isTelecaller()) {
+            // For sales executives, use tasks URL
+            if ($assignedUser->isSalesExecutive()) {
                 $task = \App\Models\TelecallerTask::where('lead_id', $event->lead->id)
                     ->where('assigned_to', $assignedUser->id)
                     ->first();

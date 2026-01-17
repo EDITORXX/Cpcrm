@@ -31,8 +31,13 @@ class Role extends Model
     // Role constants
     public const ADMIN = 'admin';
     public const CRM = 'crm';
+    public const HR_MANAGER = 'hr_manager';
+    public const FINANCE_MANAGER = 'finance_manager';
     public const SALES_MANAGER = 'sales_manager';
-    public const SALES_EXECUTIVE = 'sales_executive';
-    public const TELECALLER = 'telecaller';
+    public const SENIOR_MANAGER = 'senior_manager';
+    public const ASSISTANT_SALES_MANAGER = 'assistant_sales_manager';
+    public const SALES_EXECUTIVE = 'sales_executive'; // Previously 'telecaller'
+    // Deprecated: Use SALES_EXECUTIVE instead
+    public const TELECALLER = 'sales_executive'; // Kept for backward compatibility during migration
 }
 

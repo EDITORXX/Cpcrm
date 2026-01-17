@@ -29,6 +29,8 @@ class AppNotification extends Model
     public const TYPE_NEW_VERIFICATION = 'new_verification';
     public const TYPE_FOLLOWUP_REMINDER = 'followup_reminder';
     public const TYPE_ADMIN_BROADCAST = 'admin_broadcast';
+    public const TYPE_SITE_VISIT = 'site_visit';
+    public const TYPE_MEETING = 'meeting';
 
     // Action types
     public const ACTION_LEAD = 'lead';

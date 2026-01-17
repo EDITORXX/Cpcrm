@@ -67,17 +67,42 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip caching for HTML pages (always fetch fresh)
+  if (event.request.destination === 'document' || 
+      event.request.headers.get('accept').includes('text/html')) {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        // Fallback to cache only if network fails
+        return caches.match(event.request);
+      })
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
+        // Always fetch from network first for HTML pages
+        if (event.request.destination === 'document') {
+          return fetch(event.request)
+            .then((networkResponse) => {
+              return networkResponse;
+            })
+            .catch(() => {
+              // Fallback to cache only if network fails
+              return response;
+            });
+        }
+        
         // Return cached version or fetch from network
         if (response) {
           return response;
         }
         return fetch(event.request)
           .then((networkResponse) => {
-            // Cache successful responses
-            if (networkResponse && networkResponse.status === 200) {
+            // Cache successful responses (but not HTML pages)
+            if (networkResponse && networkResponse.status === 200 && 
+                event.request.destination !== 'document') {
               const responseToCache = networkResponse.clone();
               caches.open(CACHE_NAME).then((cache) => {
                 cache.put(event.request, responseToCache);

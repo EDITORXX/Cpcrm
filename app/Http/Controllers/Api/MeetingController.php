@@ -7,20 +7,28 @@ use App\Models\Meeting;
 use App\Models\SiteVisit;
 use App\Models\Lead;
 use App\Models\Prospect;
+use App\Models\Task;
+use App\Models\TelecallerTask;
 use App\Services\TelecallerTaskService;
 use App\Services\NotificationService;
+use App\Services\MeetingService;
 use App\Models\User;
+use App\Events\SiteVisitCreated;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class MeetingController extends Controller
 {
     protected $notificationService;
+    protected $meetingService;
 
-    public function __construct(NotificationService $notificationService)
+    public function __construct(NotificationService $notificationService, MeetingService $meetingService)
     {
         $this->notificationService = $notificationService;
+        $this->meetingService = $meetingService;
     }
     /**
      * List all meetings (accessible by Admin, CRM, Sales Head, Sales Manager)
@@ -216,11 +224,159 @@ class MeetingController extends Controller
 
         $meeting = Meeting::create($data);
 
+        // Telecaller bot notification (if this lead still has an active telecaller task/assignment)
+        try {
+            if (!empty($meeting->lead_id)) {
+                $teleTask = \App\Models\TelecallerTask::where('lead_id', $meeting->lead_id)
+                    ->latest('created_at')
+                    ->first();
+                if ($teleTask) {
+                    /** @var User|null $telecaller */
+                    $telecaller = User::with('role')->find($teleTask->assigned_to);
+                    if ($telecaller && method_exists($telecaller, 'isSalesExecutive') && $telecaller->isSalesExecutive()) {
+                        $this->notificationService->notifyMeeting(
+                            $telecaller,
+                            $meeting->loadMissing('lead'),
+                            url('/telecaller/tasks?status=pending')
+                        );
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            // Don't fail meeting creation if notification fails
+            Log::warning('Failed to send telecaller meeting notification', [
+                'meeting_id' => $meeting->id ?? null,
+                'lead_id' => $meeting->lead_id ?? null,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Meeting scheduled successfully',
             'data' => $meeting->load(['lead', 'prospect', 'creator', 'assignedTo']),
         ], 201);
+    }
+
+    /**
+     * Quick-create a meeting with minimal fields (lead_id, scheduled_at, optional title/notes)
+     */
+    public function quickStore(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'lead_id' => 'required|exists:leads,id',
+            'scheduled_at' => 'required|date|after:now',
+            'title' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $user = $request->user();
+        $data = $validator->validated();
+
+        $lead = $this->getLeadForManager($user, (int) $data['lead_id']);
+
+        if (!$lead) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lead not found or not accessible',
+            ], 403);
+        }
+
+        $scheduledAt = Carbon::parse($data['scheduled_at']);
+
+        $meetingNotes = $data['notes'] ?? null;
+        if (!empty($data['title'])) {
+            $meetingNotes = $data['title'] . ($meetingNotes ? (' - ' . $meetingNotes) : '');
+        }
+
+        $meeting = Meeting::create([
+            'lead_id' => $lead->id,
+            'created_by' => $user->id,
+            'assigned_to' => $user->id,
+            'customer_name' => $lead->name ?? 'N/A',
+            'phone' => $lead->phone ?? 'N/A',
+            'employee' => $lead->creator?->name,
+            'occupation' => $lead->getFormFieldValue('occupation') ?? null,
+            'date_of_visit' => $scheduledAt->toDateString(),
+            'project' => $lead->preferred_projects ?? null,
+            'budget_range' => $this->mapBudgetRange($lead),
+            'team_leader' => $user->name,
+            'property_type' => $this->mapPropertyType($lead->property_type),
+            'payment_mode' => 'Self Fund',
+            'tentative_period' => 'Within 1 Month',
+            'lead_type' => 'Meeting',
+            'scheduled_at' => $scheduledAt,
+            'status' => 'scheduled',
+            'verification_status' => 'pending',
+            'meeting_notes' => $meetingNotes,
+        ]);
+
+        $lead->updateStatusIfAllowed('meeting_scheduled');
+
+        // Telecaller bot notification (if this lead still has an active telecaller task/assignment)
+        try {
+            $teleTask = \App\Models\TelecallerTask::where('lead_id', $lead->id)
+                ->latest('created_at')
+                ->first();
+            if ($teleTask) {
+                /** @var User|null $telecaller */
+                $telecaller = User::with('role')->find($teleTask->assigned_to);
+                if ($telecaller && method_exists($telecaller, 'isTelecaller') && $telecaller->isTelecaller()) {
+                    $this->notificationService->notifyMeeting(
+                        $telecaller,
+                        $meeting->loadMissing('lead'),
+                        url('/telecaller/tasks?status=pending')
+                    );
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('Failed to send telecaller meeting notification (quickStore)', [
+                'meeting_id' => $meeting->id ?? null,
+                'lead_id' => $lead->id ?? null,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Meeting scheduled successfully',
+            'data' => $meeting->load(['lead', 'prospect', 'creator', 'assignedTo']),
+        ], 201);
+    }
+
+    /**
+     * Lead options limited to the current sales manager's accessible leads
+     */
+    public function leadOptions(Request $request)
+    {
+        $user = $request->user();
+        $search = $request->get('search');
+
+        $query = $this->buildLeadQueryForUser($user);
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('phone', 'like', '%' . $search . '%');
+            });
+        }
+
+        $leads = $query->latest('updated_at')
+            ->limit((int) $request->get('limit', 100))
+            ->get(['id', 'name', 'phone', 'status', 'preferred_location', 'budget_min', 'budget_max', 'property_type']);
+
+        return response()->json([
+            'success' => true,
+            'data' => $leads,
+        ]);
     }
 
     /**
@@ -235,7 +391,13 @@ class MeetingController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $meeting->load(['lead', 'prospect', 'creator', 'assignedTo', 'verifiedBy']);
+        $meeting->load([
+            'lead.activeAssignments.assignedTo.role',
+            'prospect',
+            'creator',
+            'assignedTo',
+            'verifiedBy'
+        ]);
 
         return response()->json($meeting);
     }
@@ -323,83 +485,133 @@ class MeetingController extends Controller
      */
     public function complete(Request $request, Meeting $meeting)
     {
-        $user = $request->user();
+        try {
+            $user = $request->user();
 
-        // Check access
-        if ($user->isSalesManager() && $meeting->created_by !== $user->id) {
-            return response()->json(['message' => 'Forbidden'], 403);
-        }
+            // Check access
+            if ($user->isSalesManager() && $meeting->created_by !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden'
+                ], 403);
+            }
 
-        if ($meeting->status === 'completed') {
+            if ($meeting->status === 'completed') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Meeting already completed',
+                ], 422);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'feedback' => 'nullable|string',
+                'rating' => 'nullable|integer|min:1|max:5',
+                'meeting_notes' => 'nullable|string',
+                'proof_photos' => 'required|array|min:1',
+                'proof_photos.*' => 'required|image|mimes:jpeg,jpg,png,webp|max:5120', // Max 5MB per image
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            // Handle proof photo uploads
+            $proofPhotoPaths = [];
+            if ($request->hasFile('proof_photos')) {
+                foreach ($request->file('proof_photos') as $photo) {
+                    try {
+                        $filename = 'meetings/proof/' . time() . '_' . uniqid() . '.' . $photo->getClientOriginalExtension();
+                        $photo->storeAs('public', $filename);
+                        $proofPhotoPaths[] = $filename;
+                    } catch (\Exception $e) {
+                        \Log::error('Error storing proof photo: ' . $e->getMessage());
+                        throw new \Exception('Failed to upload proof photos. Please try again.');
+                    }
+                }
+            }
+
+            $data = $validator->validated();
+            unset($data['proof_photos']); // Remove from update data
+            $data['completion_proof_photos'] = $proofPhotoPaths;
+            
+            // Update meeting status and data in one go to avoid double save
+            $meeting->status = 'completed';
+            $meeting->completed_at = now();
+            $meeting->verification_status = 'pending';
+            $meeting->fill($data);
+            
+            if (!$meeting->save()) {
+                throw new \Exception('Failed to save meeting data.');
+            }
+
+            // Update lead status to meeting_completed
+            try {
+                if ($meeting->lead) {
+                    $meeting->lead->updateStatusIfAllowed('meeting_completed');
+                }
+            } catch (\Exception $e) {
+                // Log but don't fail the request
+                \Log::warning('Error updating lead status: ' . $e->getMessage());
+            }
+
+            // Send verification notification to Sales Head, CRM, and Admin (old logic preserved)
+            try {
+                $verificationUsers = User::whereHas('role', function($q) {
+                    $q->whereIn('slug', ['admin', 'crm', 'sales_head']);
+                })->get();
+
+                foreach ($verificationUsers as $verificationUser) {
+                    // Determine action URL based on role
+                    if ($verificationUser->isCrm() || $verificationUser->isAdmin()) {
+                        $actionUrl = url('/crm/verifications');
+                    } else {
+                        $actionUrl = url('/sales-head/verifications');
+                    }
+                    
+                    $this->notificationService->notifyNewVerification(
+                        $verificationUser,
+                        'meeting',
+                        'New Meeting Verification',
+                        "Meeting '{$meeting->customer_name}' requires verification",
+                        $actionUrl,
+                        [
+                            'meeting_id' => $meeting->id,
+                            'customer_name' => $meeting->customer_name,
+                        ]
+                    );
+                }
+            } catch (\Exception $e) {
+                // Log notification error but don't fail the request
+                \Log::error('Error sending meeting verification notifications: ' . $e->getMessage());
+            }
+
             return response()->json([
-                'success' => false,
-                'message' => 'Meeting already completed',
-            ], 422);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'feedback' => 'nullable|string',
-            'rating' => 'nullable|integer|min:1|max:5',
-            'meeting_notes' => 'nullable|string',
-            'proof_photos' => 'required|array|min:1',
-            'proof_photos.*' => 'required|image|mimes:jpeg,jpg,png,webp|max:5120', // Max 5MB per image
-        ]);
-
-        if ($validator->fails()) {
+                'success' => true,
+                'message' => 'Meeting completed with proof photos. Awaiting verification.',
+                'data' => $meeting->fresh(['lead', 'prospect', 'creator', 'assignedTo']),
+            ])->header('Content-Type', 'application/json');
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
+                'errors' => $e->errors(),
+            ], 422)->header('Content-Type', 'application/json');
+        } catch (\Exception $e) {
+            \Log::error('Error completing meeting: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'meeting_id' => $meeting->id ?? null,
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while completing the meeting. Please try again.',
+                'error' => config('app.debug') ? $e->getMessage() : null,
+            ], 500)->header('Content-Type', 'application/json');
         }
-
-        // Handle proof photo uploads
-        $proofPhotoPaths = [];
-        if ($request->hasFile('proof_photos')) {
-            foreach ($request->file('proof_photos') as $photo) {
-                $filename = 'meetings/proof/' . time() . '_' . uniqid() . '.' . $photo->getClientOriginalExtension();
-                $photo->storeAs('public', $filename);
-                $proofPhotoPaths[] = $filename;
-            }
-        }
-
-        $data = $validator->validated();
-        unset($data['proof_photos']); // Remove from update data
-        $data['completion_proof_photos'] = $proofPhotoPaths;
-        
-        $meeting->markAsCompleted();
-        $meeting->update($data);
-
-        // Update lead status to meeting_completed
-        if ($meeting->lead) {
-            $meeting->lead->updateStatusIfAllowed('meeting_completed');
-        }
-
-        // Send verification notification to CRM/Admin
-        $crmUsers = User::whereHas('role', function($q) {
-            $q->whereIn('slug', ['admin', 'crm']);
-        })->get();
-
-        foreach ($crmUsers as $crmUser) {
-            $actionUrl = url('/crm/verifications');
-            $this->notificationService->notifyNewVerification(
-                $crmUser,
-                'meeting',
-                'New Meeting Verification',
-                "Meeting '{$meeting->customer_name}' requires verification",
-                $actionUrl,
-                [
-                    'meeting_id' => $meeting->id,
-                    'customer_name' => $meeting->customer_name,
-                ]
-            );
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Meeting completed with proof photos. Awaiting verification.',
-            'data' => $meeting->fresh(['lead', 'prospect', 'creator', 'assignedTo']),
-        ]);
     }
 
     /**
@@ -533,6 +745,9 @@ class MeetingController extends Controller
 
         $notes = $request->input('notes');
         $meeting->verify($user->id, $notes);
+        
+        // Refresh the meeting to ensure latest data
+        $meeting->refresh();
 
         return response()->json([
             'success' => true,
@@ -588,7 +803,7 @@ class MeetingController extends Controller
     }
 
     /**
-     * Convert meeting to site visit (1 click conversion)
+     * Convert meeting to site visit with project and date selection
      */
     public function convertToSiteVisit(Request $request, Meeting $meeting)
     {
@@ -607,15 +822,36 @@ class MeetingController extends Controller
             ], 422);
         }
 
+        // Validate request data
+        $validator = Validator::make($request->all(), [
+            'project' => 'required|string|max:255',
+            'scheduled_at' => 'required|date|after:now',
+            'visit_type' => 'nullable|in:with_family,without_family',
+            'visit_sequence' => 'nullable|in:fresh_visit,2nd_visit,3rd_visit',
+            'reminder_enabled' => 'nullable|boolean',
+            'reminder_minutes' => 'nullable|integer|min:1|max:60',
+            'telecaller_id' => 'nullable|exists:users,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
         // Create site visit from meeting data
         $siteVisitData = [
             'lead_id' => $meeting->lead_id,
             'prospect_id' => $meeting->prospect_id,
             'created_by' => $user->id,
             'assigned_to' => $meeting->assigned_to,
-            'property_name' => $meeting->project,
+            'property_name' => $validated['project'], // Use provided project
             'property_address' => null,
-            'scheduled_at' => $meeting->scheduled_at->addDays(1), // Schedule for next day by default
+            'scheduled_at' => Carbon::parse($validated['scheduled_at']), // Use provided scheduled_at
             'status' => 'scheduled',
             'verification_status' => 'pending',
             // Copy all form fields from meeting
@@ -624,7 +860,7 @@ class MeetingController extends Controller
             'employee' => $meeting->employee,
             'occupation' => $meeting->occupation,
             'date_of_visit' => $meeting->date_of_visit,
-            'project' => $meeting->project,
+            'project' => $validated['project'], // Use provided project
             'budget_range' => $meeting->budget_range,
             'team_leader' => $meeting->team_leader,
             'property_type' => $meeting->property_type,
@@ -633,9 +869,67 @@ class MeetingController extends Controller
             'lead_type' => $meeting->lead_type,
             'photos' => $meeting->photos, // Copy photos
             'visit_notes' => 'Converted from Meeting #' . $meeting->id,
+            // New fields
+            'visit_type' => $validated['visit_type'] ?? null,
+            'visit_sequence' => $validated['visit_sequence'] ?? null,
+            'reminder_enabled' => $validated['reminder_enabled'] ?? false,
+            'reminder_minutes' => $validated['reminder_minutes'] ?? 10,
         ];
 
         $siteVisit = SiteVisit::create($siteVisitData);
+
+        // Create reminder task if enabled
+        if ($validated['reminder_enabled'] ?? false) {
+            $reminderMinutes = $validated['reminder_minutes'] ?? 10;
+            $taskScheduledAt = Carbon::parse($validated['scheduled_at'])->subMinutes($reminderMinutes);
+            
+            // If task scheduled time is in the past, set it to 10 minutes from now
+            if ($taskScheduledAt->isPast()) {
+                $taskScheduledAt = now()->addMinutes(10);
+            }
+            
+            $assignedTo = $siteVisit->assigned_to ?? $user->id;
+            $customerName = $siteVisit->customer_name ?? $siteVisit->lead->name ?? 'Customer';
+            $phone = $siteVisit->phone ?? $siteVisit->lead->phone ?? '';
+            
+            $reminderTask = Task::create([
+                'lead_id' => $siteVisit->lead_id,
+                'assigned_to' => $assignedTo,
+                'type' => 'phone_call',
+                'title' => "Reminder: Site Visit for {$customerName}",
+                'description' => "Reminder call {$reminderMinutes} minutes before scheduled Site Visit: {$customerName} ({$phone})",
+                'status' => 'pending',
+                'scheduled_at' => $taskScheduledAt,
+                'notes' => "Site Visit Reminder - Site Visit ID: {$siteVisit->id}",
+                'created_by' => $user->id,
+            ]);
+            
+            // Link task to site visit
+            $siteVisit->update(['reminder_task_id' => $reminderTask->id]);
+        }
+
+        // Create telecaller task if telecaller is selected
+        if (!empty($validated['telecaller_id'])) {
+            $telecaller = User::with('role')->find($validated['telecaller_id']);
+            if ($telecaller && $telecaller->role && $telecaller->role->slug === 'telecaller') {
+                $taskScheduledAt = Carbon::parse($validated['scheduled_at'])->subMinutes(30);
+                
+                // If task scheduled time is in the past, set it to 10 minutes from now
+                if ($taskScheduledAt->isPast()) {
+                    $taskScheduledAt = now()->addMinutes(10);
+                }
+                
+                TelecallerTask::create([
+                    'lead_id' => $siteVisit->lead_id,
+                    'assigned_to' => $telecaller->id,
+                    'task_type' => 'calling',
+                    'status' => 'pending',
+                    'scheduled_at' => $taskScheduledAt,
+                    'notes' => "Reminder call 30 min before scheduled Site Visit",
+                    'created_by' => $user->id,
+                ]);
+            }
+        }
 
         // Mark meeting as converted and link to site visit
         $meeting->update([
@@ -649,6 +943,15 @@ class MeetingController extends Controller
             if ($lead) {
                 $lead->update(['status' => 'visit_scheduled']);
             }
+        }
+
+        // Fire SiteVisitCreated event to trigger task creation
+        try {
+            event(new SiteVisitCreated($siteVisit));
+        } catch (\Exception $e) {
+            // Broadcasting errors (like Pusher) shouldn't stop site visit creation
+            // Log but continue - the site visit is successfully created
+            Log::warning("Broadcasting error in MeetingController convertToSiteVisit (non-critical): " . $e->getMessage());
         }
 
         return response()->json([
@@ -693,5 +996,312 @@ class MeetingController extends Controller
             'message' => 'Meeting marked as dead successfully',
             'data' => $meeting->fresh(['lead', 'creator', 'markedDeadBy']),
         ]);
+    }
+
+    /**
+     * Build base lead query restricted to the current user's accessible leads.
+     */
+    private function buildLeadQueryForUser(User $user)
+    {
+        $query = Lead::query()->where('is_dead', false);
+
+        if ($user->isAdmin() || $user->isCrm()) {
+            return $query;
+        }
+
+        if ($user->isSalesHead()) {
+            $teamIds = $user->getAllTeamMemberIds();
+            $query->where(function ($q) use ($teamIds, $user) {
+                $q->where('created_by', $user->id);
+
+                if (!empty($teamIds)) {
+                    $q->orWhereHas('activeAssignments', function ($assignmentQuery) use ($teamIds, $user) {
+                        $assignmentQuery->whereIn('assigned_to', array_merge([$user->id], $teamIds));
+                    });
+
+                    $q->orWhereHas('prospects', function ($prospectQuery) use ($teamIds) {
+                        $prospectQuery->whereIn('telecaller_id', $teamIds)
+                                      ->whereIn('verification_status', ['verified', 'approved']);
+                    });
+                }
+            });
+
+            return $query;
+        }
+
+        if ($user->isSalesManager()) {
+            $teamMemberIds = $user->teamMembers()->pluck('id')->toArray();
+
+            $query->where(function ($q) use ($user, $teamMemberIds) {
+                $q->where('created_by', $user->id)
+                  ->orWhereHas('activeAssignments', function ($assignmentQuery) use ($user) {
+                      $assignmentQuery->where('assigned_to', $user->id);
+                  });
+
+                if (!empty($teamMemberIds)) {
+                    $q->orWhereHas('prospects', function ($prospectQuery) use ($teamMemberIds, $user) {
+                        $prospectQuery->whereIn('telecaller_id', $teamMemberIds)
+                                      ->whereIn('verification_status', ['verified', 'approved'])
+                                      ->where('verified_by', $user->id);
+                    });
+                }
+            });
+        }
+
+        return $query;
+    }
+
+    /**
+     * Fetch a single lead ensuring the current user is allowed to use it.
+     */
+    private function getLeadForManager(User $user, int $leadId): ?Lead
+    {
+        return $this->buildLeadQueryForUser($user)
+            ->where('id', $leadId)
+            ->first();
+    }
+
+    /**
+     * Map lead budget to meeting budget range buckets.
+     */
+    private function mapBudgetRange(Lead $lead): string
+    {
+        $budgetValue = null;
+
+        if (!is_null($lead->budget_max)) {
+            $budgetValue = (float) $lead->budget_max;
+        } elseif (!is_null($lead->budget_min)) {
+            $budgetValue = (float) $lead->budget_min;
+        }
+
+        if (is_null($budgetValue)) {
+            return 'Under 50 Lac';
+        }
+
+        if ($budgetValue < 5000000) {
+            return 'Under 50 Lac';
+        } elseif ($budgetValue < 10000000) {
+            return '50 Lac – 1 Cr';
+        } elseif ($budgetValue < 20000000) {
+            return '1 Cr – 2 Cr';
+        } elseif ($budgetValue < 30000000) {
+            return '2 Cr – 3 Cr';
+        }
+
+        return 'Above 3 Cr';
+    }
+
+    /**
+     * Normalize lead property type to meeting allowed values.
+     */
+    private function mapPropertyType(?string $propertyType): string
+    {
+        if (!$propertyType) {
+            return 'Just Exploring';
+        }
+
+        $normalized = strtolower($propertyType);
+
+        if (str_contains($normalized, 'plot') || str_contains($normalized, 'villa')) {
+            return 'Plot/Villa';
+        }
+
+        if (str_contains($normalized, 'flat') || str_contains($normalized, 'apartment')) {
+            return 'Flat';
+        }
+
+        if (str_contains($normalized, 'commercial')) {
+            return 'Commercial';
+        }
+
+        return 'Just Exploring';
+    }
+
+    /**
+     * Create simplified meeting with auto-reminder
+     */
+    public function quickScheduleWithReminder(Request $request)
+    {
+        $user = $request->user();
+        
+        $validator = Validator::make($request->all(), [
+            'lead_id' => 'nullable|exists:leads,id',
+            'meeting_sequence' => 'required|integer|min:1',
+            'scheduled_at' => 'required|date',
+            'meeting_mode' => 'required|in:online,offline',
+            'meeting_link' => 'nullable|url|max:500',
+            'location' => 'nullable|string|max:255',
+            'reminder_enabled' => 'boolean',
+            'reminder_minutes' => 'integer|min:1',
+            'meeting_notes' => 'nullable|string',
+        ]);
+
+        // Custom validation: location required for offline, meeting_link optional for online
+        $validator->after(function ($validator) use ($request) {
+            if ($request->meeting_mode === 'offline' && empty($request->location)) {
+                $validator->errors()->add('location', 'Location is required for offline meetings.');
+            }
+        });
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $data = $request->only([
+                'lead_id',
+                'meeting_sequence',
+                'scheduled_at',
+                'meeting_mode',
+                'meeting_link',
+                'location',
+                'reminder_enabled',
+                'reminder_minutes',
+                'meeting_notes',
+            ]);
+
+            $meeting = $this->meetingService->createMeetingWithReminder($data, $user);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Meeting scheduled successfully',
+                'meeting' => $meeting
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to create meeting with reminder', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'user_id' => $user->id,
+                'request_data' => $request->all(),
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to schedule meeting',
+                'error' => $e->getMessage(),
+                'details' => config('app.debug') ? $e->getTraceAsString() : null
+            ], 500);
+        }
+    }
+
+    /**
+     * Complete pre-meeting call with action
+     */
+    public function completePreCall(Request $request, int $id)
+    {
+        $user = $request->user();
+        
+        $validator = Validator::make($request->all(), [
+            'action' => 'required|in:confirm,cancel,reschedule',
+            'notes' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $meeting = Meeting::findOrFail($id);
+            
+            $result = $this->meetingService->handlePreCallComplete(
+                $meeting,
+                $request->action,
+                $request->notes,
+                $user->id
+            );
+
+            return response()->json($result);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to complete pre-call', [
+                'error' => $e->getMessage(),
+                'meeting_id' => $id,
+                'user_id' => $user->id,
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to complete pre-call action',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Cancel meeting
+     */
+    public function cancelMeeting(Request $request, int $id)
+    {
+        $user = $request->user();
+        
+        $validator = Validator::make($request->all(), [
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $meeting = Meeting::findOrFail($id);
+            
+            $meeting->cancelMeeting($user->id, $request->reason ?? 'Cancelled by user');
+
+            return response()->json([
+                'message' => 'Meeting cancelled successfully',
+                'meeting' => $meeting->fresh()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to cancel meeting', [
+                'error' => $e->getMessage(),
+                'meeting_id' => $id,
+                'user_id' => $user->id,
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to cancel meeting',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get meeting history for a lead
+     */
+    public function getMeetingHistory(Request $request, int $leadId)
+    {
+        try {
+            $meetings = Meeting::where('lead_id', $leadId)
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $nextSequence = $this->meetingService->getLeadMeetingSequence($leadId);
+
+            return response()->json([
+                'meetings' => $meetings,
+                'next_sequence' => $nextSequence,
+                'total_meetings' => $meetings->count()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get meeting history', [
+                'error' => $e->getMessage(),
+                'lead_id' => $leadId,
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to get meeting history',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

@@ -53,7 +53,7 @@ class CreateTasksForExistingLeads extends Command
             // Check if task already exists
             $hasTask = false;
             
-            if (in_array($userRole, [\App\Models\Role::SALES_MANAGER, \App\Models\Role::SALES_EXECUTIVE])) {
+            if (in_array($userRole, [\App\Models\Role::SALES_MANAGER, \App\Models\Role::ASSISTANT_SALES_MANAGER])) {
                 // Check Task model - check for any existing task (not just pending)
                 $existingTask = Task::where('lead_id', $lead->id)
                     ->where('assigned_to', $assignedUser->id)
@@ -72,7 +72,7 @@ class CreateTasksForExistingLeads extends Command
                         'model' => 'Task',
                     ];
                 }
-            } elseif ($userRole === \App\Models\Role::TELECALLER) {
+            } elseif ($userRole === \App\Models\Role::SALES_EXECUTIVE) {
                 // Check TelecallerTask model - check for any existing task (not just pending)
                 $existingTask = TelecallerTask::where('lead_id', $lead->id)
                     ->where('assigned_to', $assignedUser->id)

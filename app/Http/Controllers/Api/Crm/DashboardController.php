@@ -105,7 +105,7 @@ class DashboardController extends Controller
 
             // Get all telecallers - always return all, even if no data
             $telecallers = User::whereHas('role', function($q) {
-                $q->where('slug', Role::TELECALLER);
+                $q->where('slug', Role::SALES_EXECUTIVE);
             })->get();
 
             // If no telecallers found, return empty array

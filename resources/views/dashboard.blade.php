@@ -2,7 +2,7 @@
 
 @section('title', 'Dashboard - Base CRM')
 @section('page-title', 'Dashboard')
-@section('page-subtitle', 'Welcome, ' . (auth()->user()->name ?? 'User') . ' (' . (auth()->user()->role->name ?? 'No Role') . ')')
+@section('page-subtitle', 'Welcome, ' . (auth()->user()->name ?? 'User') . ' (' . (auth()->user()->getDisplayRoleName() ?? 'No Role') . ')')
 
 @section('content')
     <div id="notification" class="fixed top-6 right-6 text-white px-5 py-3 rounded-lg shadow-lg z-50 hidden transform transition-all duration-300 translate-x-full" style="background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));">

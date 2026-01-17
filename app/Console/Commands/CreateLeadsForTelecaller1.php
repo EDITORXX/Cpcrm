@@ -46,9 +46,9 @@ class CreateLeadsForTelecaller1 extends Command
                 return Command::FAILURE;
             }
 
-            // Verify it's a telecaller
-            if (!$telecaller->isTelecaller()) {
-                $this->error("User '{$telecaller->name}' is not a telecaller!");
+            // Verify it's a sales executive
+            if (!$telecaller->isSalesExecutive()) {
+                $this->error("User '{$telecaller->name}' is not a sales executive!");
                 return Command::FAILURE;
             }
 
@@ -124,8 +124,8 @@ class CreateLeadsForTelecaller1 extends Command
                 }
 
                 // Manual fallback: Ensure task and CrmAssignment are created even if event fails
-                // Check if telecaller role is correct
-                if ($telecaller->role && $telecaller->role->slug === Role::TELECALLER) {
+                // Check if sales executive role is correct
+                if ($telecaller->role && $telecaller->role->slug === Role::SALES_EXECUTIVE) {
                     // Create CrmAssignment if not exists
                     $crmAssignment = CrmAssignment::firstOrCreate(
                         [

@@ -41,7 +41,7 @@ class TelecallerStatusController extends Controller
                 
                 // For telecallers, use TelecallerStatusService for detailed checks
                 // For other users, use UserStatusService for absent check only
-                if ($user->isTelecaller()) {
+                if ($user->isSalesExecutive()) {
                     $canReceive = $this->statusService->canReceiveAssignment($user->id);
                     $pendingCount = $this->statusService->getPendingLeadsCount($user->id);
                     $maxPendingLeads = $telecallerProfile?->max_pending_leads ?? 50;
@@ -62,7 +62,7 @@ class TelecallerStatusController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'role' => $user->role->name ?? '',
-                    'is_telecaller' => $user->isTelecaller(),
+                    'is_sales_executive' => $user->isSalesExecutive(),
                     'is_absent' => $isAbsent,
                     'absent_reason' => $userProfile?->absent_reason,
                     'absent_until' => $userProfile?->absent_until,

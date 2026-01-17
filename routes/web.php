@@ -324,6 +324,16 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['role:crm,admin,sales_head'])->prefix('crm')->name('crm.')->group(function () {
         Route::get('/verifications', [\App\Http\Controllers\Crm\VerificationController::class, 'index'])->name('verifications');
     });
+
+    // Finance Manager Routes
+    Route::middleware(['auth', 'role:finance_manager'])->prefix('finance-manager')->name('finance-manager.')->group(function () {
+        Route::get('/dashboard', function () {
+            return view('finance-manager.dashboard');
+        })->name('dashboard');
+        Route::get('/incentives', function () {
+            return view('finance-manager.incentives');
+        })->name('incentives');
+    });
     
     // Broadcast (Admin/CRM only)
     Route::middleware(['auth', 'role:admin,crm'])->group(function () {
@@ -522,7 +532,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/google-sheets/config', [\App\Http\Controllers\LeadImportController::class, 'saveGoogleSheetsConfig'])->name('google-sheets.config.save');
         Route::get('/google-sheets/configs', [\App\Http\Controllers\LeadImportController::class, 'getAllGoogleSheetsConfigs'])->name('google-sheets.configs');
         Route::delete('/google-sheets/config/{id}', [\App\Http\Controllers\LeadImportController::class, 'deleteGoogleSheetsConfig'])->name('google-sheets.config.delete');
-        
+        Route::post('/google-sheets/fetch-headers', [\App\Http\Controllers\LeadImportController::class, 'fetchSheetHeaders'])->name('google-sheets.fetch-headers');
+
         // Sync
         Route::post('/google-sheets/sync', [\App\Http\Controllers\LeadImportController::class, 'syncGoogleSheets'])->name('google-sheets.sync');
         

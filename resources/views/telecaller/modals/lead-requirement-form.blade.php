@@ -50,6 +50,24 @@
     padding: 24px;
 }
 
+/* Mobile responsiveness - prevent footer overlap */
+@media (max-width: 768px) {
+    #leadRequirementFormModal .modal-content {
+        max-height: calc(100vh - 150px) !important;
+        margin-bottom: 100px !important;
+        padding-bottom: 100px !important;
+    }
+    
+    #leadRequirementFormModal .modal-body {
+        padding-bottom: 100px !important;
+    }
+    
+    /* Ensure submit button is visible */
+    #leadRequirementFormModal button[type="submit"] {
+        margin-bottom: 80px !important;
+    }
+}
+
 .spinner {
     border: 3px solid #f3f3f3;
     border-top: 3px solid #205A44;

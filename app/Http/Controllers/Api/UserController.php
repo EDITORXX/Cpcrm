@@ -21,6 +21,13 @@ class UserController extends Controller
 
         $query = User::with(['role', 'manager']);
 
+        // Hide admin users from CRM view
+        if ($user->isCrm() && !$user->isAdmin()) {
+            $query->whereHas('role', function($q) {
+                $q->where('slug', '!=', Role::ADMIN);
+            });
+        }
+
         if ($request->has('role')) {
             $query->whereHas('role', function ($q) use ($request) {
                 $q->where('slug', $request->role);
@@ -57,6 +64,14 @@ class UserController extends Controller
             'manager_id' => 'nullable|exists:users,id',
             'is_active' => 'boolean',
         ]);
+
+        // Validate role_id - CRM users cannot create Admin or CRM users
+        if ($user->isCrm() && !$user->isAdmin()) {
+            $role = Role::find($validated['role_id']);
+            if ($role && in_array($role->slug, [Role::ADMIN, Role::CRM])) {
+                return response()->json(['message' => 'CRM users cannot create Admin or CRM users'], 403);
+            }
+        }
 
         $validated['password'] = Hash::make($validated['password']);
 
@@ -103,6 +118,14 @@ class UserController extends Controller
         // Only admins can change roles
         if (isset($validated['role_id']) && !$currentUser->canManageUsers()) {
             unset($validated['role_id']);
+        } else if (isset($validated['role_id'])) {
+            // CRM users cannot assign Admin or CRM roles
+            if ($currentUser->isCrm() && !$currentUser->isAdmin()) {
+                $role = Role::find($validated['role_id']);
+                if ($role && in_array($role->slug, [Role::ADMIN, Role::CRM])) {
+                    return response()->json(['message' => 'CRM users cannot assign Admin or CRM roles'], 403);
+                }
+            }
         }
 
         $user->update($validated);
@@ -114,8 +137,9 @@ class UserController extends Controller
     {
         $currentUser = request()->user();
 
-        if (!$currentUser->canManageUsers()) {
-            return response()->json(['message' => 'Forbidden'], 403);
+        // Only Admin can delete users
+        if (!$currentUser->isAdmin()) {
+            return response()->json(['message' => 'Only administrators can delete users'], 403);
         }
 
         if ($currentUser->id === $user->id) {

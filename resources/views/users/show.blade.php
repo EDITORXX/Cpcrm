@@ -67,7 +67,7 @@
                         <dt class="text-sm font-medium text-gray-500">Role</dt>
                         <dd class="mt-1 text-sm text-gray-900">
                             <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                {{ $user->role->name }}
+                                {{ $user->getDisplayRoleName() }}
                             </span>
                         </dd>
                     </div>
@@ -117,7 +117,7 @@
                                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{{ $member->email }}</td>
                                     <td class="px-4 py-3 whitespace-nowrap">
                                         <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                            {{ $member->role->name }}
+                                            {{ $member->getDisplayRoleName() }}
                                         </span>
                                     </td>
                                     <td class="px-4 py-3 whitespace-nowrap">

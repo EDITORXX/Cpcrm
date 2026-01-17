@@ -102,7 +102,7 @@ class CreateAllMissingTasks extends Command
                 continue;
             }
             
-            if ($userRole === \App\Models\Role::TELECALLER) {
+            if ($userRole === \App\Models\Role::SALES_EXECUTIVE) {
                 $existingTask = TelecallerTask::where('lead_id', $lead->id)
                     ->where('assigned_to', $assignedUser->id)
                     ->where('task_type', 'calling')
@@ -118,7 +118,7 @@ class CreateAllMissingTasks extends Command
                         'model' => 'TelecallerTask',
                     ];
                 }
-            } elseif (in_array($userRole, [\App\Models\Role::SALES_EXECUTIVE])) {
+            } elseif (in_array($userRole, [\App\Models\Role::ASSISTANT_SALES_MANAGER])) {
                 $existingTask = Task::where('lead_id', $lead->id)
                     ->where('assigned_to', $assignedUser->id)
                     ->where('type', 'phone_call')

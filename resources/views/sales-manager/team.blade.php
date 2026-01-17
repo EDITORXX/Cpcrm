@@ -87,6 +87,16 @@
         color: #9ca3af;
     }
     
+    /* Hide empty/loading states on mobile */
+    @media (max-width: 767px) {
+        .loading {
+            display: none !important;
+        }
+        .empty-state {
+            display: none !important;
+        }
+    }
+    
     @media (max-width: 768px) {
         .grid.grid-cols-1.md\:grid-cols-4 {
             grid-template-columns: 1fr;
@@ -275,7 +285,12 @@
                 displayTeamMembers(data.team_members);
             } else {
                 console.warn('No team members found or empty array');
-                showNoMembers();
+                // Hide empty state on mobile
+                if (window.innerWidth <= 767) {
+                    document.getElementById('teamMembersContainer').innerHTML = '';
+                } else {
+                    showNoMembers();
+                }
             }
         } catch (error) {
             console.error('Error loading team data:', error);
@@ -289,6 +304,11 @@
         const container = document.getElementById('teamMembersContainer');
         
         if (!teamMembers || teamMembers.length === 0) {
+            // Hide empty state on mobile
+            if (window.innerWidth <= 767) {
+                container.innerHTML = '';
+                return;
+            }
             showNoMembers();
             return;
         }
@@ -343,8 +363,13 @@
     // Show no members message
     function showNoMembers() {
         const container = document.getElementById('teamMembersContainer');
+        // Hide empty state on mobile
+        if (window.innerWidth <= 767) {
+            container.innerHTML = '';
+            return;
+        }
         container.innerHTML = `
-            <div class="text-center py-12">
+            <div class="text-center py-12 empty-state">
                 <i class="fas fa-users text-gray-300 text-6xl mb-4"></i>
                 <h3 class="text-xl font-semibold text-gray-700 mb-2">No Team Members</h3>
                 <p class="text-gray-500">You don't have any team members assigned yet.</p>
@@ -356,8 +381,13 @@
     // Show error message
     function showError() {
         const container = document.getElementById('teamMembersContainer');
+        // Hide error on mobile - show nothing
+        if (window.innerWidth <= 767) {
+            container.innerHTML = '';
+            return;
+        }
         container.innerHTML = `
-            <div class="text-center py-12">
+            <div class="text-center py-12 empty-state">
                 <i class="fas fa-exclamation-triangle text-red-300 text-6xl mb-4"></i>
                 <h3 class="text-xl font-semibold text-gray-700 mb-2">Error Loading Team</h3>
                 <p class="text-gray-500">Unable to load team data. Please try refreshing the page.</p>

@@ -347,6 +347,14 @@
             <i class="fas fa-trophy mr-2"></i>Closer Requests
             <span class="badge badge-pending" id="closersCount">0</span>
         </button>
+        <button class="tab" onclick="switchTab('closing-verification', event)">
+            <i class="fas fa-file-contract mr-2"></i>Closing Verification
+            <span class="badge badge-pending" id="closingVerificationCount">0</span>
+        </button>
+        <button class="tab" onclick="switchTab('verified', event)">
+            <i class="fas fa-check-circle mr-2"></i>Verified
+            <span class="badge badge-verified" id="verifiedCount">0</span>
+        </button>
     </div>
 
     <!-- Prospects Tab (Read-only for CRM/Admin) -->
@@ -391,6 +399,26 @@
             <div class="empty-state">
                 <i class="fas fa-spinner fa-spin"></i>
                 <p>Loading closer requests...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Closing Verification Tab -->
+    <div id="closingVerificationTab" class="tab-content" style="display: none;">
+        <div id="closingVerificationContainer">
+            <div class="empty-state">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading closing verification requests...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Verified Tab -->
+    <div id="verifiedTab" class="tab-content" style="display: none;">
+        <div id="verifiedContainer">
+            <div class="empty-state">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading verified items...</p>
             </div>
         </div>
     </div>
@@ -442,17 +470,20 @@
 <!-- Verify Closer Modal -->
 <div id="verifyCloserModal" class="modal">
     <div class="modal-content">
-        <h3 class="text-xl font-bold mb-4">Verify Closer</h3>
+        <h3 class="text-xl font-bold mb-4">Verify Closer - Incentive Amount</h3>
         <div class="form-group">
-            <label for="verifyCloserLeadStatus">Lead Status <span style="color: #ef4444;">*</span></label>
-            <select id="verifyCloserLeadStatus" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Select Lead Status</option>
-                <option value="hot">Hot</option>
-                <option value="warm">Warm</option>
-                <option value="cold">Cold</option>
-                <option value="junk">Junk</option>
-            </select>
-            <small style="color: #6b7280; font-size: 12px;">Classify this lead based on their interest level.</small>
+            <label for="verifyCloserCurrentAmount">Current Incentive Amount</label>
+            <div style="background: #f3f4f6; padding: 12px; border-radius: 8px; font-size: 18px; font-weight: 600; color: #059669; text-align: center;" id="verifyCloserCurrentAmount">
+                ₹0.00
+            </div>
+            <small style="color: #6b7280; font-size: 12px;">Original incentive amount requested by user.</small>
+        </div>
+        <div class="form-group">
+            <label for="verifyCloserAdjustedAmount">Adjusted Incentive Amount <span style="color: #ef4444;">*</span></label>
+            <input type="number" id="verifyCloserAdjustedAmount" step="0.01" min="0" placeholder="Enter adjusted amount" required 
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                style="font-size: 16px; font-weight: 600;">
+            <small style="color: #6b7280; font-size: 12px;">You can increase or decrease the incentive amount. This will be reflected on the user's dashboard.</small>
         </div>
         <div class="form-group">
             <label for="verifyCloserNotes">Notes (Optional)</label>
@@ -626,6 +657,8 @@
         document.getElementById('meetingsTab').style.display = tab === 'meetings' ? 'block' : 'none';
         document.getElementById('siteVisitsTab').style.display = tab === 'site-visits' ? 'block' : 'none';
         document.getElementById('closersTab').style.display = tab === 'closers' ? 'block' : 'none';
+        document.getElementById('closingVerificationTab').style.display = tab === 'closing-verification' ? 'block' : 'none';
+        document.getElementById('verifiedTab').style.display = tab === 'verified' ? 'block' : 'none';
         
         if (evt && evt.target) {
             evt.target.closest('.tab').classList.add('active');
@@ -636,7 +669,9 @@
                 if ((tab === 'prospects' && tabText.includes('prospect')) ||
                     (tab === 'meetings' && tabText.includes('meeting')) ||
                     (tab === 'site-visits' && tabText.includes('site')) ||
-                    (tab === 'closers' && tabText.includes('closer'))) {
+                    (tab === 'closers' && tabText.includes('closer')) ||
+                    (tab === 'closing-verification' && tabText.includes('closing')) ||
+                    (tab === 'verified' && tabText.includes('verified'))) {
                     t.classList.add('active');
                 }
             });
@@ -651,6 +686,10 @@
             loadSiteVisits();
         } else if (tab === 'closers') {
             loadClosers();
+        } else if (tab === 'closing-verification') {
+            loadClosingVerifications();
+        } else if (tab === 'verified') {
+            loadVerifiedItems();
         }
     }
 
@@ -797,10 +836,13 @@
 
         try {
             // Get pending meetings from admin endpoint - only pending verification
-            const response = await fetch('{{ url("/api/admin/verifications/pending") }}', {
+            // Add timestamp to prevent caching
+            const timestamp = new Date().getTime();
+            const response = await fetch(`{{ url("/api/admin/verifications/pending") }}?t=${timestamp}`, {
                 headers: {
                     'Authorization': `Bearer ${getToken()}`,
                     'Accept': 'application/json',
+                    'Cache-Control': 'no-cache',
                 },
             });
 
@@ -970,19 +1012,25 @@
     async function verifyMeeting(id) {
         if (!confirm('Are you sure you want to verify this meeting?')) return;
 
-        const result = await apiCall(`/meetings/${id}/verify`, {
-            method: 'POST',
-        });
+        try {
+            const result = await apiCall(`/meetings/${id}/verify`, {
+                method: 'POST',
+            });
 
-        if (result && result.success) {
-            if (typeof showNotification === 'function') {
-                showNotification('Meeting verified successfully!', 'success', 3000);
+            if (result && result.success) {
+                if (typeof showNotification === 'function') {
+                    showNotification('Meeting verified successfully!', 'success', 3000);
+                } else {
+                    alert('Meeting verified successfully!');
+                }
+                // Force refresh by adding timestamp to prevent caching
+                await loadMeetings();
             } else {
-                alert('Meeting verified successfully!');
+                alert(result.message || 'Failed to verify meeting');
             }
-            loadMeetings();
-        } else {
-            alert(result.message || 'Failed to verify meeting');
+        } catch (error) {
+            console.error('Error verifying meeting:', error);
+            alert('An error occurred while verifying the meeting. Please try again.');
         }
     }
 
@@ -1813,6 +1861,11 @@
                             <i class="fas fa-tag" style="color: #6b7280; width: 20px;"></i>
                             <span style="color: #374151;">Budget: ${visit.budget_range}</span>
                         </div>` : ''}
+                        ${visit.incentive_amount ? `
+                        <div class="card-detail-row">
+                            <i class="fas fa-money-bill-wave" style="color: #059669; width: 20px;"></i>
+                            <span style="color: #374151; font-weight: 600;">Incentive Amount: <span style="color: #059669;">₹${parseFloat(visit.incentive_amount).toFixed(2)}</span></span>
+                        </div>` : ''}
                         ${visit.visit_notes ? `
                         <div class="card-detail-row" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #f3f4f6;">
                             <strong style="color: #374151;">Visit Notes:</strong>
@@ -1849,11 +1902,33 @@
     }
 
     let currentVerifyCloserId = null;
+    let currentCloserData = null;
     
-    function showVerifyCloserModal(id) {
+    async function showVerifyCloserModal(id) {
         currentVerifyCloserId = id;
+        
+        // Fetch closer data to get current incentive amount
+        try {
+            const response = await fetch('{{ url("/api/admin/verifications/pending-closers") }}', {
+                headers: {
+                    'Authorization': `Bearer ${getToken()}`,
+                    'Accept': 'application/json',
+                },
+            });
+            const data = await response.json();
+            const closers = data?.data || [];
+            currentCloserData = closers.find(c => c.id === id);
+            
+            if (currentCloserData) {
+                const currentAmount = parseFloat(currentCloserData.incentive_amount || 0);
+                document.getElementById('verifyCloserCurrentAmount').textContent = `₹${currentAmount.toFixed(2)}`;
+                document.getElementById('verifyCloserAdjustedAmount').value = currentAmount.toFixed(2);
+            }
+        } catch (error) {
+            console.error('Error loading closer data:', error);
+        }
+        
         document.getElementById('verifyCloserModal').classList.add('show');
-        document.getElementById('verifyCloserLeadStatus').value = '';
         document.getElementById('verifyCloserNotes').value = '';
     }
     
@@ -1872,18 +1947,18 @@
         // Otherwise use currentVerifyCloserId from modal
         if (!currentVerifyCloserId) return;
         
-        const leadStatus = document.getElementById('verifyCloserLeadStatus').value;
+        const adjustedAmount = parseFloat(document.getElementById('verifyCloserAdjustedAmount').value);
         const notes = document.getElementById('verifyCloserNotes').value.trim();
         
-        if (!leadStatus) {
-            alert('Please select a lead status');
+        if (!adjustedAmount || adjustedAmount < 0) {
+            alert('Please enter a valid incentive amount');
             return;
         }
 
         const result = await apiCall(`/site-visits/${currentVerifyCloserId}/verify-closer`, {
             method: 'POST',
             body: JSON.stringify({ 
-                lead_status: leadStatus,
+                adjusted_amount: adjustedAmount,
                 notes: notes 
             }),
         });
@@ -1919,6 +1994,258 @@
             'junk': 'badge-cancelled'
         };
         return classes[status] || 'badge-pending';
+    }
+
+    async function loadClosingVerifications() {
+        const container = document.getElementById('closingVerificationContainer');
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>';
+
+        try {
+            // Get pending closing verification requests
+            const response = await fetch('{{ url("/api/site-visits") }}?closing_verification_status=pending', {
+                headers: {
+                    'Authorization': `Bearer ${getToken()}`,
+                    'Accept': 'application/json',
+                },
+            });
+            const data = await response.json();
+            const visits = data?.data || [];
+
+            document.getElementById('closingVerificationCount').textContent = visits.length;
+
+            if (visits.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle"></i>
+                        <h3 style="font-size: 18px; font-weight: 600; color: #333; margin: 16px 0 8px;">No Pending Closing Verifications</h3>
+                        <p>All closing requests have been verified.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const html = visits.map(visit => {
+                const kycDocs = Array.isArray(visit.kyc_documents) ? visit.kyc_documents : [];
+                const proofPhotos = Array.isArray(visit.closer_request_proof_photos) ? visit.closer_request_proof_photos : [];
+                
+                return `
+                <div class="verification-card">
+                    <div class="verification-info" style="flex: 1;">
+                        <h3 style="font-size: 18px; font-weight: 600; color: #063A1C; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb;">${visit.customer_name || visit.lead?.name || 'N/A'}</h3>
+                        
+                        <div style="background: #f0f9ff; padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid #0ea5e9;">
+                            <h4 style="font-size: 14px; font-weight: 600; color: #0c4a6e; margin-bottom: 8px;">KYC Details</h4>
+                            <div class="card-detail-row">
+                                <i class="fas fa-user" style="color: #6b7280; width: 20px;"></i>
+                                <span style="color: #374151;"><strong>Customer:</strong> ${visit.customer_name || 'N/A'}</span>
+                            </div>
+                            <div class="card-detail-row">
+                                <i class="fas fa-user-tag" style="color: #6b7280; width: 20px;"></i>
+                                <span style="color: #374151;"><strong>Nominee:</strong> ${visit.nominee_name || 'N/A'}</span>
+                            </div>
+                            ${visit.second_customer_name ? `
+                            <div class="card-detail-row">
+                                <i class="fas fa-users" style="color: #6b7280; width: 20px;"></i>
+                                <span style="color: #374151;"><strong>2nd Customer:</strong> ${visit.second_customer_name}</span>
+                            </div>` : ''}
+                            <div class="card-detail-row">
+                                <i class="fas fa-calendar" style="color: #6b7280; width: 20px;"></i>
+                                <span style="color: #374151;"><strong>DOB:</strong> ${visit.customer_dob ? new Date(visit.customer_dob).toLocaleDateString('en-IN') : 'N/A'}</span>
+                            </div>
+                            <div class="card-detail-row">
+                                <i class="fas fa-id-card" style="color: #6b7280; width: 20px;"></i>
+                                <span style="color: #374151;"><strong>PAN:</strong> ${visit.pan_card || 'N/A'}</span>
+                            </div>
+                            <div class="card-detail-row">
+                                <i class="fas fa-address-card" style="color: #6b7280; width: 20px;"></i>
+                                <span style="color: #374151;"><strong>Aadhaar:</strong> ${visit.aadhaar_card_no ? visit.aadhaar_card_no.substring(0, 4) + '****' + visit.aadhaar_card_no.substring(8) : 'N/A'}</span>
+                            </div>
+                            ${kycDocs.length > 0 ? `
+                            <div class="card-detail-row" style="margin-top: 8px;">
+                                <i class="fas fa-file" style="color: #6b7280; width: 20px;"></i>
+                                <span style="color: #374151;"><strong>KYC Documents:</strong> ${kycDocs.length} file(s)</span>
+                            </div>` : ''}
+                        </div>
+
+                        <div class="card-detail-row">
+                            <i class="fas fa-phone" style="color: #6b7280; width: 20px;"></i>
+                            <span style="color: #374151;">${visit.phone || visit.lead?.phone || 'N/A'}</span>
+                        </div>
+                        <div class="card-detail-row">
+                            <i class="fas fa-calendar" style="color: #6b7280; width: 20px;"></i>
+                            <span style="color: #374151;">Scheduled: ${new Date(visit.scheduled_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <div class="card-detail-row">
+                            <i class="fas fa-user" style="color: #6b7280; width: 20px;"></i>
+                            <span style="color: #374151;">Requested by: ${visit.creator?.name || 'N/A'}</span>
+                        </div>
+                        ${visit.incentive_amount ? `
+                        <div class="card-detail-row">
+                            <i class="fas fa-money-bill-wave" style="color: #059669; width: 20px;"></i>
+                            <span style="color: #374151; font-weight: 600;">Incentive Amount: <span style="color: #059669;">₹${parseFloat(visit.incentive_amount).toFixed(2)}</span></span>
+                        </div>` : ''}
+                        ${proofPhotos.length > 0 ? `
+                        <div class="card-detail-row" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #f3f4f6;">
+                            <i class="fas fa-images" style="color: #6b7280; width: 20px;"></i>
+                            <span style="color: #374151;">${proofPhotos.length} Proof Photo${proofPhotos.length > 1 ? 's' : ''}</span>
+                        </div>` : ''}
+                    </div>
+                    <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 8px;">
+                        <button class="btn-view-details" onclick="showClosingVerificationDetails(${visit.id})">
+                            <i class="fas fa-eye mr-2"></i>View KYC Details & Documents
+                        </button>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-success" style="flex: 1; padding: 8px 12px; font-size: 13px;" onclick="verifyClosing(${visit.id})">
+                                <i class="fas fa-check mr-2"></i>Verify Closing
+                            </button>
+                            <button class="btn btn-danger" style="flex: 1; padding: 8px 12px; font-size: 13px;" onclick="showRejectClosingModal(${visit.id})">
+                                <i class="fas fa-times mr-2"></i>Reject
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            container.innerHTML = `<div class="prospects-grid">${html}</div>`;
+        } catch (error) {
+            console.error('Error loading closing verifications:', error);
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Error loading closing verification requests</p></div>';
+        }
+    }
+
+    async function verifyClosing(siteVisitId) {
+        const notes = prompt('Enter verification notes (optional):');
+        if (notes === null) return; // User cancelled
+
+        const result = await apiCall(`/site-visits/${siteVisitId}/verify-closing`, {
+            method: 'POST',
+            body: JSON.stringify({ notes: notes || '' }),
+        });
+
+        if (result && result.success) {
+            if (typeof showNotification === 'function') {
+                showNotification('Closing verified successfully! Users can now request incentives.', 'success', 3000);
+            } else {
+                alert('Closing verified successfully!');
+            }
+            loadClosingVerifications();
+        } else {
+            alert(result.message || 'Failed to verify closing');
+        }
+    }
+
+    function showRejectClosingModal(siteVisitId) {
+        const reason = prompt('Enter rejection reason:');
+        if (!reason || reason.trim() === '') {
+            alert('Rejection reason is required');
+            return;
+        }
+
+        rejectClosing(siteVisitId, reason.trim());
+    }
+
+    async function rejectClosing(siteVisitId, reason) {
+        const result = await apiCall(`/site-visits/${siteVisitId}/reject-closing`, {
+            method: 'POST',
+            body: JSON.stringify({ reason: reason }),
+        });
+
+        if (result && result.success) {
+            if (typeof showNotification === 'function') {
+                showNotification('Closing rejected successfully.', 'success', 3000);
+            } else {
+                alert('Closing rejected successfully.');
+            }
+            loadClosingVerifications();
+        } else {
+            alert(result.message || 'Failed to reject closing');
+        }
+    }
+
+    async function showClosingVerificationDetails(siteVisitId) {
+        // Fetch full details and show in modal
+        try {
+            const response = await fetch(`{{ url("/api/site-visits") }}/${siteVisitId}`, {
+                headers: {
+                    'Authorization': `Bearer ${getToken()}`,
+                    'Accept': 'application/json',
+                },
+            });
+            const result = await response.json();
+            const visit = result?.data || result;
+
+            if (!visit) {
+                alert('Failed to load details');
+                return;
+            }
+
+            const kycDocs = Array.isArray(visit.kyc_documents) ? visit.kyc_documents : [];
+            const proofPhotos = Array.isArray(visit.closer_request_proof_photos) ? visit.closer_request_proof_photos : [];
+
+            let kycDocsHtml = '';
+            if (kycDocs.length > 0) {
+                kycDocsHtml = '<div style="margin-top: 16px;"><strong>KYC Documents:</strong><div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 8px;">';
+                kycDocs.forEach(doc => {
+                    const docUrl = doc.startsWith('http') ? doc : `{{ asset('storage') }}/${doc}`;
+                    const isPdf = doc.toLowerCase().endsWith('.pdf');
+                    kycDocsHtml += `
+                        <div class="photo-item" onclick="window.open('${docUrl}', '_blank')">
+                            ${isPdf ? 
+                                `<div style="background: #f3f4f6; padding: 20px; text-align: center; border-radius: 8px;"><i class="fas fa-file-pdf" style="font-size: 48px; color: #ef4444;"></i></div>` :
+                                `<img src="${docUrl}" alt="KYC Document" style="border-radius: 8px;">`
+                            }
+                        </div>
+                    `;
+                });
+                kycDocsHtml += '</div></div>';
+            }
+
+            let proofPhotosHtml = '';
+            if (proofPhotos.length > 0) {
+                proofPhotosHtml = '<div style="margin-top: 16px;"><strong>Proof Photos:</strong><div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 8px;">';
+                proofPhotos.forEach(photo => {
+                    const photoUrl = photo.startsWith('http') ? photo : `{{ asset('storage') }}/${photo}`;
+                    proofPhotosHtml += `
+                        <div class="photo-item" onclick="window.open('${photoUrl}', '_blank')">
+                            <img src="${photoUrl}" alt="Proof Photo" style="border-radius: 8px;">
+                        </div>
+                    `;
+                });
+                proofPhotosHtml += '</div></div>';
+            }
+
+            const detailsHtml = `
+                <div style="max-height: 80vh; overflow-y: auto;">
+                    <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 20px; color: #063A1C;">Closing Verification Details</h3>
+                    
+                    <div style="background: #f0f9ff; padding: 16px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #0ea5e9;">
+                        <h4 style="font-size: 16px; font-weight: 600; color: #0c4a6e; margin-bottom: 12px;">Customer Information</h4>
+                        <p><strong>Customer Name:</strong> ${visit.customer_name || 'N/A'}</p>
+                        <p><strong>Nominee Name:</strong> ${visit.nominee_name || 'N/A'}</p>
+                        ${visit.second_customer_name ? `<p><strong>Second Customer:</strong> ${visit.second_customer_name}</p>` : ''}
+                        <p><strong>Date of Birth:</strong> ${visit.customer_dob ? new Date(visit.customer_dob).toLocaleDateString('en-IN') : 'N/A'}</p>
+                        <p><strong>PAN Card:</strong> ${visit.pan_card || 'N/A'}</p>
+                        <p><strong>Aadhaar Card:</strong> ${visit.aadhaar_card_no || 'N/A'}</p>
+                    </div>
+
+                    ${kycDocsHtml}
+                    ${proofPhotosHtml}
+
+                    ${visit.visit_notes ? `
+                    <div style="margin-top: 16px;">
+                        <strong>Visit Notes:</strong>
+                        <p style="color: #6b7280; margin-top: 8px;">${visit.visit_notes}</p>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+
+            showDetailsModalContent(detailsHtml);
+        } catch (error) {
+            console.error('Error loading closing verification details:', error);
+            alert('Failed to load details');
+        }
     }
     
     // Load counts for all tabs on page load
@@ -1991,6 +2318,23 @@
             } catch (e) {
                 console.error('Error loading closers count:', e);
             }
+            
+            // Load verified items count
+            try {
+                const verifiedResponse = await fetch('{{ url("/api/admin/verifications/verified") }}', {
+                    headers: {
+                        'Authorization': `Bearer ${getToken()}`,
+                        'Accept': 'application/json',
+                    },
+                });
+                if (verifiedResponse.ok) {
+                    const verifiedData = await verifiedResponse.json();
+                    const verifiedCount = verifiedData.total_count || (verifiedData.meetings?.length || 0) + (verifiedData.site_visits?.length || 0) + (verifiedData.closers?.length || 0);
+                    document.getElementById('verifiedCount').textContent = verifiedCount;
+                }
+            } catch (e) {
+                console.error('Error loading verified count:', e);
+            }
 
             // Load prospects count if not already loaded
             if (!isProspectsActive) {
@@ -2022,6 +2366,243 @@
             } else {
                 loadMeetings();
             }
+        }
+    }
+
+    async function loadVerifiedItems() {
+        const container = document.getElementById('verifiedContainer');
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading verified items...</p></div>';
+
+        try {
+            const timestamp = new Date().getTime();
+            const response = await fetch(`{{ url("/api/admin/verifications/verified") }}?t=${timestamp}`, {
+                headers: {
+                    'Authorization': `Bearer ${getToken()}`,
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            const meetings = data.meetings || [];
+            const siteVisits = data.site_visits || [];
+            const closers = data.closers || [];
+            const totalCount = data.total_count || (meetings.length + siteVisits.length + closers.length);
+
+            document.getElementById('verifiedCount').textContent = totalCount;
+
+            if (totalCount === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle"></i>
+                        <h3 style="font-size: 18px; font-weight: 600; color: #333; margin: 16px 0 8px;">No Verified Items</h3>
+                        <p>No verified meetings, site visits, or closers found.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+
+            // Verified Meetings Section
+            if (meetings.length > 0) {
+                html += `
+                    <div style="margin-bottom: 30px;">
+                        <h2 style="font-size: 20px; font-weight: 600; color: #063A1C; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #10b981;">
+                            <i class="fas fa-handshake mr-2" style="color: #10b981;"></i>Verified Meetings
+                            <span class="badge badge-verified" style="margin-left: 12px;">${meetings.length}</span>
+                        </h2>
+                        <div class="prospects-grid">
+                            ${meetings.map(meeting => {
+                                const verifiedDate = meeting.verified_at ? new Date(meeting.verified_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
+                                return `
+                                <div class="verification-card verified">
+                                    <div class="verification-info" style="flex: 1;">
+                                        <h3 style="font-size: 18px; font-weight: 600; color: #063A1C; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb;">
+                                            ${meeting.customer_name || 'N/A'}
+                                            <span class="badge badge-verified" style="margin-left: 8px;">VERIFIED</span>
+                                        </h3>
+                                        <div class="card-detail-row">
+                                            <i class="fas fa-phone" style="color: #6b7280; width: 20px;"></i>
+                                            <span style="color: #374151;">${meeting.phone || 'N/A'}</span>
+                                        </div>
+                                        <div class="card-detail-row">
+                                            <i class="fas fa-calendar" style="color: #6b7280; width: 20px;"></i>
+                                            <span style="color: #374151;">Scheduled: ${new Date(meeting.scheduled_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                        <div class="card-detail-row">
+                                            <i class="fas fa-check-circle" style="color: #10b981; width: 20px;"></i>
+                                            <span style="color: #374151;">Verified: ${verifiedDate}</span>
+                                        </div>
+                                        ${meeting.verifiedBy ? `
+                                        <div class="card-detail-row">
+                                            <i class="fas fa-user-check" style="color: #6b7280; width: 20px;"></i>
+                                            <span style="color: #374151;">Verified by: ${meeting.verifiedBy.name}</span>
+                                        </div>
+                                        ` : ''}
+                                        ${meeting.budget_range ? `
+                                        <div class="card-detail-row">
+                                            <i class="fas fa-tag" style="color: #6b7280; width: 20px;"></i>
+                                            <span style="color: #374151;">Budget: ${meeting.budget_range}</span>
+                                        </div>
+                                        ` : ''}
+                                        ${meeting.property_type ? `
+                                        <div class="card-detail-row">
+                                            <i class="fas fa-building" style="color: #6b7280; width: 20px;"></i>
+                                            <span style="color: #374151;">Property: ${meeting.property_type}</span>
+                                        </div>
+                                        ` : ''}
+                                    </div>
+                                    <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+                                        <button class="btn-view-details" onclick="showDetailsModal('meeting', ${meeting.id})">
+                                            <i class="fas fa-eye mr-2"></i>View Details
+                                        </button>
+                                    </div>
+                                </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Verified Site Visits Section
+            if (siteVisits.length > 0) {
+                html += `
+                    <div style="margin-bottom: 30px;">
+                        <h2 style="font-size: 20px; font-weight: 600; color: #063A1C; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #10b981;">
+                            <i class="fas fa-map-marker-alt mr-2" style="color: #10b981;"></i>Verified Site Visits
+                            <span class="badge badge-verified" style="margin-left: 12px;">${siteVisits.length}</span>
+                        </h2>
+                        <div class="prospects-grid">
+                            ${siteVisits.map(visit => {
+                                const verifiedDate = visit.verified_at ? new Date(visit.verified_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
+                                return `
+                                <div class="verification-card verified">
+                                    <div class="verification-info" style="flex: 1;">
+                                        <h3 style="font-size: 18px; font-weight: 600; color: #063A1C; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb;">
+                                            ${visit.customer_name || 'N/A'}
+                                            <span class="badge badge-verified" style="margin-left: 8px;">VERIFIED</span>
+                                        </h3>
+                                        <div class="card-detail-row">
+                                            <i class="fas fa-phone" style="color: #6b7280; width: 20px;"></i>
+                                            <span style="color: #374151;">${visit.phone || 'N/A'}</span>
+                                        </div>
+                                        <div class="card-detail-row">
+                                            <i class="fas fa-calendar" style="color: #6b7280; width: 20px;"></i>
+                                            <span style="color: #374151;">Scheduled: ${new Date(visit.scheduled_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                        <div class="card-detail-row">
+                                            <i class="fas fa-check-circle" style="color: #10b981; width: 20px;"></i>
+                                            <span style="color: #374151;">Verified: ${verifiedDate}</span>
+                                        </div>
+                                        ${visit.verifiedBy ? `
+                                        <div class="card-detail-row">
+                                            <i class="fas fa-user-check" style="color: #6b7280; width: 20px;"></i>
+                                            <span style="color: #374151;">Verified by: ${visit.verifiedBy.name}</span>
+                                        </div>
+                                        ` : ''}
+                                        ${visit.property_name ? `
+                                        <div class="card-detail-row">
+                                            <i class="fas fa-building" style="color: #6b7280; width: 20px;"></i>
+                                            <span style="color: #374151;">Property: ${visit.property_name}</span>
+                                        </div>
+                                        ` : ''}
+                                        ${visit.budget_range ? `
+                                        <div class="card-detail-row">
+                                            <i class="fas fa-tag" style="color: #6b7280; width: 20px;"></i>
+                                            <span style="color: #374151;">Budget: ${visit.budget_range}</span>
+                                        </div>
+                                        ` : ''}
+                                    </div>
+                                    <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+                                        <button class="btn-view-details" onclick="showDetailsModal('site-visit', ${visit.id})">
+                                            <i class="fas fa-eye mr-2"></i>View Details
+                                        </button>
+                                    </div>
+                                </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Verified Closers Section
+            if (closers.length > 0) {
+                html += `
+                    <div style="margin-bottom: 30px;">
+                        <h2 style="font-size: 20px; font-weight: 600; color: #063A1C; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #10b981;">
+                            <i class="fas fa-trophy mr-2" style="color: #10b981;"></i>Verified Closers
+                            <span class="badge badge-verified" style="margin-left: 12px;">${closers.length}</span>
+                        </h2>
+                        <div class="prospects-grid">
+                            ${closers.map(closer => {
+                                const verifiedDate = closer.closer_verified_at ? new Date(closer.closer_verified_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : (closer.verified_at ? new Date(closer.verified_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A');
+                                return `
+                                <div class="verification-card verified">
+                                    <div class="verification-info" style="flex: 1;">
+                                        <h3 style="font-size: 18px; font-weight: 600; color: #063A1C; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb;">
+                                            ${closer.customer_name || 'N/A'}
+                                            <span class="badge badge-verified" style="margin-left: 8px;">VERIFIED CLOSER</span>
+                                        </h3>
+                                        <div class="card-detail-row">
+                                            <i class="fas fa-phone" style="color: #6b7280; width: 20px;"></i>
+                                            <span style="color: #374151;">${closer.phone || 'N/A'}</span>
+                                        </div>
+                                        <div class="card-detail-row">
+                                            <i class="fas fa-calendar" style="color: #6b7280; width: 20px;"></i>
+                                            <span style="color: #374151;">Scheduled: ${new Date(closer.scheduled_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                        <div class="card-detail-row">
+                                            <i class="fas fa-check-circle" style="color: #10b981; width: 20px;"></i>
+                                            <span style="color: #374151;">Closer Verified: ${verifiedDate}</span>
+                                        </div>
+                                        ${closer.closerVerifiedBy ? `
+                                        <div class="card-detail-row">
+                                            <i class="fas fa-user-check" style="color: #6b7280; width: 20px;"></i>
+                                            <span style="color: #374151;">Closer Verified by: ${closer.closerVerifiedBy.name}</span>
+                                        </div>
+                                        ` : (closer.verifiedBy ? `
+                                        <div class="card-detail-row">
+                                            <i class="fas fa-user-check" style="color: #6b7280; width: 20px;"></i>
+                                            <span style="color: #374151;">Verified by: ${closer.verifiedBy.name}</span>
+                                        </div>
+                                        ` : '')}
+                                        ${closer.property_name ? `
+                                        <div class="card-detail-row">
+                                            <i class="fas fa-building" style="color: #6b7280; width: 20px;"></i>
+                                            <span style="color: #374151;">Property: ${closer.property_name}</span>
+                                        </div>
+                                        ` : ''}
+                                        ${closer.budget_range ? `
+                                        <div class="card-detail-row">
+                                            <i class="fas fa-tag" style="color: #6b7280; width: 20px;"></i>
+                                            <span style="color: #374151;">Budget: ${closer.budget_range}</span>
+                                        </div>
+                                        ` : ''}
+                                    </div>
+                                    <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+                                        <button class="btn-view-details" onclick="showDetailsModal('closer', ${closer.id})">
+                                            <i class="fas fa-eye mr-2"></i>View Details
+                                        </button>
+                                    </div>
+                                </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        } catch (error) {
+            console.error('Error loading verified items:', error);
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Error loading verified items</p></div>';
         }
     }
 

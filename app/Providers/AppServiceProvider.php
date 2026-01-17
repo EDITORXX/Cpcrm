@@ -11,6 +11,7 @@ use App\Observers\TaskObserver;
 use App\Observers\PricingConfigObserver;
 use App\Observers\UnitTypeObserver;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\File;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,5 +31,14 @@ class AppServiceProvider extends ServiceProvider
         // Register Pricing and Unit Type Observers
         PricingConfig::observe(PricingConfigObserver::class);
         UnitType::observe(UnitTypeObserver::class);
+
+        // Ensure PHP upload temp dir is writable (prevents Request::Startup warnings)
+        $uploadTmpDir = storage_path('app/tmp');
+        if (!is_dir($uploadTmpDir)) {
+            File::ensureDirectoryExists($uploadTmpDir);
+        }
+        if (is_dir($uploadTmpDir) && is_writable($uploadTmpDir)) {
+            ini_set('upload_tmp_dir', $uploadTmpDir);
+        }
     }
 }

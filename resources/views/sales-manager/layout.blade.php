@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Sales Manager - Base CRM')</title>
+    
+    <!-- Cache Control - Prevent Browser Caching -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="api-token" content="{{ session('api_token') ?? (auth()->check() ? auth()->user()->createToken('web-token')->plainTextToken : '') }}">
     <meta name="user-id" content="{{ auth()->check() ? auth()->user()->id : '' }}">
@@ -16,14 +22,25 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { width: 100%; overflow-x: hidden; }
+        html, body { 
+            width: 100%; 
+            overflow-x: hidden;
+            margin-left: 0 !important;
+            padding-left: 0 !important;
+        }
         body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #F7F6F3; }
         
         /* Mobile First - Base Styles */
-        .container { max-width: 100%; width: 100%; padding: 12px; }
-        .header { 
-            background: white; 
-            padding: 16px; 
+        .container { 
+            max-width: 100%; 
+            width: 100%; 
+            padding: 12px;
+            margin-left: 0;
+            margin-right: 0;
+        }
+        .header {
+            background: white;
+            padding: 16px;
             border-radius: 12px; 
             margin-bottom: 16px; 
             box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
@@ -48,6 +65,135 @@
             align-items: center;
             gap: 10px;
             flex-wrap: wrap;
+        }
+        
+        /* Mobile Header - Single Line */
+        .header-title-mobile {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            font-size: 18px !important;
+            font-weight: 600 !important;
+            margin: 0;
+        }
+        
+        .header-page-title-desktop {
+            flex: 1;
+            font-size: 18px;
+            font-weight: 600;
+            color: #063A1C;
+        }
+        
+        .header-user-info-mobile {
+            display: none; /* Hidden by default, shown on mobile */
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .header-user-name-mobile {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #063A1C;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .header-user-role-mobile {
+            display: block;
+            font-size: 11px;
+            font-weight: 400;
+            color: #6b7280;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .header-user-name-desktop {
+            display: inline; /* Shown on desktop */
+        }
+        
+        /* Mobile: Single line header with user name and time */
+        @media (max-width: 767px) {
+            .header {
+                padding: 10px 12px;
+                margin-bottom: 12px;
+                flex-direction: row;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .header-top {
+                flex: 1;
+                min-width: 0;
+            }
+            
+            .header-title-mobile {
+                font-size: 16px !important;
+                line-height: 1.3;
+                width: 100%;
+                display: flex;
+                align-items: center;
+            }
+            
+            /* Hide page title on mobile */
+            .header-page-title-desktop {
+                display: none !important;
+            }
+            
+            /* Show user info on mobile */
+            .header-user-info-mobile {
+                display: flex;
+                flex: 1;
+                min-width: 0;
+            }
+            
+            .header-user-name-mobile {
+                font-size: 14px;
+                font-weight: 600;
+                color: #063A1C;
+            }
+            
+            .header-user-role-mobile {
+                font-size: 11px;
+                font-weight: 400;
+                color: #6b7280;
+            }
+            
+            .header-actions {
+                flex: 0 0 auto;
+                width: auto;
+            }
+            
+            .header-actions-row {
+                flex-direction: column;
+                gap: 4px;
+                align-items: flex-end;
+            }
+            
+            #datetimeClock {
+                min-width: 100px;
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+            
+            #clockTime {
+                font-size: 12px;
+            }
+            
+            #clockDate {
+                font-size: 9px;
+            }
+            
+            .header-user-name-desktop {
+                display: none !important;
+            }
         }
         .btn { 
             padding: 10px 16px; 
@@ -150,6 +296,38 @@
             font-weight: 500 !important;
         }
         
+        /* Desktop hover labels for icon-only nav */
+        @media (min-width: 768px) {
+            #sidebar .sidebar-link {
+                position: relative;
+            }
+            
+            #sidebar .sidebar-link::after {
+                content: attr(data-label);
+                position: absolute;
+                left: 72px;
+                top: 50%;
+                transform: translateY(-50%) translateX(-6px);
+                background: #1f2937;
+                color: #fff;
+                padding: 6px 10px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: 600;
+                white-space: nowrap;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.15s ease, transform 0.15s ease;
+                z-index: 1001;
+                box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+            }
+            
+            #sidebar .sidebar-link:hover::after {
+                opacity: 1;
+                transform: translateY(-50%) translateX(0);
+            }
+        }
+        
         /* Sidebar Logo Area - Always Hidden in Icon-Only Mode */
         #sidebar > div:first-child {
             padding: 20px 12px;
@@ -176,12 +354,22 @@
             display: none !important; /* Hide toggle button - sidebar always icon-only */
         }
         
-        /* Main Content - Mobile First */
+        /* Main Content - Mobile First: Full width */
         #mainContent {
-            margin-left: 64px !important;
+            margin-left: 0;
             min-height: 100vh;
-            width: calc(100% - 64px) !important;
+            width: 100%;
             background: #F7F6F3;
+        }
+        
+        /* Desktop: 64px margin for icon-only sidebar */
+        @media (min-width: 768px) {
+            body #mainContent,
+            html body #mainContent,
+            div#mainContent {
+                margin-left: 64px !important;
+                width: calc(100% - 64px) !important;
+            }
         }
         
         /* Clock Widget Responsive */
@@ -242,7 +430,9 @@
             #sidebar.sidebar-expanded {
                 width: 64px !important;
             }
-            #mainContent {
+            body #mainContent,
+            html body #mainContent,
+            div#mainContent {
                 margin-left: 64px !important;
                 width: calc(100% - 64px) !important;
                 padding-bottom: 0 !important; /* No footer padding on desktop */
@@ -279,23 +469,84 @@
         
         /* Mobile Specific - Hide Sidebar, Show Footer */
         @media (max-width: 767px) {
-            /* Hide sidebar on mobile */
+            /* Hide sidebar on mobile - completely remove from layout */
             #sidebar {
+                display: none !important;
+                width: 0 !important;
+                height: 0 !important;
+                position: absolute !important;
+                left: -9999px !important;
+                visibility: hidden !important;
+            }
+            
+            /* Hide sidebar overlay on mobile */
+            .sidebar-overlay {
                 display: none !important;
             }
             
-            /* Main content full width on mobile */
-            #mainContent {
-                margin-left: 0 !important;
-                width: 100% !important;
-                padding-bottom: 70px; /* Space for footer */
+            /* Hide toggle button on mobile */
+            .sidebar-toggle {
+                display: none !important;
             }
             
-            /* Remove left padding to eliminate blank sidebar area */
-            .container {
+            /* Main content full width on mobile - override inline styles with maximum specificity */
+            body #mainContent,
+            html body #mainContent,
+            div#mainContent {
+                margin-left: 0 !important;
+                width: 100% !important;
+                padding-bottom: 70px !important; /* Space for footer */
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+                left: 0 !important;
+                transform: none !important;
+            }
+            
+            /* Remove left padding/margin to eliminate blank sidebar area */
+            body .container,
+            html body .container,
+            div.container,
+            #mainContent .container {
                 padding-left: 12px !important;
                 padding-right: 12px !important;
                 margin-left: 0 !important;
+                max-width: 100% !important;
+                width: 100% !important;
+                left: 0 !important;
+            }
+            
+            /* Ensure no left spacing from any source */
+            body {
+                margin-left: 0 !important;
+                padding-left: 0 !important;
+                overflow-x: hidden;
+            }
+            
+            html {
+                margin-left: 0 !important;
+                padding-left: 0 !important;
+                overflow-x: hidden;
+            }
+            
+            /* Remove any left margin from header or content sections */
+            .header,
+            .tasks-container,
+            .bg-white,
+            .header-top,
+            .header-actions {
+                margin-left: 0 !important;
+                padding-left: 12px !important;
+            }
+            
+            /* Ensure all content starts from left edge */
+            #mainContent > * {
+                margin-left: 0 !important;
+            }
+            
+            /* Remove any transform or positioning that might cause offset */
+            #mainContent {
+                transform: none !important;
+                left: 0 !important;
             }
             
             /* Footer Navigation for Mobile */
@@ -313,6 +564,7 @@
                 padding: 8px 0;
                 justify-content: space-around;
                 align-items: center;
+                height: 60px;
             }
             
             .footer-nav-link {
@@ -367,45 +619,69 @@
             }
         }
         
-        /* Prevent sidebar flash on page load */
-        html.sidebar-mobile-collapsed #sidebar {
-            width: 64px !important;
-        }
-        
-        html.sidebar-mobile-collapsed #mainContent {
-            margin-left: 64px !important;
-            width: calc(100% - 64px) !important;
+        /* Prevent sidebar flash on page load - only for desktop */
+        @media (min-width: 768px) {
+            html.sidebar-mobile-collapsed #sidebar {
+                width: 64px !important;
+            }
+            
+            html.sidebar-mobile-collapsed body #mainContent,
+            html.sidebar-mobile-collapsed html body #mainContent,
+            html.sidebar-mobile-collapsed div#mainContent {
+                margin-left: 64px !important;
+                width: calc(100% - 64px) !important;
+            }
         }
     </style>
     @stack('styles')
 </head>
 <body>
     <script>
-        // Mobile detection and initial sidebar state
+        // Mobile detection and initial layout - run immediately to override inline styles
         (function() {
-            const isMobile = window.innerWidth < 768;
-            const sidebar = document.getElementById('sidebar');
-            const html = document.documentElement;
-            
-            if (isMobile) {
-                // Mobile: Force collapsed by default
-                html.classList.add('sidebar-mobile-collapsed');
-                if (sidebar) {
-                    sidebar.classList.remove('sidebar-expanded');
-                }
-                // Store mobile state
-                localStorage.setItem('salesManagerSidebarMobile', 'collapsed');
-            } else {
-                // Desktop: Check saved state
-                const isExpanded = localStorage.getItem('salesManagerSidebarExpanded') !== 'false';
-                if (sidebar) {
-                    if (isExpanded) {
-                        sidebar.classList.add('sidebar-expanded');
-                    } else {
-                        sidebar.classList.remove('sidebar-expanded');
+            function fixMobileLayout() {
+                const isMobile = window.innerWidth < 768;
+                const sidebar = document.getElementById('sidebar');
+                const mainContent = document.getElementById('mainContent');
+                
+                if (isMobile) {
+                    // Mobile: Hide sidebar and remove left margin from mainContent
+                    if (sidebar) {
+                        sidebar.style.display = 'none';
+                        sidebar.style.width = '0';
+                    }
+                    // Override inline style on mainContent using setProperty with important
+                    if (mainContent) {
+                        mainContent.style.setProperty('margin-left', '0', 'important');
+                        mainContent.style.setProperty('width', '100%', 'important');
+                        mainContent.style.setProperty('padding-left', '0', 'important');
+                        mainContent.style.setProperty('padding-right', '0', 'important');
+                        mainContent.style.setProperty('left', '0', 'important');
+                    }
+                } else {
+                    // Desktop: Icon-only sidebar
+                    if (sidebar) {
+                        sidebar.classList.remove('sidebar-expanded', 'sidebar-hidden');
+                        sidebar.style.width = '64px';
+                        sidebar.style.display = 'block';
+                    }
+                    if (mainContent) {
+                        mainContent.style.setProperty('margin-left', '64px', 'important');
+                        mainContent.style.setProperty('width', 'calc(100% - 64px)', 'important');
                     }
                 }
             }
+            
+            // Run immediately
+            fixMobileLayout();
+            
+            // Also run when DOM is ready (in case elements load later)
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', fixMobileLayout);
+            }
+            
+            // Run on window load as well
+            window.addEventListener('load', fixMobileLayout);
         })();
     </script>
     
@@ -413,7 +689,7 @@
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
     
     <!-- Sidebar Toggle Button -->
-    <button id="sidebarToggle" class="sidebar-toggle" title="Toggle Sidebar">
+    <button id="sidebarToggle" class="sidebar-toggle" title="Toggle Sidebar" style="display: none;">
         <i class="fas fa-chevron-left sidebar-toggle-icon" id="sidebarToggleIcon"></i>
     </button>
     
@@ -424,35 +700,35 @@
             <p>Sales Manager</p>
         </div>
         <nav>
-            <a href="{{ route('sales-manager.dashboard') }}" class="sidebar-link {{ request()->routeIs('sales-manager.dashboard') ? 'active' : '' }}">
+            <a href="{{ route('sales-manager.dashboard') }}" class="sidebar-link {{ request()->routeIs('sales-manager.dashboard') ? 'active' : '' }}" data-label="Dashboard">
                 <i class="fas fa-home"></i>
                 <span>Dashboard</span>
             </a>
-            <a href="{{ route('sales-manager.tasks') }}" class="sidebar-link {{ request()->routeIs('sales-manager.tasks*') ? 'active' : '' }}">
+            <a href="{{ route('sales-manager.tasks') }}" class="sidebar-link {{ request()->routeIs('sales-manager.tasks*') ? 'active' : '' }}" data-label="Tasks">
                 <i class="fas fa-tasks"></i>
                 <span>Tasks</span>
             </a>
-            <a href="{{ route('sales-manager.prospects') }}" class="sidebar-link {{ request()->routeIs('sales-manager.prospects') ? 'active' : '' }}">
+            <a href="{{ route('sales-manager.prospects') }}" class="sidebar-link {{ request()->routeIs('sales-manager.prospects') ? 'active' : '' }}" data-label="Prospects">
                 <i class="fas fa-star"></i>
                 <span>Prospects</span>
             </a>
-            <a href="{{ route('sales-manager.leads') }}" class="sidebar-link {{ request()->routeIs('sales-manager.leads') || (request()->routeIs('leads.show') && auth()->check() && auth()->user()->isSalesManager()) ? 'active' : '' }}">
+            <a href="{{ route('sales-manager.leads') }}" class="sidebar-link {{ request()->routeIs('sales-manager.leads') || (request()->routeIs('leads.show') && auth()->check() && auth()->user()->isSalesManager()) ? 'active' : '' }}" data-label="Leads">
                 <i class="fas fa-user-friends"></i>
                 <span>Leads</span>
             </a>
-            <a href="{{ route('sales-manager.meetings') }}" class="sidebar-link {{ request()->routeIs('sales-manager.meetings*') ? 'active' : '' }}">
+            <a href="{{ route('sales-manager.meetings') }}" class="sidebar-link {{ request()->routeIs('sales-manager.meetings*') ? 'active' : '' }}" data-label="Meetings">
                 <i class="fas fa-handshake"></i>
                 <span>Meetings</span>
             </a>
-            <a href="{{ route('sales-manager.site-visits') }}" class="sidebar-link {{ request()->routeIs('sales-manager.site-visits*') ? 'active' : '' }}">
+            <a href="{{ route('sales-manager.site-visits') }}" class="sidebar-link {{ request()->routeIs('sales-manager.site-visits*') ? 'active' : '' }}" data-label="Site Visits">
                 <i class="fas fa-map-marker-alt"></i>
                 <span>Site Visits</span>
             </a>
-            <a href="{{ route('sales-manager.team') }}" class="sidebar-link {{ request()->routeIs('sales-manager.team') ? 'active' : '' }}">
+            <a href="{{ route('sales-manager.team') }}" class="sidebar-link {{ request()->routeIs('sales-manager.team') ? 'active' : '' }}" data-label="My Team">
                 <i class="fas fa-users"></i>
                 <span>My Team</span>
             </a>
-            <a href="{{ route('sales-manager.profile') }}" class="sidebar-link {{ request()->routeIs('sales-manager.profile') ? 'active' : '' }}">
+            <a href="{{ route('sales-manager.profile') }}" class="sidebar-link {{ request()->routeIs('sales-manager.profile') ? 'active' : '' }}" data-label="Profile">
                 <i class="fas fa-user"></i>
                 <span>Profile</span>
             </a>
@@ -460,12 +736,18 @@
     </aside>
 
     <!-- Main Content -->
-    <div id="mainContent" style="margin-left: 64px; min-height: 100vh; width: calc(100% - 64px); background: #F7F6F3;">
+    <div id="mainContent" class="main-content-wrapper" style="min-height: 100vh; background: #F7F6F3;">
         <div class="container">
             <!-- Header -->
             <div class="header">
                 <div class="header-top">
-                    <h1 style="font-size: 24px; font-weight: 700; color: #063A1C;">@yield('page-title', 'Sales Manager')</h1>
+                    <h1 class="header-title-mobile" style="font-size: 24px; font-weight: 700; color: #063A1C;">
+                        <span class="header-page-title-desktop">@yield('page-title', 'Sales Manager')</span>
+                        <div class="header-user-info-mobile">
+                            <span class="header-user-name-mobile">{{ auth()->user()->name }}</span>
+                            <span class="header-user-role-mobile">{{ auth()->user()->getDisplayRoleName() ?? 'User' }}</span>
+                        </div>
+                    </h1>
                 </div>
                 <div class="header-actions">
                     <div class="header-actions-row">
@@ -474,7 +756,7 @@
                             <div id="clockTime">--:--:--</div>
                             <div id="clockDate">-- -- ----</div>
                         </div>
-                        <span style="color: #B3B5B4; font-size: 14px; white-space: nowrap;">{{ auth()->user()->name }}</span>
+                        <span class="header-user-name-desktop" style="color: #B3B5B4; font-size: 14px; white-space: nowrap;">{{ auth()->user()->name }}</span>
                     </div>
                 </div>
             </div>
@@ -692,24 +974,508 @@
         updateClock();
         setInterval(updateClock, 1000);
         
-        // Sidebar always icon-only - no toggle functionality needed
+        // Sidebar and main content setup
         document.addEventListener('DOMContentLoaded', function() {
             const sidebar = document.getElementById('sidebar');
             const mainContent = document.getElementById('mainContent');
             
-            if (sidebar) {
-                // Ensure sidebar is always 64px (icon-only)
-                sidebar.classList.remove('sidebar-expanded', 'sidebar-hidden');
-                sidebar.style.width = '64px';
+            function updateLayout() {
+                const isMobile = window.innerWidth <= 767;
+                
+                if (sidebar) {
+                    if (isMobile) {
+                        // Mobile: Hide sidebar completely
+                        sidebar.style.display = 'none';
+                        sidebar.style.width = '0';
+                    } else {
+                        // Desktop: Icon-only (64px)
+                        sidebar.classList.remove('sidebar-expanded', 'sidebar-hidden');
+                        sidebar.style.width = '64px';
+                        sidebar.style.display = 'block';
+                    }
+                }
+                
+                if (mainContent) {
+                    if (isMobile) {
+                        // Mobile: Full width, no left margin - override inline style
+                        mainContent.style.setProperty('margin-left', '0', 'important');
+                        mainContent.style.setProperty('width', '100%', 'important');
+                        mainContent.style.setProperty('padding-left', '0', 'important');
+                        mainContent.style.setProperty('padding-right', '0', 'important');
+                        mainContent.style.setProperty('left', '0', 'important');
+                    } else {
+                        // Desktop: 64px margin for icon-only sidebar
+                        mainContent.style.setProperty('margin-left', '64px', 'important');
+                        mainContent.style.setProperty('width', 'calc(100% - 64px)', 'important');
+                    }
+                }
             }
             
-            if (mainContent) {
-                // Ensure main content always has 64px margin
-                mainContent.style.marginLeft = '64px';
-                mainContent.style.width = 'calc(100% - 64px)';
-            }
+            // Initial setup
+            updateLayout();
+            
+            // Update on window resize
+            let resizeTimer;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(updateLayout, 100);
+            });
         });
+        
+        // Disable Service Worker Cache for Development
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister().then(function(success) {
+                        if (success) {
+                            console.log('Service Worker unregistered successfully');
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Clear browser cache on page load (development mode)
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.includes('local')) {
+            // Force reload without cache
+            window.addEventListener('pageshow', function(event) {
+                if (event.persisted) {
+                    window.location.reload();
+                }
+            });
+        }
     </script>
+    <!-- Include Meeting Post-Call Popup Component -->
+    @include('components.meeting-post-call-popup')
+    
+    <!-- Include Meeting Section Modals (for reschedule, complete, mark dead) -->
+    @if(request()->routeIs('sales-manager.meetings') || request()->routeIs('sales-manager.tasks'))
+    <!-- Reschedule Meeting Modal -->
+    <div id="rescheduleMeetingModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <h3 id="rescheduleModalTitle" style="font-size: 20px; font-weight: 600; margin-bottom: 20px;">Reschedule</h3>
+            <input type="hidden" id="rescheduleModalType" value="meeting">
+            <input type="hidden" id="rescheduleModalId" value="">
+            
+            <div class="form-group">
+                <label>New Scheduled Date & Time <span style="color: #ef4444;">*</span></label>
+                <input type="datetime-local" id="rescheduleScheduledAt" required
+                    class="form-group input" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;">
+                <small style="color: #6b7280;">Select a future date and time</small>
+            </div>
+
+            <div class="form-group">
+                <label>Reason for Rescheduling <span style="color: #ef4444;">*</span></label>
+                <textarea id="rescheduleReason" rows="4" placeholder="Enter reason for rescheduling..." required
+                    class="form-group textarea" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;"></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" onclick="closeRescheduleMeetingModal()">Cancel</button>
+                <button type="button" class="btn" style="background: #f59e0b; color: white;" onclick="submitRescheduleMeeting()">Reschedule</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Complete Meeting Modal -->
+    <div id="completeMeetingModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 20px;">Complete Meeting</h3>
+            <p style="color: #ef4444; margin-bottom: 16px;"><strong>Proof photos are required to complete the meeting.</strong></p>
+            
+            <div class="form-group">
+                <label>Proof Photos <span style="color: #ef4444;">*</span></label>
+                <input type="file" id="proofPhotosInput" multiple accept="image/*" onchange="handleProofPhotosChange(event)" required>
+                <div id="proofPhotosPreview" style="display: flex; flex-wrap: wrap; margin-top: 10px;"></div>
+                <small style="color: #6b7280;">Upload at least one photo as proof. Max 5MB per image.</small>
+            </div>
+
+            <div class="form-group">
+                <label>Feedback</label>
+                <textarea id="meetingFeedback" rows="3" placeholder="Meeting feedback..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Rating</label>
+                <select id="meetingRating">
+                    <option value="">Select rating</option>
+                    <option value="1">1 - Poor</option>
+                    <option value="2">2 - Fair</option>
+                    <option value="3">3 - Good</option>
+                    <option value="4">4 - Very Good</option>
+                    <option value="5">5 - Excellent</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea id="meetingNotes" rows="3" placeholder="Additional notes..."></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" onclick="closeCompleteMeetingModal()">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="submitCompleteMeeting()">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mark as Dead Modal -->
+    <div id="markDeadModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 20px;">Mark as Dead</h3>
+            <p style="color: #ef4444; margin-bottom: 16px;">This will mark the meeting and associated lead as dead. This action cannot be undone.</p>
+            
+            <div class="form-group">
+                <label>Reason <span style="color: #ef4444;">*</span></label>
+                <textarea id="deadReason" rows="4" placeholder="Enter reason for marking as dead..." required></textarea>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" onclick="closeMarkDeadModal()">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="submitMarkDead()">Mark as Dead</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    // Make meeting modal functions available globally if not already defined
+    if (typeof showRescheduleMeetingModal === 'undefined') {
+        function showRescheduleMeetingModal(id) {
+            if (typeof currentMeetingId !== 'undefined') {
+                window.currentMeetingId = id;
+            }
+            // Get meeting details
+            apiCall(`/meetings/${id}`).then(meeting => {
+                if (meeting && meeting.id) {
+                    const scheduledDate = new Date(meeting.scheduled_at);
+                    const minDateTime = new Date();
+                    minDateTime.setDate(minDateTime.getDate() + 1);
+                    minDateTime.setHours(0, 0, 0, 0);
+                    
+                    document.getElementById('rescheduleScheduledAt').value = '';
+                    document.getElementById('rescheduleReason').value = '';
+                    document.getElementById('rescheduleModalTitle').textContent = 'Reschedule Meeting';
+                    document.getElementById('rescheduleModalType').value = 'meeting';
+                    document.getElementById('rescheduleModalId').value = id;
+                    document.getElementById('rescheduleScheduledAt').min = minDateTime.toISOString().slice(0, 16);
+                    document.getElementById('rescheduleMeetingModal').classList.add('show');
+                }
+            });
+        }
+    }
+    
+    if (typeof closeRescheduleMeetingModal === 'undefined') {
+        function closeRescheduleMeetingModal() {
+            document.getElementById('rescheduleMeetingModal').classList.remove('show');
+            document.getElementById('rescheduleScheduledAt').value = '';
+            document.getElementById('rescheduleReason').value = '';
+            if (typeof currentMeetingId !== 'undefined') {
+                window.currentMeetingId = null;
+            }
+        }
+    }
+    
+    if (typeof submitRescheduleMeeting === 'undefined') {
+        async function submitRescheduleMeeting() {
+            const type = document.getElementById('rescheduleModalType').value;
+            const id = document.getElementById('rescheduleModalId').value;
+            const scheduledAt = document.getElementById('rescheduleScheduledAt').value;
+            const reason = document.getElementById('rescheduleReason').value.trim();
+
+            if (!scheduledAt) {
+                alert('Please select a new scheduled date and time');
+                return;
+            }
+
+            if (!reason) {
+                alert('Please provide a reason for rescheduling');
+                return;
+            }
+
+            try {
+                const result = await apiCall(`/${type === 'meeting' ? 'meetings' : 'site-visits'}/${id}/reschedule`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        scheduled_at: scheduledAt,
+                        reason: reason,
+                    }),
+                });
+
+                if (result && result.success) {
+                    // Complete calling task if pending
+                    if (window.pendingTaskCompletion) {
+                        await completeCallingTask(window.pendingTaskCompletion.taskId, window.pendingTaskCompletion.taskType);
+                        window.pendingTaskCompletion = null;
+                    }
+                    if (typeof showNotification === 'function') {
+                        showNotification(result.message || 'Rescheduled successfully! Verification required.', 'success', 3000);
+                    } else {
+                        alert(result.message || 'Rescheduled successfully! Verification required.');
+                    }
+                    closeRescheduleMeetingModal();
+                    if (typeof loadMeetings === 'function') {
+                        loadMeetings();
+                    }
+                    if (typeof loadTasks === 'function') {
+                        loadTasks();
+                    }
+                } else {
+                    alert(result.message || 'Failed to reschedule');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Network error. Please try again.');
+            }
+        }
+    }
+    
+    if (typeof showCompleteMeetingModal === 'undefined') {
+        function showCompleteMeetingModal(id) {
+            if (typeof currentMeetingId !== 'undefined') {
+                window.currentMeetingId = id;
+            }
+            document.getElementById('completeMeetingModal').classList.add('show');
+        }
+    }
+    
+    if (typeof closeCompleteMeetingModal === 'undefined') {
+        function closeCompleteMeetingModal() {
+            document.getElementById('completeMeetingModal').classList.remove('show');
+            const photosInput = document.getElementById('proofPhotosInput');
+            if (photosInput) {
+                photosInput.value = '';
+            }
+            const preview = document.getElementById('proofPhotosPreview');
+            if (preview) {
+                preview.innerHTML = '';
+            }
+            if (typeof currentMeetingId !== 'undefined') {
+                window.currentMeetingId = null;
+            }
+        }
+    }
+    
+    if (typeof handleProofPhotosChange === 'undefined') {
+        function handleProofPhotosChange(event) {
+            const files = event.target.files;
+            const preview = document.getElementById('proofPhotosPreview');
+            if (!preview) return;
+            preview.innerHTML = '';
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.width = '100px';
+                    img.style.height = '100px';
+                    img.style.objectFit = 'cover';
+                    img.style.borderRadius = '8px';
+                    img.style.margin = '5px';
+                    preview.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    }
+    
+    if (typeof submitCompleteMeeting === 'undefined') {
+        async function submitCompleteMeeting() {
+            const meetingId = typeof currentMeetingId !== 'undefined' ? window.currentMeetingId : null;
+            if (!meetingId) return;
+
+            const formData = new FormData();
+            const photosInput = document.getElementById('proofPhotosInput');
+            
+            if (!photosInput || !photosInput.files || photosInput.files.length === 0) {
+                alert('Please upload at least one proof photo');
+                return;
+            }
+
+            for (let i = 0; i < photosInput.files.length; i++) {
+                formData.append('proof_photos[]', photosInput.files[i]);
+            }
+
+            const feedback = document.getElementById('meetingFeedback')?.value;
+            const rating = document.getElementById('meetingRating')?.value;
+            const notes = document.getElementById('meetingNotes')?.value;
+
+            if (feedback) formData.append('feedback', feedback);
+            if (rating) formData.append('rating', rating);
+            if (notes) formData.append('meeting_notes', notes);
+
+            try {
+                const token = typeof getToken === 'function' ? getToken() : (window.API_TOKEN || document.querySelector('meta[name="api-token"]')?.content);
+                const apiBase = window.API_BASE_URL || '/api';
+                const response = await fetch(`${apiBase}/meetings/${meetingId}/complete`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json',
+                    },
+                    body: formData,
+                });
+
+                const result = await response.json();
+
+                if (result && result.success) {
+                    // Complete calling task if pending
+                    if (window.pendingTaskCompletion) {
+                        await completeCallingTask(window.pendingTaskCompletion.taskId, window.pendingTaskCompletion.taskType);
+                        window.pendingTaskCompletion = null;
+                    }
+                    alert('Meeting completed with proof photos! Awaiting verification.');
+                    closeCompleteMeetingModal();
+                    if (typeof loadMeetings === 'function') {
+                        loadMeetings();
+                    }
+                    if (typeof loadTasks === 'function') {
+                        loadTasks();
+                    }
+                } else {
+                    alert(result.message || 'Failed to complete meeting');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Network error. Please try again.');
+            }
+        }
+    }
+    
+    if (typeof showMarkDeadModal === 'undefined') {
+        function showMarkDeadModal(type, id) {
+            if (typeof currentMeetingId !== 'undefined') {
+                window.currentMeetingId = id;
+            }
+            const deadReasonInput = document.getElementById('deadReason');
+            if (deadReasonInput) {
+                deadReasonInput.value = '';
+            }
+            document.getElementById('markDeadModal').classList.add('show');
+        }
+    }
+    
+    if (typeof closeMarkDeadModal === 'undefined') {
+        function closeMarkDeadModal() {
+            document.getElementById('markDeadModal').classList.remove('show');
+            const deadReasonInput = document.getElementById('deadReason');
+            if (deadReasonInput) {
+                deadReasonInput.value = '';
+            }
+            if (typeof currentMeetingId !== 'undefined') {
+                window.currentMeetingId = null;
+            }
+        }
+    }
+    
+    if (typeof submitMarkDead === 'undefined') {
+        async function submitMarkDead() {
+            const meetingId = typeof currentMeetingId !== 'undefined' ? window.currentMeetingId : null;
+            if (!meetingId) return;
+
+            const reason = document.getElementById('deadReason')?.value.trim();
+            if (!reason) {
+                alert('Please provide a reason for marking as dead');
+                return;
+            }
+
+            const result = await apiCall(`/meetings/${meetingId}/mark-dead`, {
+                method: 'POST',
+                body: JSON.stringify({ reason }),
+            });
+
+            if (result && result.success) {
+                // Complete calling task if pending
+                if (window.pendingTaskCompletion) {
+                    await completeCallingTask(window.pendingTaskCompletion.taskId, window.pendingTaskCompletion.taskType);
+                    window.pendingTaskCompletion = null;
+                }
+                alert('Meeting marked as dead successfully');
+                closeMarkDeadModal();
+                if (typeof loadMeetings === 'function') {
+                    loadMeetings();
+                }
+                if (typeof loadTasks === 'function') {
+                    loadTasks();
+                }
+            } else {
+                alert(result.message || 'Failed to mark as dead');
+            }
+        }
+    }
+    
+    if (typeof cancelMeeting === 'undefined') {
+        async function cancelMeeting(id) {
+            if (!confirm('Cancel this meeting?')) return;
+
+            const result = await apiCall(`/meetings/${id}/cancel`, {
+                method: 'POST',
+            });
+
+            if (result && result.success) {
+                // Complete calling task if pending
+                if (window.pendingTaskCompletion) {
+                    await completeCallingTask(window.pendingTaskCompletion.taskId, window.pendingTaskCompletion.taskType);
+                    window.pendingTaskCompletion = null;
+                }
+                alert('Meeting cancelled');
+                if (typeof loadMeetings === 'function') {
+                    loadMeetings();
+                }
+                if (typeof loadTasks === 'function') {
+                    loadTasks();
+                }
+            } else {
+                alert(result.message || 'Failed to cancel meeting');
+            }
+        }
+    }
+    
+    if (typeof completeCallingTask === 'undefined') {
+        async function completeCallingTask(taskId, taskType) {
+            if (!taskId) return true;
+            
+            const apiToken = window.API_TOKEN || document.querySelector('meta[name="api-token"]')?.content;
+            const apiBase = window.API_BASE_URL || '/api';
+            
+            if (!apiToken) {
+                console.warn('API token not found, skipping task completion');
+                return false;
+            }
+            
+            try {
+                let endpoint;
+                if (taskType === 'Task') {
+                    endpoint = `${apiBase}/sales-manager/tasks/${taskId}/complete`;
+                } else {
+                    endpoint = `${apiBase}/telecaller/tasks/${taskId}/complete`;
+                }
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiToken}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    return true;
+                } else {
+                    const result = await response.json();
+                    console.error('Failed to complete task:', result.message || 'Unknown error');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error completing task:', error);
+                return false;
+            }
+        }
+    }
+    </script>
+    @endif
 </body>
 </html>
 

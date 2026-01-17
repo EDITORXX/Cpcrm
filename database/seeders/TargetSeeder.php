@@ -62,17 +62,17 @@ class TargetSeeder extends Seeder
                 ],
                 [
                     'target_meetings' => 0,
-                    'target_visits' => 0,
+                    'target_visits' => 8, // 8 visits per month (auto-divided to ~2/week)
                     'target_closers' => 0,
                     'target_prospects_extract' => 0, // Removed, use target_prospects_verified instead
-                    'target_prospects_verified' => 15, // 15 verified prospects per month
-                    'target_calls' => 200, // 200 calls per month
+                    'target_prospects_verified' => 150, // 150 verified prospects per month (auto-divided to ~5/day)
+                    'target_calls' => 6000, // 6000 calls per month (auto-divided to ~200/day)
                 ]
             );
         }
 
         $this->command->info('Default targets created successfully!');
         $this->command->info('Sales Managers: 10 meetings, 10 visits, 5 closers (monthly)');
-        $this->command->info('Telecallers: 200 calls/month, 15 verified prospects/month');
+        $this->command->info('Telecallers: 6000 calls/month (→ ~200/day), 150 prospects/month (→ ~5/day), 8 visits/month (→ ~2/week)');
     }
 }

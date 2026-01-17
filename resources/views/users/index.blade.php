@@ -105,7 +105,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                             </svg>
                             <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gradient-to-r from-green-50 to-emerald-50 text-[#063A1C] border border-green-200">
-                                {{ $user->role->name }}
+                                {{ $user->getDisplayRoleName() }}
                             </span>
                         </div>
                         @if($user->manager)
@@ -148,6 +148,8 @@
                            class="flex-1 px-4 py-2.5 text-center text-sm font-semibold text-[#063A1C] bg-green-50 rounded-lg hover:bg-green-100 border border-green-200 transition-all duration-200 shadow-sm hover:shadow-md">
                             <i class="fas fa-edit mr-1"></i> Edit
                         </a>
+                        @endif
+                        @if(auth()->user()->isAdmin())
                         <form action="{{ route('users.destroy', $user) }}" 
                               method="POST" 
                               class="flex-1"

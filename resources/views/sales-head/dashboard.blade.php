@@ -1,7 +1,7 @@
 @extends('sales-head.layout')
 
-@section('title', 'Dashboard - Sales Head')
-@section('page-title', 'Sales Head Dashboard')
+@section('title', 'Dashboard - Associate Director')
+@section('page-title', 'Associate Director Dashboard')
 
 @push('styles')
 <style>

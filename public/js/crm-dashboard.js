@@ -441,7 +441,7 @@ async function loadUsers() {
         const data = await apiRequest('/users');
         
         // Populate dropdowns
-        updateTelecallerDropdowns(data.filter(u => u.role?.slug === 'telecaller'));
+        updateTelecallerDropdowns(data.filter(u => u.role?.slug === 'sales_executive'));
         updateUserDropdowns(data);
         
         // Load roles for user management
@@ -569,11 +569,24 @@ function cancelCreateUser() {
 async function handleCreateUser(e) {
     e.preventDefault();
     try {
+        const roleId = document.getElementById('user-role').value;
+        const roleSelect = document.getElementById('user-role');
+        const selectedOption = roleSelect.options[roleSelect.selectedIndex];
+        const roleName = selectedOption ? selectedOption.text.toLowerCase() : '';
+        
+        // Client-side validation: Check if CRM user is trying to create Admin or CRM role
+        // Note: Backend also validates this, but this provides immediate feedback
+        if (roleName.includes('admin') || roleName.includes('crm')) {
+            // Check if this is a restricted role by checking the role slug or name
+            // Since roles are already filtered by backend, if Admin/CRM appear, it means user is Admin
+            // But for safety, we'll let backend handle the validation and show error message
+        }
+        
         const formData = {
             name: document.getElementById('user-username').value,
             email: document.getElementById('user-email').value,
             password: document.getElementById('user-password').value || '123456',
-            role_id: document.getElementById('user-role').value,
+            role_id: roleId,
             manager_id: document.getElementById('user-manager')?.value || null,
         };
         
@@ -588,6 +601,8 @@ async function handleCreateUser(e) {
         loadUsers(); // Reload for dropdowns
     } catch (error) {
         console.error('Error creating user:', error);
+        const errorMessage = error.message || 'Failed to create user. Please check if you have permission to create this role.';
+        showNotification(errorMessage, 'error');
     }
 }
 
@@ -606,6 +621,8 @@ async function deleteUser(userId) {
         loadUsers();
     } catch (error) {
         console.error('Error deleting user:', error);
+        const errorMessage = error.message || 'Failed to delete user. Only administrators can delete users.';
+        showNotification(errorMessage, 'error');
     }
 }
 
@@ -935,11 +952,11 @@ async function handleRoleChange() {
         const selectedRole = roles.find(r => r.id == roleSelect.value);
         
         if (selectedRole) {
-            // Show manager dropdown for telecaller role
-            if (selectedRole.slug === 'telecaller') {
+            // Show manager dropdown for sales executive role
+            if (selectedRole.slug === 'sales_executive') {
                 managerContainer.style.display = 'block';
                 independentContainer.style.display = 'none';
-            } else if (selectedRole.slug === 'sales_executive') {
+            } else if (selectedRole.slug === 'assistant_sales_manager') {
                 managerContainer.style.display = 'none';
                 independentContainer.style.display = 'block';
             } else {

@@ -75,31 +75,222 @@
         margin-top: 20px;
     }
     @media (max-width: 768px) {
-        .tasks-grid {
-            grid-template-columns: 1fr;
-            gap: 12px;
-        }
         .tasks-container {
-            padding: 16px !important;
+            padding: 12px !important;
+        }
+        
+        .tasks-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px !important;
+        }
+        
+        .task-card {
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            padding: 12px !important;
+            border-radius: 10px !important;
+            margin-bottom: 0 !important;
+        }
+        
+        /* Improve card appearance - less dense */
+        .task-card.overdue {
+            border-width: 2px !important;
+            border-color: #fca5a5 !important;
+            background: #fff5f5 !important;
+        }
+        
+        /* Task header - more compact */
+        .task-header {
+            margin-bottom: 10px !important;
+            padding-bottom: 10px !important;
+        }
+        
+        .task-avatar {
+            width: 40px !important;
+            height: 40px !important;
+            font-size: 16px !important;
+            margin-right: 8px !important;
+        }
+        
+        .task-name {
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            line-height: 1.3 !important;
+        }
+        
+        /* Badges - smaller and cleaner */
+        .overdue-badge {
+            padding: 4px 8px !important;
+            font-size: 9px !important;
+            margin-bottom: 4px !important;
+            display: inline-block !important;
+        }
+        
+        .status-badge {
+            padding: 3px 8px !important;
+            font-size: 9px !important;
+            margin-top: 4px !important;
+        }
+        
+        /* Task info - more compact */
+        .task-info {
+            margin-bottom: 10px !important;
+        }
+        
+        .task-info-row {
+            font-size: 11px !important;
+            margin-bottom: 6px !important;
+            gap: 6px !important;
+        }
+        
+        .task-info-row i {
+            width: 12px !important;
+            font-size: 11px !important;
+        }
+        
+        /* Action buttons - larger and more touch-friendly */
+        .task-actions {
+            margin-top: 10px !important;
+            padding-top: 10px !important;
+            gap: 6px !important;
+            flex-direction: column !important;
+        }
+        
+        .task-action-btn {
+            width: 100% !important;
+            padding: 10px 8px !important;
+            font-size: 11px !important;
+            border-radius: 6px !important;
+            min-height: 36px !important;
+        }
+        
+        .task-action-btn i {
+            font-size: 12px !important;
+        }
+        
+        .tasks-container {
+            padding: 12px !important;
         }
         .filter-bar {
-            flex-direction: column;
+            flex-direction: row;
             gap: 8px;
+            align-items: center;
         }
+        
+        /* Hide desktop buttons on mobile */
+        .filter-buttons-desktop {
+            display: none !important;
+        }
+        
+        /* Show dropdowns on mobile - 50% each */
+        .filter-dropdowns-mobile {
+            display: flex !important;
+            flex: 1;
+            gap: 8px;
+            min-width: 0;
+            flex-wrap: wrap;
+        }
+
+        .task-type-filter-mobile {
+            display: flex !important;
+        }
+        
+        .task-filter-select,
+        .date-filter-select {
+            flex: 1;
+            width: 50%;
+            padding: 10px 16px;
+            border: 2px solid #205A44;
+            border-radius: 8px;
+            background: white;
+            color: #063A1C;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23063A1C' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 40px;
+        }
+        
+        .task-filter-select:focus,
+        .date-filter-select:focus {
+            outline: none;
+            border-color: #063A1C;
+            box-shadow: 0 0 0 3px rgba(6, 58, 28, 0.1);
+        }
+        
+        /* Custom date picker on mobile */
+        #customDatePicker {
+            width: 100%;
+            margin-top: 8px;
+        }
+        
         .filter-btn {
-            width: 100%;
-            padding: 12px 16px;
-            text-align: center;
+            display: none;
         }
+        
         .btn-remove-overdue {
-            width: 100%;
-            margin-left: 0;
+            width: auto;
+            margin-left: 8px;
+            padding: 10px 16px;
+            font-size: 12px;
             justify-content: center;
-            padding: 12px 16px;
         }
-        .task-card {
-            padding: 16px;
+    }
+    
+    /* Desktop: Show buttons, hide mobile dropdowns */
+    @media (min-width: 769px) {
+        .filter-buttons-desktop {
+            display: flex !important;
         }
+        .filter-dropdowns-mobile {
+            display: none !important;
+        }
+        
+        /* Desktop date filter styles */
+        .date-filter-desktop {
+            display: block;
+        }
+        
+        .date-filter-select {
+            padding: 10px 16px;
+            border: 2px solid #205A44;
+            border-radius: 8px;
+            background: white;
+            color: #063A1C;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23063A1C' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 40px;
+            min-width: 150px;
+        }
+        
+        .date-filter-select:focus {
+            outline: none;
+            border-color: #063A1C;
+            box-shadow: 0 0 0 3px rgba(6, 58, 28, 0.1);
+        }
+        
+        #customDatePicker {
+            margin-left: 8px;
+            padding: 8px 12px;
+            border: 2px solid #205A44;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+    }
+    
+    .task-card {
+        padding: 16px;
+    }
         .task-card h3 {
             font-size: 16px !important;
         }
@@ -275,6 +466,13 @@
         text-align: center;
         padding: 60px 20px;
         color: #B3B5B4;
+    }
+    
+    /* Hide empty states on mobile */
+    @media (max-width: 767px) {
+        .empty-state {
+            display: none !important;
+        }
     }
     /* Modal Styles */
     .modal {
@@ -561,13 +759,71 @@
 <div class="tasks-container">
     <!-- Filter Bar -->
     <div class="filter-bar" style="display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <!-- Desktop: Button Filters -->
+        <div class="filter-buttons-desktop" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
             <button class="filter-btn active" data-status="all">All Tasks</button>
             <button class="filter-btn" data-status="pending">Pending</button>
             <button class="filter-btn" data-status="overdue">Overdue</button>
             <button class="filter-btn" data-status="rescheduled">Rescheduled</button>
             <button class="filter-btn" data-status="completed">Completed</button>
+
+            <div class="task-type-filter-desktop" style="margin-left: 12px;">
+                <select id="taskTypeFilterDesktop" class="date-filter-select">
+                    <option value="all">All Types</option>
+                    <option value="meeting">Meeting</option>
+                    <option value="site_visit">Site Visit</option>
+                    <option value="prospect">Prospect</option>
+                    <option value="closer">Closer</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            
+            <!-- Desktop Date Filter -->
+            <div class="date-filter-desktop" style="margin-left: 12px;">
+                <select id="dateFilterDropdownDesktop" class="date-filter-select">
+                    <option value="all">All Dates</option>
+                    <option value="today">Today</option>
+                    <option value="tomorrow">Tomorrow</option>
+                    <option value="this_week">This Week</option>
+                    <option value="this_month">This Month</option>
+                    <option value="custom">Custom Date</option>
+                </select>
+            </div>
         </div>
+        
+        <!-- Mobile: Dropdown Filters (50% each) -->
+        <div class="filter-dropdowns-mobile" style="display: none; flex: 1; gap: 8px; width: 100%;">
+            <select id="taskFilterDropdown" class="task-filter-select" style="flex: 1; width: 50%;">
+                <option value="all">All Tasks</option>
+                <option value="pending">Pending</option>
+                <option value="overdue">Overdue</option>
+                <option value="rescheduled">Rescheduled</option>
+                <option value="completed">Completed</option>
+            </select>
+            <select id="dateFilterDropdown" class="date-filter-select" style="flex: 1;">
+                <option value="all">All Dates</option>
+                <option value="today">Today</option>
+                <option value="tomorrow">Tomorrow</option>
+                <option value="this_week">This Week</option>
+                <option value="this_month">This Month</option>
+                <option value="custom">Custom Date</option>
+            </select>
+        </div>
+
+        <div class="task-type-filter-mobile" style="display: none; flex: 1; width: 100%; margin-top: 8px;">
+            <select id="taskTypeFilterMobile" class="task-filter-select" style="width: 100%;">
+                <option value="all">All Types</option>
+                <option value="meeting">Meeting</option>
+                <option value="site_visit">Site Visit</option>
+                <option value="prospect">Prospect</option>
+                <option value="closer">Closer</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+        
+        <!-- Custom Date Picker (hidden by default) -->
+        <input type="date" id="customDatePicker" style="display: none; margin-left: 8px; padding: 8px 12px; border: 2px solid #205A44; border-radius: 8px; font-size: 14px;">
+        
         <button id="removeAllOverdueBtn" class="btn-remove-overdue" onclick="removeAllOverdueTasks()" style="display: none;">
             <i class="fas fa-trash-alt"></i>
             Remove All Overdue
@@ -768,11 +1024,23 @@
         console.error('Failed to read filter from localStorage:', e);
     }
 
+    let savedCategory = 'all';
+    try {
+        const saved = localStorage.getItem('salesManagerTaskCategory');
+        if (saved && ['all', 'meeting', 'site_visit', 'prospect', 'closer', 'other'].includes(saved)) {
+            savedCategory = saved;
+        }
+    } catch (e) {
+        console.error('Failed to read task category from localStorage:', e);
+    }
+
     let currentStatus = savedFilter;
+    let currentCategory = savedCategory;
     let currentTaskId = null;
     
     // Attach to window for global access
     window.currentStatus = currentStatus;
+    window.currentCategory = currentCategory;
     window.currentTaskId = currentTaskId;
 
     function getAuthHeaders() {
@@ -891,13 +1159,32 @@
     }
 
     // Filter tasks function - must be globally accessible for onclick handlers
-    function filterTasks(status) {
-        console.log('filterTasks called with status:', status);
+    function filterTasks(status, dateFilter = null, customDate = null, category = null) {
+        console.log('filterTasks called with status:', status, 'dateFilter:', dateFilter, 'customDate:', customDate, 'category:', category);
         currentStatus = status;
+        
+        // Get date filter from dropdown if not provided
+        if (dateFilter === null) {
+            const dateDropdown = document.getElementById('dateFilterDropdown') || document.getElementById('dateFilterDropdownDesktop');
+            dateFilter = dateDropdown ? dateDropdown.value : 'all';
+        }
+
+        if (category === null) {
+            const categoryDropdown = document.getElementById('taskTypeFilterDesktop') || document.getElementById('taskTypeFilterMobile');
+            category = categoryDropdown ? categoryDropdown.value : (currentCategory || 'all');
+        }
+        currentCategory = category;
         
         // Save to localStorage
         try {
             localStorage.setItem('salesManagerTasksFilter', status);
+            localStorage.setItem('salesManagerDateFilter', dateFilter);
+            localStorage.setItem('salesManagerTaskCategory', category || 'all');
+            if (customDate) {
+                localStorage.setItem('salesManagerCustomDate', customDate);
+            } else {
+                localStorage.removeItem('salesManagerCustomDate');
+            }
         } catch (e) {
             console.error('Failed to save filter to localStorage:', e);
         }
@@ -909,6 +1196,52 @@
                 btn.classList.add('active');
             }
         });
+        
+        // Update status dropdown value
+        const filterDropdown = document.getElementById('taskFilterDropdown');
+        if (filterDropdown) {
+            filterDropdown.value = status;
+        }
+        
+        // Update date dropdown values
+        const dateDropdownMobile = document.getElementById('dateFilterDropdown');
+        const dateDropdownDesktop = document.getElementById('dateFilterDropdownDesktop');
+        if (dateDropdownMobile) {
+            dateDropdownMobile.value = dateFilter;
+        }
+        if (dateDropdownDesktop) {
+            dateDropdownDesktop.value = dateFilter;
+        }
+
+        const categoryDropdownDesktop = document.getElementById('taskTypeFilterDesktop');
+        const categoryDropdownMobile = document.getElementById('taskTypeFilterMobile');
+        if (categoryDropdownDesktop) {
+            categoryDropdownDesktop.value = category;
+        }
+        if (categoryDropdownMobile) {
+            categoryDropdownMobile.value = category;
+        }
+        
+        // Show/hide custom date picker
+        const customDatePicker = document.getElementById('customDatePicker');
+        if (customDatePicker) {
+            if (dateFilter === 'custom') {
+                customDatePicker.style.display = 'block';
+                if (customDate) {
+                    customDatePicker.value = customDate;
+                } else {
+                    // Get saved custom date or use today
+                    const savedCustomDate = localStorage.getItem('salesManagerCustomDate');
+                    if (savedCustomDate) {
+                        customDatePicker.value = savedCustomDate;
+                    } else {
+                        customDatePicker.value = new Date().toISOString().split('T')[0];
+                    }
+                }
+            } else {
+                customDatePicker.style.display = 'none';
+            }
+        }
 
         // Show/hide remove all overdue button
         const removeAllOverdueBtn = document.getElementById('removeAllOverdueBtn');
@@ -920,7 +1253,7 @@
             }
         }
 
-        loadTasks();
+        loadTasks(status, dateFilter, customDate || (dateFilter === 'custom' && customDatePicker ? customDatePicker.value : null), category);
     }
     
     // Attach to window for global access (critical for onclick handlers)
@@ -928,12 +1261,59 @@
     
     console.log('filterTasks function defined and attached to window:', typeof window.filterTasks);
 
-    async function loadTasks() {
-        console.log('=== loadTasks() CALLED ===');
+    async function loadTasks(status = null, dateFilter = null, customDate = null, category = null) {
+        console.log('=== loadTasks() CALLED ===', { status, dateFilter, customDate, category });
         const tasksGrid = document.getElementById('tasksGrid');
         if (!tasksGrid) {
             console.error('ERROR: Tasks grid element not found!');
             return;
+        }
+        
+        // Get current filters if not provided
+        if (status === null) {
+            status = window.currentStatus || currentStatus || 'all';
+        }
+        if (dateFilter === null) {
+            const dateDropdown = document.getElementById('dateFilterDropdown') || document.getElementById('dateFilterDropdownDesktop');
+            dateFilter = dateDropdown ? dateDropdown.value : 'all';
+            // Try to get from localStorage if dropdown not found
+            if (dateFilter === 'all') {
+                try {
+                    const saved = localStorage.getItem('salesManagerDateFilter');
+                    if (saved && ['all', 'today', 'tomorrow', 'this_week', 'this_month', 'custom'].includes(saved)) {
+                        dateFilter = saved;
+                    }
+                } catch (e) {
+                    console.error('Error reading saved date filter:', e);
+                }
+            }
+        }
+        if (dateFilter === 'custom' && customDate === null) {
+            const customDatePicker = document.getElementById('customDatePicker');
+            customDate = customDatePicker && customDatePicker.value ? customDatePicker.value : null;
+            // Try to get from localStorage if picker not found
+            if (!customDate) {
+                try {
+                    customDate = localStorage.getItem('salesManagerCustomDate');
+                } catch (e) {
+                    console.error('Error reading saved custom date:', e);
+                }
+            }
+        }
+
+        if (category === null) {
+            const categoryDropdown = document.getElementById('taskTypeFilterDesktop') || document.getElementById('taskTypeFilterMobile');
+            category = categoryDropdown ? categoryDropdown.value : (currentCategory || 'all');
+            if (category === 'all') {
+                try {
+                    const savedCategory = localStorage.getItem('salesManagerTaskCategory');
+                    if (savedCategory && ['all', 'meeting', 'site_visit', 'prospect', 'closer', 'other'].includes(savedCategory)) {
+                        category = savedCategory;
+                    }
+                } catch (e) {
+                    console.error('Error reading saved category filter:', e);
+                }
+            }
         }
         
         console.log('Setting loading state...');
@@ -944,7 +1324,7 @@
             console.error('API call timeout after 30 seconds');
             const currentGrid = document.getElementById('tasksGrid');
             if (currentGrid && currentGrid.innerHTML.includes('Loading tasks')) {
-                currentGrid.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Request Timeout</h3><p>The request is taking too long. Please check your connection and try again.</p><button onclick="window.loadTasks()" style="margin-top: 12px; padding: 8px 16px; background: #205A44; color: white; border: none; border-radius: 6px; cursor: pointer;">Retry</button></div>';
+                currentGrid.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Request Timeout</h3><p>The request is taking too long. Please check your connection and try again.</p><button onclick="if(window.filterTasks) { const status = window.currentStatus || \'all\'; const dateFilter = document.getElementById(\'dateFilterDropdown\')?.value || document.getElementById(\'dateFilterDropdownDesktop\')?.value || \'all\'; const customDate = document.getElementById(\'customDatePicker\')?.value || null; window.filterTasks(status, dateFilter, customDate); } else { window.location.reload(); }" style="margin-top: 12px; padding: 8px 16px; background: #205A44; color: white; border: none; border-radius: 6px; cursor: pointer;">Retry</button></div>';
             }
         }, 30000);
 
@@ -955,14 +1335,27 @@
             console.log('API_TOKEN:', API_TOKEN ? 'Present (' + API_TOKEN.substring(0, 20) + '...)' : 'Missing');
             
             const params = new URLSearchParams();
-            if (currentStatus && currentStatus !== 'all') {
-                params.append('status', currentStatus);
+            if (status && status !== 'all') {
+                params.append('status', status);
+            }
+            
+            // Add date filter parameters
+            if (dateFilter && dateFilter !== 'all') {
+                params.append('date_filter', dateFilter);
+                if (dateFilter === 'custom' && customDate) {
+                    params.append('custom_date', customDate);
+                }
+            }
+
+            if (category && category !== 'all') {
+                params.append('category', category);
             }
             
             const endpoint = `/tasks${params.toString() ? '?' + params.toString() : ''}`;
             const fullUrl = `${API_BASE_URL}${endpoint}`;
             console.log('Full API URL:', fullUrl);
             console.log('Calling API endpoint:', endpoint);
+            console.log('Filters:', { status, dateFilter, customDate, category });
             
             const result = await apiCall(endpoint);
             clearTimeout(timeoutId); // Clear timeout on success
@@ -983,7 +1376,7 @@
             if (result.success === false) {
                 console.error('API returned error:', result.message || result.error);
                 const errorMsg = result.message || result.error || 'Unknown error occurred';
-                tasksGrid.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Error loading tasks</h3><p>${errorMsg}</p><button onclick="window.loadTasks()" style="margin-top: 12px; padding: 8px 16px; background: #205A44; color: white; border: none; border-radius: 6px; cursor: pointer;">Retry</button></div>`;
+                tasksGrid.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Error loading tasks</h3><p>${errorMsg}</p><button onclick="if(window.filterTasks) { const status = window.currentStatus || 'all'; const dateFilter = document.getElementById('dateFilterDropdown')?.value || document.getElementById('dateFilterDropdownDesktop')?.value || 'all'; const customDate = document.getElementById('customDatePicker')?.value || null; window.filterTasks(status, dateFilter, customDate); } else { window.location.reload(); }" style="margin-top: 12px; padding: 8px 16px; background: #205A44; color: white; border: none; border-radius: 6px; cursor: pointer;">Retry</button></div>`;
                 return;
             }
             
@@ -1003,14 +1396,8 @@
                         renderTasks(result.data);
                     } else {
                         console.log('No tasks found (empty array)');
-                        // Custom empty message for rescheduled and overdue tabs
-                        let emptyMessage = '<div class="empty-state"><i class="fas fa-inbox"></i><h3>No tasks found</h3><p>You don\'t have any tasks matching the filter.</p></div>';
-                        if (currentStatus === 'rescheduled') {
-                            emptyMessage = '<div class="empty-state"><i class="fas fa-inbox"></i><h3>No rescheduled CNP calls</h3><p>You don\'t have any CNP calls scheduled for later.</p></div>';
-                        } else if (currentStatus === 'overdue') {
-                            emptyMessage = '<div class="empty-state"><i class="fas fa-inbox"></i><h3>No overdue tasks</h3><p>You don\'t have any overdue tasks. Great job!</p></div>';
-                        }
-                        tasksGrid.innerHTML = emptyMessage;
+                        // Hide empty state on mobile - show nothing
+                        tasksGrid.innerHTML = '';
                     }
                 } else {
                     console.error('Invalid response format - data is not an array:', result);
@@ -1031,7 +1418,7 @@
             console.error('Error message:', error.message);
             console.error('Error stack:', error.stack);
             const errorMsg = error.message || 'Unknown error occurred';
-            tasksGrid.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Error loading tasks</h3><p>${errorMsg}. Please refresh the page.</p><button onclick="window.loadTasks()" style="margin-top: 12px; padding: 8px 16px; background: #205A44; color: white; border: none; border-radius: 6px; cursor: pointer;">Retry</button></div>`;
+            tasksGrid.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Error loading tasks</h3><p>${errorMsg}. Please refresh the page.</p><button onclick="if(window.filterTasks) { const status = window.currentStatus || 'all'; const dateFilter = document.getElementById('dateFilterDropdown')?.value || document.getElementById('dateFilterDropdownDesktop')?.value || 'all'; const customDate = document.getElementById('customDatePicker')?.value || null; window.filterTasks(status, dateFilter, customDate); } else { window.location.reload(); }" style="margin-top: 12px; padding: 8px 16px; background: #205A44; color: white; border: none; border-radius: 6px; cursor: pointer;">Retry</button></div>`;
         }
     }
     
@@ -1043,7 +1430,8 @@
         const tasksGrid = document.getElementById('tasksGrid');
         
         if (tasks.length === 0) {
-            tasksGrid.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><h3>No tasks found</h3><p>You don\'t have any tasks matching the filter.</p></div>';
+            // Hide empty state on mobile - show nothing
+            tasksGrid.innerHTML = '';
             return;
         }
 
@@ -1066,10 +1454,25 @@
             const overdueClass = isOverdue ? 'overdue' : '';
             const statusClass = `status-${task.status || 'pending'}`;
             
+            // Check if task is related to meeting or visit
+            const isMeetingTask = task.type === 'meeting';
+            const isVisitTask = task.type === 'site_visit';
+            const isPendingMeeting = task.status === 'pending' && isMeetingTask;
+            const isPendingVisit = task.status === 'pending' && isVisitTask;
+            
             // Check if lead has prospect (from telecaller) - needs verification
             const hasProspect = task.has_prospect === true && 
                                task.prospect && 
                                task.prospect.is_pending_verification === true;
+            
+            // Check if task is related to prospect (has prospect OR prospect verification related)
+            const isProspectTask = task.has_prospect === true || 
+                                  (task.prospect && task.prospect.is_pending_verification === true) ||
+                                  (task.title && task.title.toLowerCase().includes('prospect verification'));
+            
+            // Check if task is a site visit reminder
+            const isSiteVisitReminder = (task.notes && task.notes.includes('Site Visit Reminder')) || 
+                                       (task.title && task.title.includes('Reminder: Site Visit'));
 
             const cleanPhone = String(leadPhone).replace(/[^0-9]/g, '');
             return `
@@ -1079,6 +1482,10 @@
                         <div>
                             <h3 class="task-name">${leadName}</h3>
                             ${isOverdue ? '<span class="overdue-badge">OVERDUE</span>' : ''}
+                            ${isPendingMeeting ? '<span class="meeting-tag" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; margin-left: 8px;">M</span>' : ''}
+                            ${isPendingVisit ? '<span class="visit-tag" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; margin-left: 8px;">V</span>' : ''}
+                            ${isProspectTask ? '<span class="prospect-tag" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; margin-left: 8px;">P</span>' : ''}
+                            ${isSiteVisitReminder ? '<span class="site-visit-tag" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; margin-left: 8px;">S</span>' : ''}
                             <span class="status-badge ${statusClass}">${task.status.replace('_', ' ').toUpperCase()}</span>
                         </div>
                     </div>
@@ -1091,6 +1498,7 @@
                             <i class="fas fa-calendar"></i>
                             <span>${scheduledDate}</span>
                         </div>
+                        ${task.notes && task.notes.includes('Pre-meeting reminder') ? '<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;"><span class="meeting-badge" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-calendar-check" style="font-size: 10px;"></i> Meeting</span></div>' : ''}
                     </div>
                     <div class="task-actions">
                         <button class="task-action-btn btn-call" onclick="handleManagerCallClick(${task.id}, '${leadPhone}', ${hasProspect})" title="Call">
@@ -1155,6 +1563,60 @@
     // Handle manager call click - Check if lead has prospect or is direct assignment
     async function handleManagerCallClick(taskId, phoneNumber, hasProspect = null) {
         currentTaskId = taskId;
+        
+        // First, check if this is a meeting task
+        let isMeetingTask = false;
+        let meetingId = null;
+        
+        try {
+            const taskResponse = await apiCall(`/tasks/${taskId}`);
+            if (taskResponse && taskResponse.success && taskResponse.data) {
+                const taskData = taskResponse.data;
+                // Check if task is related to meeting
+                isMeetingTask = taskData.type === 'meeting' || 
+                               (taskData.notes && taskData.notes.includes('Pre-meeting reminder'));
+                
+                // Extract meeting ID from notes if available
+                if (isMeetingTask && taskData.notes) {
+                    const meetingIdMatch = taskData.notes.match(/Meeting ID:\s*(\d+)/i);
+                    if (meetingIdMatch) {
+                        meetingId = parseInt(meetingIdMatch[1]);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching task data:', error);
+        }
+        
+        // If this is a meeting task, show meeting popup after call
+        if (isMeetingTask && meetingId) {
+            if (phoneNumber && phoneNumber !== 'N/A' && phoneNumber !== '') {
+                const cleanPhone = String(phoneNumber).replace(/[^0-9]/g, '');
+                if (cleanPhone.length >= 10) {
+                    // Open phone dialer
+                    window.location.href = `tel:${cleanPhone}`;
+                    // Small delay to allow dialer to open, then show meeting popup
+                    setTimeout(() => {
+                        if (typeof showPostCallPopup === 'function') {
+                            showPostCallPopup(meetingId, null, taskId, 'Task');
+                        } else {
+                            showAlert('Meeting popup not available', 'error');
+                        }
+                    }, 500);
+                } else {
+                    showAlert('Phone number not available', 'warning');
+                    if (typeof showPostCallPopup === 'function') {
+                        showPostCallPopup(meetingId, null, taskId, 'Task');
+                    }
+                }
+            } else {
+                showAlert('Phone number not available', 'warning');
+                if (typeof showPostCallPopup === 'function') {
+                    showPostCallPopup(meetingId, null, taskId, 'Task');
+                }
+            }
+            return; // Exit early for meeting tasks
+        }
         
         // If hasProspect not provided, fetch task data to check
         if (hasProspect === null) {
@@ -1488,9 +1950,12 @@
                 showAlert(`Call Not Picked marked. ${timeMsg}`, 'success', 4000);
                 closeCnpTimeSelectionModal();
                 currentTaskId = null; // Reset after successful submission
-                // Refresh tasks list after a short delay
+                // Refresh tasks list after a short delay (preserve current filters)
                 setTimeout(() => {
-                    loadTasks();
+                    const status = window.currentStatus || currentStatus || 'all';
+                    const dateFilter = document.getElementById('dateFilterDropdown')?.value || document.getElementById('dateFilterDropdownDesktop')?.value || 'all';
+                    const customDate = document.getElementById('customDatePicker')?.value || null;
+                    loadTasks(status, dateFilter, customDate);
                 }, 500);
             } else {
                 showAlert(result?.message || result?.error || 'Failed to mark as CNP', 'error');
@@ -1569,8 +2034,11 @@
                     taskCard.style.transform = 'scale(0.95)';
                     setTimeout(() => {
                         taskCard.remove();
-                        // Reload tasks after card removal to ensure consistency
-                        loadTasks();
+                    // Reload tasks after card removal to ensure consistency (preserve current filters)
+                    const status = window.currentStatus || currentStatus || 'all';
+                    const dateFilter = document.getElementById('dateFilterDropdown')?.value || document.getElementById('dateFilterDropdownDesktop')?.value || 'all';
+                    const customDate = document.getElementById('customDatePicker')?.value || null;
+                    loadTasks(status, dateFilter, customDate);
                     }, 300);
                 } else {
                     // Fallback if card not found by ID
@@ -1637,8 +2105,15 @@
             modalTitle.textContent = hasProspect ? 'Prospect Verification' : 'Lead Detail Form';
         }
         
-        const formFields = data.form_fields || [];
         const formValues = data.form_values || {};
+        
+        // Get existing values for pre-population
+        const existingCategory = formValues.category || '';
+        const existingPreferredLocation = formValues.preferred_location || '';
+        const existingType = formValues.type || '';
+        const existingPurpose = formValues.purpose || '';
+        const existingPossession = formValues.possession || '';
+        const existingBudget = formValues.budget || '';
         
         let formHTML = `
             <form id="managerLeadRequirementForm" novalidate onsubmit="submitManagerLeadRequirementForm(event); return false;">
@@ -1678,60 +2153,120 @@
                 <div style="margin-bottom: 24px;">
                     <h3 style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">Lead Requirements</h3>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-        `;
-        
-        // Render all form fields (manager can see all fields)
-        // Filter out Final Status, Follow-up Date, and Follow-up Time fields
-        const excludedFields = ['final_status', 'follow_up_date', 'follow_up_time', 'follow-up_date', 'follow-up_time'];
-        formFields.forEach(field => {
-            const fieldKey = field.key || field.field_key;
-            const fieldLabel = field.label || field.field_label;
-            
-            // Skip Final Status, Follow-up Date, and Follow-up Time fields
-            if (excludedFields.includes(fieldKey.toLowerCase()) || 
-                fieldLabel.toLowerCase().includes('final status') ||
-                (fieldLabel.toLowerCase().includes('follow-up') && (fieldLabel.toLowerCase().includes('date') || fieldLabel.toLowerCase().includes('time')))) {
-                return; // Skip this field
-            }
-            
-            const fieldType = field.type || field.field_type;
-            const isRequired = field.required !== undefined ? field.required : field.is_required;
-            const fieldOptions = field.options || [];
-            const dependentField = field.dependent_field;
-            const existingValue = formValues[fieldKey] || '';
-            
-            formHTML += `
-                <div>
-                    <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
-                        ${fieldLabel} ${isRequired ? '<span style="color: #d32f2f;">*</span>' : ''}
-                    </label>
-            `;
-            
-            if (fieldType === 'select') {
-                const dependentAttr = dependentField ? `data-dependent-field="${dependentField}"` : '';
-                formHTML += `<select name="${fieldKey}" id="manager_form_${fieldKey}" ${isRequired ? 'required' : ''} 
-                             style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
-                             ${dependentAttr}
-                             onchange="handleManagerFormFieldChange('${fieldKey}', this.value${dependentField ? `, '${dependentField}'` : ''})">`;
-                formHTML += `<option value="">-- Select ${fieldLabel} --</option>`;
-                fieldOptions.forEach(option => {
-                    formHTML += `<option value="${option}" ${existingValue === option ? 'selected' : ''}>${option}</option>`;
-                });
-                formHTML += `</select>`;
-            } else {
-                formHTML += `<input type="${fieldType}" 
-                             name="${fieldKey}" 
-                             id="manager_form_${fieldKey}"
-                             value="${existingValue}"
-                             ${isRequired ? 'required' : ''}
-                             placeholder="${field.placeholder || `Enter ${fieldLabel}`}"
-                             style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">`;
-            }
-            
-            formHTML += `</div>`;
-        });
-        
-        formHTML += `
+                        <!-- Category Field -->
+                        <div>
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                Category <span style="color: #d32f2f;">*</span>
+                            </label>
+                            <select name="category" 
+                                    id="manager_form_category" 
+                                    required
+                                    onchange="handleManagerCategoryChange(this.value)"
+                                    style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                                <option value="">-- Select Category --</option>
+                                <option value="Residential" ${existingCategory === 'Residential' ? 'selected' : ''}>Residential</option>
+                                <option value="Commercial" ${existingCategory === 'Commercial' ? 'selected' : ''}>Commercial</option>
+                                <option value="Both" ${existingCategory === 'Both' ? 'selected' : ''}>Both</option>
+                                <option value="N.A" ${existingCategory === 'N.A' ? 'selected' : ''}>N.A</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Preferred Location Field -->
+                        <div>
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                Preferred Location <span style="color: #d32f2f;">*</span>
+                            </label>
+                            <select name="preferred_location" 
+                                    id="manager_form_preferred_location" 
+                                    required
+                                    style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                                <option value="">-- Select Preferred Location --</option>
+                                <option value="Inside City" ${existingPreferredLocation === 'Inside City' ? 'selected' : ''}>Inside City</option>
+                                <option value="Sitapur Road" ${existingPreferredLocation === 'Sitapur Road' ? 'selected' : ''}>Sitapur Road</option>
+                                <option value="Hardoi Road" ${existingPreferredLocation === 'Hardoi Road' ? 'selected' : ''}>Hardoi Road</option>
+                                <option value="Faizabad Road" ${existingPreferredLocation === 'Faizabad Road' ? 'selected' : ''}>Faizabad Road</option>
+                                <option value="Sultanpur Road" ${existingPreferredLocation === 'Sultanpur Road' ? 'selected' : ''}>Sultanpur Road</option>
+                                <option value="Shaheed Path" ${existingPreferredLocation === 'Shaheed Path' ? 'selected' : ''}>Shaheed Path</option>
+                                <option value="Raebareily Road" ${existingPreferredLocation === 'Raebareily Road' ? 'selected' : ''}>Raebareily Road</option>
+                                <option value="Kanpur Road" ${existingPreferredLocation === 'Kanpur Road' ? 'selected' : ''}>Kanpur Road</option>
+                                <option value="Outer Ring Road" ${existingPreferredLocation === 'Outer Ring Road' ? 'selected' : ''}>Outer Ring Road</option>
+                                <option value="Bijnor Road" ${existingPreferredLocation === 'Bijnor Road' ? 'selected' : ''}>Bijnor Road</option>
+                                <option value="Deva Road" ${existingPreferredLocation === 'Deva Road' ? 'selected' : ''}>Deva Road</option>
+                                <option value="Sushant Golf City" ${existingPreferredLocation === 'Sushant Golf City' ? 'selected' : ''}>Sushant Golf City</option>
+                                <option value="Vrindavan Yojana" ${existingPreferredLocation === 'Vrindavan Yojana' ? 'selected' : ''}>Vrindavan Yojana</option>
+                                <option value="N.A" ${existingPreferredLocation === 'N.A' ? 'selected' : ''}>N.A</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Type Field (dependent on Category) -->
+                        <div>
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                Type <span style="color: #d32f2f;">*</span>
+                            </label>
+                            <select name="type" 
+                                    id="manager_form_type" 
+                                    required
+                                    ${!existingCategory ? 'disabled' : ''}
+                                    style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; ${!existingCategory ? 'background-color: #f5f5f5;' : ''}">
+                                <option value="">-- Select Type (select category first) --</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Purpose Field -->
+                        <div>
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                Purpose <span style="color: #d32f2f;">*</span>
+                            </label>
+                            <select name="purpose" 
+                                    id="manager_form_purpose" 
+                                    required
+                                    style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                                <option value="">-- Select Purpose --</option>
+                                <option value="End Use" ${existingPurpose === 'End Use' ? 'selected' : ''}>End Use</option>
+                                <option value="Short Term Investment" ${existingPurpose === 'Short Term Investment' ? 'selected' : ''}>Short Term Investment</option>
+                                <option value="Long Term Investment" ${existingPurpose === 'Long Term Investment' ? 'selected' : ''}>Long Term Investment</option>
+                                <option value="Rental Income" ${existingPurpose === 'Rental Income' ? 'selected' : ''}>Rental Income</option>
+                                <option value="Investment + End Use" ${existingPurpose === 'Investment + End Use' ? 'selected' : ''}>Investment + End Use</option>
+                                <option value="N.A" ${existingPurpose === 'N.A' ? 'selected' : ''}>N.A</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Possession Field -->
+                        <div>
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                Possession <span style="color: #d32f2f;">*</span>
+                            </label>
+                            <select name="possession" 
+                                    id="manager_form_possession" 
+                                    required
+                                    style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                                <option value="">-- Select Possession --</option>
+                                <option value="Under Construction" ${existingPossession === 'Under Construction' ? 'selected' : ''}>Under Construction</option>
+                                <option value="Ready To Move" ${existingPossession === 'Ready To Move' ? 'selected' : ''}>Ready To Move</option>
+                                <option value="Pre Launch" ${existingPossession === 'Pre Launch' ? 'selected' : ''}>Pre Launch</option>
+                                <option value="Both" ${existingPossession === 'Both' ? 'selected' : ''}>Both</option>
+                                <option value="N.A" ${existingPossession === 'N.A' ? 'selected' : ''}>N.A</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Budget Field -->
+                        <div>
+                            <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
+                                Budget <span style="color: #d32f2f;">*</span>
+                            </label>
+                            <select name="budget" 
+                                    id="manager_form_budget" 
+                                    required
+                                    style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                                <option value="">-- Select Budget --</option>
+                                <option value="Below 50 Lacs" ${existingBudget === 'Below 50 Lacs' ? 'selected' : ''}>Below 50 Lacs</option>
+                                <option value="50-75 Lacs" ${existingBudget === '50-75 Lacs' ? 'selected' : ''}>50-75 Lacs</option>
+                                <option value="75 Lacs-1 Cr" ${existingBudget === '75 Lacs-1 Cr' ? 'selected' : ''}>75 Lacs-1 Cr</option>
+                                <option value="Above 1 Cr" ${existingBudget === 'Above 1 Cr' ? 'selected' : ''}>Above 1 Cr</option>
+                                <option value="Above 2 Cr" ${existingBudget === 'Above 2 Cr' ? 'selected' : ''}>Above 2 Cr</option>
+                                <option value="N.A" ${existingBudget === 'N.A' ? 'selected' : ''}>N.A</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 
@@ -1759,6 +2294,22 @@
                                    id="manager_form_follow_up_date"
                                    style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
                             <small style="display: block; margin-top: 4px; color: #666; font-size: 12px;">Select date and time for the follow-up call. A calling task will be created automatically.</small>
+                            
+                            <!-- Create Telecaller Task Option (shown when Follow Up Required is checked) -->
+                            <div id="createTelecallerTaskContainer" style="display: none; margin-top: 12px;">
+                                <div style="display: flex; align-items: center;">
+                                    <input type="checkbox" 
+                                           name="create_telecaller_task" 
+                                           id="create_telecaller_task_checkbox"
+                                           style="width: 18px; height: 18px; margin-right: 10px; cursor: pointer;">
+                                    <label for="create_telecaller_task_checkbox" style="font-size: 14px; font-weight: 500; color: #333; cursor: pointer; margin: 0;">
+                                        Create calling task for telecaller also
+                                    </label>
+                                </div>
+                                <small style="display: block; color: #666; font-size: 12px; margin-left: 28px; margin-top: 4px;">
+                                    This will create a calling task for the original telecaller who provided this lead
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1790,19 +2341,21 @@
                                 <option value="4">4</option>
                                 <option value="5">5 - Best Lead</option>
                             </select>
-                            <small style="display: block; margin-top: 4px; color: #666; font-size: 12px;">Rate the lead quality (1 = Bad, 5 = Best Lead)</small>
                         </div>
                         <div style="grid-column: 1 / -1;">
                             <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
                                 <strong>Interested Projects</strong> <span style="color: #d32f2f;">*</span>
                             </label>
+                            <input type="text"
+                                   id="manager_project_input"
+                                   placeholder="Type project name and press Enter"
+                                   style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; margin-bottom: 12px;">
                             <div id="project-tags-container" class="project-tags-wrapper">
                                 <div class="project-tags-grid" id="project-tags-grid">
                                     <!-- Project tags will be loaded dynamically -->
                                 </div>
                             </div>
                             <input type="hidden" name="interested_projects" id="manager_form_interested_projects_hidden">
-                            <small style="display: block; margin-top: 8px; color: #666; font-size: 12px;">Click on projects to select/deselect</small>
                         </div>
                     </div>
                     
@@ -1906,23 +2459,45 @@
             </form>
         `;
         
-        container.innerHTML = formHTML;
-        
-        // Load interested projects
-        loadInterestedProjectsForManager();
-        
-        // Initialize dependent fields (category -> type)
-        const categorySelect = document.getElementById('manager_form_category');
-        const typeSelect = document.getElementById('manager_form_type');
-        
-        if (categorySelect && typeSelect) {
-            categorySelect.addEventListener('change', function() {
-                updateManagerTypeOptions(this.value, typeSelect);
-            });
+        try {
+            container.innerHTML = formHTML;
             
-            if (categorySelect.value) {
-                updateManagerTypeOptions(categorySelect.value, typeSelect);
+            // Load interested projects
+            loadInterestedProjectsForManager();
+            
+            // Add Enter key handler for custom project input
+            const projectInput = document.getElementById('manager_project_input');
+            if (projectInput) {
+                projectInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const value = this.value.trim();
+                        if (value) {
+                            addManagerProjectTag(value);
+                            this.value = ''; // Clear input after adding
+                        }
+                    }
+                });
             }
+            
+            // Initialize dependent fields (category -> type)
+            const categorySelect = document.getElementById('manager_form_category');
+            const typeSelect = document.getElementById('manager_form_type');
+            
+            if (categorySelect && typeSelect) {
+                // Initialize Type field based on existing category
+                if (categorySelect.value) {
+                    updateManagerTypeOptions(categorySelect.value, typeSelect, existingType);
+                }
+            }
+        } catch (error) {
+            console.error('Error inserting form HTML:', error);
+            container.innerHTML = `
+                <div style="padding: 20px; background: #fee; border: 1px solid #fcc; border-radius: 8px; color: #c33;">
+                    <h4 style="margin: 0 0 10px 0;">Error Loading Form</h4>
+                    <p style="margin: 0;">${error.message}</p>
+                </div>
+            `;
         }
         
         // Initialize Follow Up Required checkbox handler
@@ -1942,6 +2517,7 @@
     function handleFollowUpRequiredChange(isRequired) {
         const followUpContainer = document.getElementById('followUpDateContainer');
         const followUpDateInput = document.getElementById('manager_form_follow_up_date');
+        const telecallerTaskContainer = document.getElementById('createTelecallerTaskContainer');
         
         if (isRequired) {
             // Show follow-up date picker
@@ -1958,6 +2534,10 @@
                 followUpDateInput.removeAttribute('required');
                 followUpDateInput.required = false;
             }
+            // Show telecaller task checkbox
+            if (telecallerTaskContainer) {
+                telecallerTaskContainer.style.display = 'block';
+            }
         } else {
             // Hide follow-up date picker
             if (followUpContainer) {
@@ -1968,6 +2548,15 @@
                 followUpDateInput.removeAttribute('required');
                 followUpDateInput.required = false;
                 followUpDateInput.value = '';
+            }
+            // Hide telecaller task checkbox
+            if (telecallerTaskContainer) {
+                telecallerTaskContainer.style.display = 'none';
+            }
+            // Uncheck telecaller task checkbox when hiding
+            const telecallerTaskCheckbox = document.getElementById('create_telecaller_task_checkbox');
+            if (telecallerTaskCheckbox) {
+                telecallerTaskCheckbox.checked = false;
             }
         }
     }
@@ -1982,8 +2571,16 @@
         }
     }
 
+    // Handle category change for manager form
+    window.handleManagerCategoryChange = function(category) {
+        const typeSelect = document.getElementById('manager_form_type');
+        if (typeSelect) {
+            updateManagerTypeOptions(category, typeSelect);
+        }
+    };
+    
     // Update type options based on category
-    function updateManagerTypeOptions(category, typeSelect) {
+    function updateManagerTypeOptions(category, typeSelect, existingValue = null) {
         const typeOptions = {
             'Residential': ['Plots & Villas', 'Apartments', 'Studio', 'Farmhouse', 'N.A'],
             'Commercial': ['Retail Shops', 'Office Space', 'Studio', 'N.A'],
@@ -1991,14 +2588,28 @@
             'N.A': ['N.A']
         };
         
-        const currentValue = typeSelect.value;
+        const currentValue = existingValue || typeSelect.value;
         const options = typeOptions[category] || typeOptions['Both'];
         
-        typeSelect.innerHTML = '<option value="">-- Select Type --</option>';
+        // Enable/disable Type field based on category selection
+        if (category && category !== '') {
+            typeSelect.disabled = false;
+            typeSelect.style.backgroundColor = '';
+        } else {
+            typeSelect.disabled = true;
+            typeSelect.style.backgroundColor = '#f5f5f5';
+        }
+        
+        typeSelect.innerHTML = '<option value="">-- Select Type (select category first) --</option>';
         options.forEach(option => {
             const selected = option === currentValue ? 'selected' : '';
             typeSelect.innerHTML += `<option value="${option}" ${selected}>${option}</option>`;
         });
+        
+        // If current value is not in the new options, clear it
+        if (currentValue && !options.includes(currentValue)) {
+            typeSelect.value = '';
+        }
     }
 
     // Load interested projects for manager form (render as tags)
@@ -2038,13 +2649,60 @@
         updateSelectedProjects();
     }
 
+    // Add a custom project tag for manager form
+    function addManagerProjectTag(projectName) {
+        const projectTagsGrid = document.getElementById('project-tags-grid');
+        if (!projectTagsGrid || !projectName || !projectName.trim()) {
+            return;
+        }
+        
+        const trimmedName = projectName.trim();
+        
+        // Check if tag already exists (case-insensitive)
+        const existingTags = projectTagsGrid.querySelectorAll('.project-tag');
+        for (let tag of existingTags) {
+            const tagText = tag.querySelector('.project-tag-text')?.textContent?.trim();
+            if (tagText && tagText.toLowerCase() === trimmedName.toLowerCase()) {
+                // Tag already exists, just select it
+                tag.classList.add('selected');
+                updateSelectedProjects();
+                return;
+            }
+        }
+        
+        // Create new tag element
+        const tag = document.createElement('div');
+        tag.className = 'project-tag selected'; // Auto-select custom projects
+        tag.dataset.projectName = trimmedName; // Use projectName instead of projectId for custom projects
+        tag.dataset.isCustom = 'true'; // Flag to identify custom projects
+        tag.innerHTML = `
+            <span class="project-tag-text">${escapeHtml(trimmedName)}</span>
+            <i class="fas fa-check project-tag-check"></i>
+        `;
+        tag.addEventListener('click', function() {
+            toggleProjectTag(this);
+        });
+        
+        projectTagsGrid.appendChild(tag);
+        updateSelectedProjects();
+    }
+
     // Update hidden input with selected project IDs
     function updateSelectedProjects() {
         const selectedTags = document.querySelectorAll('#project-tags-grid .project-tag.selected');
-        const selectedIds = Array.from(selectedTags).map(tag => parseInt(tag.dataset.projectId));
+        const selectedProjects = Array.from(selectedTags).map(tag => {
+            // Check if it's a custom project (has projectName) or database project (has projectId)
+            if (tag.dataset.isCustom === 'true' && tag.dataset.projectName) {
+                return { name: tag.dataset.projectName, is_custom: true };
+            } else if (tag.dataset.projectId) {
+                return parseInt(tag.dataset.projectId);
+            }
+            return null;
+        }).filter(p => p !== null);
+        
         const hiddenInput = document.getElementById('manager_form_interested_projects_hidden');
         if (hiddenInput) {
-            hiddenInput.value = JSON.stringify(selectedIds);
+            hiddenInput.value = JSON.stringify(selectedProjects);
         }
     }
 
@@ -2115,9 +2773,16 @@
             return;
         }
         
-        // Get selected interested projects from tags
+        // Get selected interested projects from tags (both IDs and custom names)
         const selectedTags = document.querySelectorAll('#project-tags-grid .project-tag.selected');
-        data['interested_projects'] = Array.from(selectedTags).map(tag => parseInt(tag.dataset.projectId));
+        data['interested_projects'] = Array.from(selectedTags).map(tag => {
+            if (tag.dataset.isCustom === 'true' && tag.dataset.projectName) {
+                return { name: tag.dataset.projectName, is_custom: true };
+            } else if (tag.dataset.projectId) {
+                return parseInt(tag.dataset.projectId);
+            }
+            return null;
+        }).filter(p => p !== null);
         
         // Ensure interested_projects is an array
         if (!data['interested_projects'] || data['interested_projects'].length === 0) {
@@ -2190,8 +2855,11 @@
                     taskCard.style.transform = 'scale(0.95)';
                     setTimeout(() => {
                         taskCard.remove();
-                        // Reload tasks after card removal to ensure consistency
-                        loadTasks();
+                    // Reload tasks after card removal to ensure consistency (preserve current filters)
+                    const status = window.currentStatus || currentStatus || 'all';
+                    const dateFilter = document.getElementById('dateFilterDropdown')?.value || document.getElementById('dateFilterDropdownDesktop')?.value || 'all';
+                    const customDate = document.getElementById('customDatePicker')?.value || null;
+                    loadTasks(status, dateFilter, customDate);
                     }, 300);
                 } else {
                     // Fallback if card not found by ID
@@ -2237,9 +2905,12 @@
                 const count = result.count || 0;
                 showAlert(`Successfully removed ${count} overdue task(s)`, 'success');
                 
-                // Reload tasks after a short delay
+                // Reload tasks after a short delay (preserve current filters)
                 setTimeout(() => {
-                    loadTasks();
+                    const status = window.currentStatus || currentStatus || 'all';
+                    const dateFilter = document.getElementById('dateFilterDropdown')?.value || document.getElementById('dateFilterDropdownDesktop')?.value || 'all';
+                    const customDate = document.getElementById('customDatePicker')?.value || null;
+                    loadTasks(status, dateFilter, customDate);
                 }, 500);
             } else {
                 showAlert(result?.message || result?.error || 'Failed to remove overdue tasks', 'error');
@@ -2274,18 +2945,73 @@
                 const task = result.data;
                 const lead = task.lead || {};
                 const prospect = task.prospect || {};
+                const formFields = lead.form_fields || {};
+                const isProspect = prospect && prospect.id;
+                const isFromGoogleSheets = lead.source === 'google_sheets';
                 
-                content.innerHTML = `
-                    <div>
-                        <h3 style="margin-bottom: 20px;">${lead.name || 'Lead'}</h3>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                            <div><strong>Phone:</strong> ${lead.phone || '-'}</div>
-                            <div><strong>Email:</strong> ${lead.email || '-'}</div>
-                            <div><strong>Status:</strong> ${prospect.verification_status || '-'}</div>
-                            <div><strong>Budget:</strong> ${prospect.budget || '-'}</div>
-                        </div>
+                let detailsHTML = '';
+                
+                // Header with name and phone
+                detailsHTML += `
+                    <div style="background: linear-gradient(135deg, #205A44 0%, #063A1C 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <h3 style="margin: 0 0 8px 0; font-size: 20px;">${lead.name || 'Lead'}</h3>
+                        <p style="margin: 0; font-size: 16px; opacity: 0.9;">${lead.phone || '-'}</p>
                     </div>
                 `;
+                
+                // Prospect Details Section
+                if (isProspect) {
+                    detailsHTML += `
+                        <div style="margin-bottom: 20px; padding: 16px; background: #f9fafb; border-radius: 8px;">
+                            <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #063A1C;">Prospect Details</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                <div><strong>Customer Name:</strong> ${prospect.customer_name || '-'}</div>
+                                <div><strong>Phone:</strong> ${prospect.phone || '-'}</div>
+                                <div><strong>Budget:</strong> ${prospect.budget || '-'}</div>
+                                <div><strong>Preferred Location:</strong> ${prospect.preferred_location || '-'}</div>
+                                <div><strong>Size:</strong> ${prospect.size || '-'}</div>
+                                <div><strong>Purpose:</strong> ${prospect.purpose || '-'}</div>
+                                <div><strong>Possession:</strong> ${prospect.possession || '-'}</div>
+                                <div><strong>Verification Status:</strong> ${prospect.verification_status || '-'}</div>
+                                ${prospect.remark ? `<div style="grid-column: 1 / -1;"><strong>Remark:</strong> ${prospect.remark}</div>` : ''}
+                                ${prospect.manager_remark ? `<div style="grid-column: 1 / -1;"><strong>Manager Remark:</strong> ${prospect.manager_remark}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Note: Google Sheets Details section removed as per user request
+                
+                // Form Data Section (if available)
+                if (formFields && Object.keys(formFields).length > 0) {
+                    detailsHTML += `
+                        <div style="margin-bottom: 20px; padding: 16px; background: #f9fafb; border-radius: 8px;">
+                            <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #063A1C;">Form Data</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                ${Object.entries(formFields).map(([key, value]) => `
+                                    <div>
+                                        <strong>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${value || '-'}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Basic Lead Details (if not prospect and not from Google Sheets)
+                if (!isProspect && !isFromGoogleSheets) {
+                    detailsHTML += `
+                        <div style="margin-bottom: 20px; padding: 16px; background: #f9fafb; border-radius: 8px;">
+                            <h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600; color: #063A1C;">Lead Details</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                <div><strong>Email:</strong> ${lead.email || '-'}</div>
+                                <div><strong>Status:</strong> ${lead.status || '-'}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                content.innerHTML = `<div>${detailsHTML}</div>`;
             } else {
                 showAlert('Failed to load task details', 'error');
                 closeProspectDetailModal();
@@ -2326,20 +3052,206 @@
             });
         });
         
+        // Set up status dropdown filter for mobile
+        const filterDropdown = document.getElementById('taskFilterDropdown');
+        if (filterDropdown) {
+            filterDropdown.addEventListener('change', function(e) {
+                const status = this.value;
+                console.log('Status filter dropdown changed, status:', status);
+                if (window.filterTasks) {
+                    window.filterTasks(status);
+                } else {
+                    filterTasks(status);
+                }
+            });
+            
+            // Set initial value from saved filter
+            try {
+                const saved = localStorage.getItem('salesManagerTasksFilter');
+                if (saved && ['all', 'pending', 'overdue', 'rescheduled', 'completed'].includes(saved)) {
+                    filterDropdown.value = saved;
+                }
+            } catch (e) {
+                console.error('Error reading saved filter:', e);
+            }
+        }
+
+        const categoryDropdownDesktop = document.getElementById('taskTypeFilterDesktop');
+        const categoryDropdownMobile = document.getElementById('taskTypeFilterMobile');
+
+        function handleCategoryChange(categoryValue) {
+            const currentStatusValue = window.currentStatus || currentStatus || 'all';
+            const dateFilterValue = document.getElementById('dateFilterDropdown')?.value || document.getElementById('dateFilterDropdownDesktop')?.value || 'all';
+            const customDateValue = document.getElementById('customDatePicker')?.value || null;
+            if (window.filterTasks) {
+                window.filterTasks(currentStatusValue, dateFilterValue, customDateValue, categoryValue);
+            } else {
+                filterTasks(currentStatusValue, dateFilterValue, customDateValue, categoryValue);
+            }
+        }
+
+        if (categoryDropdownDesktop) {
+            categoryDropdownDesktop.addEventListener('change', function() {
+                handleCategoryChange(this.value);
+            });
+        }
+
+        if (categoryDropdownMobile) {
+            categoryDropdownMobile.addEventListener('change', function() {
+                handleCategoryChange(this.value);
+            });
+        }
+
+        try {
+            const savedCategory = localStorage.getItem('salesManagerTaskCategory');
+            if (savedCategory && ['all', 'meeting', 'site_visit', 'prospect', 'closer', 'other'].includes(savedCategory)) {
+                if (categoryDropdownDesktop) {
+                    categoryDropdownDesktop.value = savedCategory;
+                }
+                if (categoryDropdownMobile) {
+                    categoryDropdownMobile.value = savedCategory;
+                }
+                currentCategory = savedCategory;
+                window.currentCategory = currentCategory;
+            }
+        } catch (e) {
+            console.error('Error reading saved task category:', e);
+        }
+        
+        // Set up date dropdown filters (mobile and desktop)
+        const dateDropdownMobile = document.getElementById('dateFilterDropdown');
+        const dateDropdownDesktop = document.getElementById('dateFilterDropdownDesktop');
+        const customDatePicker = document.getElementById('customDatePicker');
+        
+        function handleDateFilterChange(dateFilter) {
+            console.log('Date filter changed:', dateFilter);
+            
+            // Show/hide custom date picker
+            if (customDatePicker) {
+                if (dateFilter === 'custom') {
+                    customDatePicker.style.display = 'block';
+                    // Set default to today if no saved date
+                    if (!customDatePicker.value) {
+                        const savedCustomDate = localStorage.getItem('salesManagerCustomDate');
+                        customDatePicker.value = savedCustomDate || new Date().toISOString().split('T')[0];
+                    }
+                } else {
+                    customDatePicker.style.display = 'none';
+                }
+            }
+            
+            // Get current status and apply both filters
+            const currentStatusValue = window.currentStatus || currentStatus || 'all';
+            const currentCategoryValue = window.currentCategory || currentCategory || 'all';
+            const customDate = (dateFilter === 'custom' && customDatePicker && customDatePicker.value) ? customDatePicker.value : null;
+            
+            if (window.filterTasks) {
+                window.filterTasks(currentStatusValue, dateFilter, customDate, currentCategoryValue);
+            } else {
+                filterTasks(currentStatusValue, dateFilter, customDate, currentCategoryValue);
+            }
+        }
+        
+        if (dateDropdownMobile) {
+            dateDropdownMobile.addEventListener('change', function(e) {
+                handleDateFilterChange(this.value);
+            });
+            
+            // Set initial value from saved filter
+            try {
+                const saved = localStorage.getItem('salesManagerDateFilter');
+                if (saved && ['all', 'today', 'tomorrow', 'this_week', 'this_month', 'custom'].includes(saved)) {
+                    dateDropdownMobile.value = saved;
+                    if (saved === 'custom') {
+                        handleDateFilterChange('custom');
+                    }
+                }
+            } catch (e) {
+                console.error('Error reading saved date filter:', e);
+            }
+        }
+        
+        if (dateDropdownDesktop) {
+            dateDropdownDesktop.addEventListener('change', function(e) {
+                handleDateFilterChange(this.value);
+            });
+            
+            // Set initial value from saved filter
+            try {
+                const saved = localStorage.getItem('salesManagerDateFilter');
+                if (saved && ['all', 'today', 'tomorrow', 'this_week', 'this_month', 'custom'].includes(saved)) {
+                    dateDropdownDesktop.value = saved;
+                    if (saved === 'custom') {
+                        handleDateFilterChange('custom');
+                    }
+                }
+            } catch (e) {
+                console.error('Error reading saved date filter:', e);
+            }
+        }
+        
+        // Handle custom date picker change
+        if (customDatePicker) {
+            customDatePicker.addEventListener('change', function(e) {
+                const customDate = this.value;
+                console.log('Custom date changed:', customDate);
+                
+                // Save to localStorage
+                try {
+                    localStorage.setItem('salesManagerCustomDate', customDate);
+                } catch (e) {
+                    console.error('Failed to save custom date:', e);
+                }
+                
+                // Get current filters and apply
+                const currentStatusValue = window.currentStatus || currentStatus || 'all';
+                const dateFilter = 'custom';
+                const currentCategoryValue = window.currentCategory || currentCategory || 'all';
+                
+                if (window.filterTasks) {
+                    window.filterTasks(currentStatusValue, dateFilter, customDate, currentCategoryValue);
+                } else {
+                    filterTasks(currentStatusValue, dateFilter, customDate, currentCategoryValue);
+                }
+            });
+        }
+        
         const tasksGridEl = document.getElementById('tasksGrid');
         console.log('Tasks grid element found:', !!tasksGridEl);
         
         if (tasksGridEl) {
             console.log('Calling filterTasks() with saved filter:', currentStatus);
+            // Restore date filter
+            let savedDateFilter = 'all';
+            let savedCustomDate = null;
+            let savedCategoryFilter = 'all';
+            try {
+                const saved = localStorage.getItem('salesManagerDateFilter');
+                if (saved && ['all', 'today', 'tomorrow', 'this_week', 'this_month', 'custom'].includes(saved)) {
+                    savedDateFilter = saved;
+                }
+                savedCustomDate = localStorage.getItem('salesManagerCustomDate');
+                const savedCategory = localStorage.getItem('salesManagerTaskCategory');
+                if (savedCategory && ['all', 'meeting', 'site_visit', 'prospect', 'closer', 'other'].includes(savedCategory)) {
+                    savedCategoryFilter = savedCategory;
+                }
+            } catch (e) {
+                console.error('Error reading saved date filter:', e);
+            }
+            
             // Use filterTasks instead of loadTasks to restore UI state
-            filterTasks(currentStatus);
+            filterTasks(currentStatus, savedDateFilter, savedCustomDate, savedCategoryFilter);
             
             // Auto-refresh every 60 seconds (1 minute) to move tasks from Rescheduled to Pending
             // Only refresh when page/tab is visible (not hidden)
             setInterval(function() {
                 if (!document.hidden) {
                     console.log('Auto-refreshing tasks...');
-                    loadTasks();
+                    const status = window.currentStatus || currentStatus || 'all';
+                    const dateFilter = document.getElementById('dateFilterDropdown')?.value || document.getElementById('dateFilterDropdownDesktop')?.value || 'all';
+                    const customDate = document.getElementById('customDatePicker')?.value || null;
+                    const category = document.getElementById('taskTypeFilterDesktop')?.value || document.getElementById('taskTypeFilterMobile')?.value || 'all';
+                    loadTasks(status, dateFilter, customDate, category);
                 }
             }, 60000); // 60 seconds = 1 minute
         } else {

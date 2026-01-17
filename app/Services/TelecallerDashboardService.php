@@ -614,5 +614,292 @@ class TelecallerDashboardService
                 : 0,
         ];
     }
+
+    /**
+     * Get dashboard card statistics
+     */
+    public function getDashboardCardStats(int $userId, string $dateRange = 'today', $startDate = null, $endDate = null, $targetMonth = null, string $targetFilter = 'today'): array
+    {
+        [$startDate, $endDate] = $this->getDateRange($dateRange, $startDate, $endDate);
+
+        // Ensure Carbon instances
+        if (!$startDate instanceof Carbon) {
+            $startDate = Carbon::parse($startDate)->startOfDay();
+        }
+        if (!$endDate instanceof Carbon) {
+            $endDate = Carbon::parse($endDate)->endOfDay();
+        }
+
+        // Today Leads: Count of leads assigned in the date range
+        $todayLeads = LeadAssignment::where('assigned_to', $userId)
+            ->where('is_active', true)
+            ->whereBetween('assigned_at', [$startDate, $endDate])
+            ->count();
+
+        // Remaining Tasks: Count of pending/in_progress tasks
+        $remainingTasks = TelecallerTask::where('assigned_to', $userId)
+            ->whereIn('status', ['pending', 'in_progress'])
+            ->count();
+
+        // Overdue Tasks: Count of overdue tasks (scheduled_at < now - 10 minutes and status != completed)
+        $tenMinutesAgo = now()->subMinutes(10);
+        $overdueTasks = TelecallerTask::where('assigned_to', $userId)
+            ->where('status', '!=', 'completed')
+            ->where('scheduled_at', '<', $tenMinutesAgo)
+            ->count();
+
+        // Prospects: Count of prospects created in the date range
+        $prospects = Prospect::where('created_by', $userId)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->count();
+
+        // Get target data for telecaller - default to current month
+        // If targetMonth parameter is provided, use it; otherwise use current month
+        $targetMonthDate = $targetMonth ? Carbon::parse($targetMonth . '-01')->startOfMonth() : Carbon::now()->startOfMonth();
+        $target = Target::where('user_id', $userId)
+            ->whereYear('target_month', $targetMonthDate->year)
+            ->whereMonth('target_month', $targetMonthDate->month)
+            ->first();
+
+        $targetsData = [
+            'calling' => [
+                'actual' => 0,
+                'target' => 0,
+                'monthly_target' => 0,
+                'percentage' => 0,
+                'period' => 'daily'
+            ],
+            'prospect' => [
+                'actual' => 0,
+                'target' => 0,
+                'monthly_target' => 0,
+                'percentage' => 0,
+                'period' => 'daily'
+            ],
+            'visit' => [
+                'actual' => 0,
+                'target' => 0,
+                'monthly_target' => 0,
+                'percentage' => 0,
+                'period' => 'weekly'
+            ],
+        ];
+
+        if ($target) {
+            // Calculate targets based on filter period
+            $callingData = $this->getCallingTargetForPeriod($target, $userId, $targetFilter, $targetMonthDate);
+            $prospectData = $this->getProspectTargetForPeriod($target, $userId, $targetFilter, $targetMonthDate);
+            $visitData = $this->getVisitTargetForPeriod($target, $userId, $targetFilter, $targetMonthDate);
+            
+            $targetsData['calling'] = $callingData;
+            $targetsData['prospect'] = $prospectData;
+            $targetsData['visit'] = $visitData;
+        }
+
+        return [
+            'today_leads' => $todayLeads,
+            'remaining_tasks' => $remainingTasks,
+            'overdue_tasks' => $overdueTasks,
+            'prospects' => $prospects,
+            'targets' => $targetsData,
+        ];
+    }
+
+    /**
+     * Get period dates based on filter
+     */
+    private function getPeriodDates(string $filterPeriod, Carbon $targetMonthDate): array
+    {
+        switch($filterPeriod) {
+            case 'today':
+                return [Carbon::today(), Carbon::today()->endOfDay()];
+            case 'this_week':
+                return [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()];
+            case 'this_month':
+                return [$targetMonthDate->copy()->startOfMonth(), $targetMonthDate->copy()->endOfMonth()];
+            default:
+                return [Carbon::today(), Carbon::today()->endOfDay()];
+        }
+    }
+
+    /**
+     * Get calling target data for a specific period
+     */
+    private function getCallingTargetForPeriod(Target $target, int $userId, string $filterPeriod, Carbon $targetMonthDate): array
+    {
+        [$periodStart, $periodEnd] = $this->getPeriodDates($filterPeriod, $targetMonthDate);
+        
+        // Count completed calling tasks for the period (with CNP logic)
+        $actual = 0;
+        
+        if ($filterPeriod === 'today') {
+            $actual = $target->getDailyCallsCompletedCount();
+        } else {
+            // For week/month, count all completed calling tasks in the period
+            $tasks = TelecallerTask::where('assigned_to', $userId)
+                ->where('task_type', 'calling')
+                ->where('status', 'completed')
+                ->whereBetween('completed_at', [$periodStart, $periodEnd])
+                ->with('lead')
+                ->get();
+            
+            $count = 0;
+            $processedCnpLeads = [];
+            
+            foreach ($tasks as $task) {
+                // For CNP tasks, verify 2 calls on same day
+                if ($task->outcome === 'cnp') {
+                    $leadId = $task->lead_id;
+                    
+                    // Skip if we already counted this lead's CNP for the period
+                    if (isset($processedCnpLeads[$leadId])) {
+                        continue;
+                    }
+                    
+                    // Check if both CNP calls happened in the same period
+                    $cnpTasksSamePeriod = TelecallerTask::where('lead_id', $leadId)
+                        ->where('outcome', 'cnp')
+                        ->where('status', 'completed')
+                        ->whereBetween('completed_at', [$periodStart, $periodEnd])
+                        ->count();
+                    
+                    // Only count if 2 or more CNP calls in the period
+                    if ($cnpTasksSamePeriod >= 2) {
+                        $count++;
+                        $processedCnpLeads[$leadId] = true;
+                    }
+                } else {
+                    // Non-CNP tasks count normally
+                    $count++;
+                }
+            }
+            
+            $actual = $count;
+        }
+        
+        // Calculate target based on period
+        $targetValue = 0;
+        $periodLabel = 'daily';
+        
+        switch($filterPeriod) {
+            case 'today':
+                $targetValue = $target->getDailyCallsTarget();
+                $periodLabel = 'daily';
+                break;
+            case 'this_week':
+                $daysInMonth = $targetMonthDate->daysInMonth;
+                $monthlyTarget = $target->target_calls ?? 0;
+                $targetValue = $monthlyTarget > 0 ? round(($monthlyTarget * 7) / $daysInMonth, 2) : 0;
+                $periodLabel = 'weekly';
+                break;
+            case 'this_month':
+                $targetValue = $target->target_calls ?? 0;
+                $periodLabel = 'monthly';
+                break;
+        }
+        
+        $percentage = $targetValue > 0 ? min(100, round(($actual / $targetValue) * 100, 1)) : 0;
+        
+        return [
+            'actual' => $actual,
+            'target' => round($targetValue),
+            'monthly_target' => $target->target_calls ?? 0,
+            'percentage' => $percentage,
+            'period' => $periodLabel
+        ];
+    }
+
+    /**
+     * Get prospect target data for a specific period
+     */
+    private function getProspectTargetForPeriod(Target $target, int $userId, string $filterPeriod, Carbon $targetMonthDate): array
+    {
+        [$periodStart, $periodEnd] = $this->getPeriodDates($filterPeriod, $targetMonthDate);
+        
+        // Count verified prospects for the period
+        $actual = Prospect::where('telecaller_id', $userId)
+            ->where('verification_status', 'verified')
+            ->whereBetween('verified_at', [$periodStart, $periodEnd])
+            ->count();
+        
+        // Calculate target based on period
+        $targetValue = 0;
+        $periodLabel = 'daily';
+        
+        switch($filterPeriod) {
+            case 'today':
+                $targetValue = $target->getDailyProspectsTarget();
+                $periodLabel = 'daily';
+                break;
+            case 'this_week':
+                $daysInMonth = $targetMonthDate->daysInMonth;
+                $monthlyTarget = $target->target_prospects_verified ?? 0;
+                $targetValue = $monthlyTarget > 0 ? round(($monthlyTarget * 7) / $daysInMonth, 2) : 0;
+                $periodLabel = 'weekly';
+                break;
+            case 'this_month':
+                $targetValue = $target->target_prospects_verified ?? 0;
+                $periodLabel = 'monthly';
+                break;
+        }
+        
+        $percentage = $targetValue > 0 ? min(100, round(($actual / $targetValue) * 100, 1)) : 0;
+        
+        return [
+            'actual' => $actual,
+            'target' => round($targetValue),
+            'monthly_target' => $target->target_prospects_verified ?? 0,
+            'percentage' => $percentage,
+            'period' => $periodLabel
+        ];
+    }
+
+    /**
+     * Get visit target data for a specific period
+     */
+    private function getVisitTargetForPeriod(Target $target, int $userId, string $filterPeriod, Carbon $targetMonthDate): array
+    {
+        [$periodStart, $periodEnd] = $this->getPeriodDates($filterPeriod, $targetMonthDate);
+        
+        // Count completed visits for the period
+        $actual = SiteVisit::where(function($q) use ($userId) {
+                $q->where('assigned_to', $userId)
+                  ->orWhere('created_by', $userId);
+            })
+            ->where('status', 'completed')
+            ->whereNotNull('completed_at')
+            ->whereBetween('completed_at', [$periodStart, $periodEnd])
+            ->count();
+        
+        // Calculate target based on period
+        $targetValue = 0;
+        $periodLabel = 'weekly';
+        
+        switch($filterPeriod) {
+            case 'today':
+                // For today, still show weekly target (visits are weekly)
+                $targetValue = $target->getWeeklyVisitsTarget();
+                $periodLabel = 'weekly';
+                break;
+            case 'this_week':
+                $targetValue = $target->getWeeklyVisitsTarget();
+                $periodLabel = 'weekly';
+                break;
+            case 'this_month':
+                $targetValue = $target->target_visits ?? 0;
+                $periodLabel = 'monthly';
+                break;
+        }
+        
+        $percentage = $targetValue > 0 ? min(100, round(($actual / $targetValue) * 100, 1)) : 0;
+        
+        return [
+            'actual' => $actual,
+            'target' => round($targetValue),
+            'monthly_target' => $target->target_visits ?? 0,
+            'percentage' => $percentage,
+            'period' => $periodLabel
+        ];
+    }
 }
 

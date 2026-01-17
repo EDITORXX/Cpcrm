@@ -13,6 +13,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class SiteVisitController extends Controller
 {
@@ -62,7 +63,7 @@ class SiteVisitController extends Controller
                       ->orWhereIn('assigned_to', $teamMemberIds);
                 }
             })->where('is_dead', false);
-        } elseif ($user->isSalesExecutive() || $user->isTelecaller()) {
+        } elseif ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             $query->where('assigned_to', $user->id);
         } else {
             // Other roles - return empty
@@ -75,15 +76,15 @@ class SiteVisitController extends Controller
             ]);
         }
 
-        if ($request->has('status')) {
+        if ($request->has('status') && $request->status && $request->status !== 'all') {
             $query->where('status', $request->status);
         }
 
-        if ($request->has('verification_status')) {
+        if ($request->has('verification_status') && $request->verification_status && $request->verification_status !== 'all') {
             $query->where('verification_status', $request->verification_status);
         }
 
-        if ($request->has('closer_status')) {
+        if ($request->has('closer_status') && $request->closer_status && $request->closer_status !== 'all') {
             $query->where('closer_status', $request->closer_status);
         }
 
@@ -286,90 +287,120 @@ class SiteVisitController extends Controller
      */
     public function complete(Request $request, SiteVisit $siteVisit)
     {
-        $user = $request->user();
+        try {
+            $user = $request->user();
 
-        // Check access
-        if (!$this->canAccessSiteVisit($user, $siteVisit)) {
-            return response()->json(['message' => 'Forbidden'], 403);
-        }
+            // Check access
+            if (!$this->canAccessSiteVisit($user, $siteVisit)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Forbidden'
+                ], 403);
+            }
 
-        if ($siteVisit->status === 'completed') {
+            if ($siteVisit->status === 'completed') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Site visit already completed',
+                ], 422);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'feedback' => 'nullable|string',
+                'rating' => 'nullable|integer|min:1|max:5',
+                'visit_notes' => 'nullable|string',
+                'visited_projects' => 'nullable|string',
+                'tentative_closing_time' => 'nullable|in:within_3_days,tomorrow,this_week,this_month,it_will_take_time',
+                'proof_photos' => 'required|array|min:1',
+                'proof_photos.*' => 'required|image|mimes:jpeg,jpg,png,webp|max:5120', // Max 5MB per image
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422)->header('Content-Type', 'application/json');
+            }
+
+            // Handle proof photo uploads
+            $proofPhotoPaths = [];
+            if ($request->hasFile('proof_photos')) {
+                foreach ($request->file('proof_photos') as $photo) {
+                    $filename = 'site-visits/proof/' . time() . '_' . uniqid() . '.' . $photo->getClientOriginalExtension();
+                    $photo->storeAs('public', $filename);
+                    $proofPhotoPaths[] = $filename;
+                }
+            }
+
+            $data = $validator->validated();
+            unset($data['proof_photos']); // Remove from update data
+            $data['completion_proof_photos'] = $proofPhotoPaths;
+            
+            $siteVisit->markAsCompleted();
+            $siteVisit->update($data);
+
+            // Update lead status based on lead_type
+            if ($siteVisit->lead) {
+                $leadType = $siteVisit->lead_type ?? null;
+                if ($leadType === 'Revisited') {
+                    $siteVisit->lead->updateStatusIfAllowed('revisited_completed');
+                } else {
+                    // Default to visit_done for 'New Visit' or other types
+                    $siteVisit->lead->updateStatusIfAllowed('visit_done');
+                }
+            }
+
+            // Send verification notification to CRM/Admin
+            try {
+                $crmUsers = User::whereHas('role', function($q) {
+                    $q->whereIn('slug', ['admin', 'crm']);
+                })->get();
+
+                foreach ($crmUsers as $crmUser) {
+                    $actionUrl = url('/crm/verifications');
+                    $customerName = $siteVisit->customer_name ?? ($siteVisit->lead ? $siteVisit->lead->name : 'Customer');
+                    $this->notificationService->notifyNewVerification(
+                        $crmUser,
+                        'site_visit',
+                        'New Site Visit Verification',
+                        "Site visit for '{$customerName}' requires verification",
+                        $actionUrl,
+                        [
+                            'site_visit_id' => $siteVisit->id,
+                            'customer_name' => $customerName,
+                        ]
+                    );
+                }
+            } catch (\Exception $e) {
+                // Log notification error but don't fail the request
+                Log::error('Error sending site visit verification notifications: ' . $e->getMessage());
+            }
+
             return response()->json([
-                'success' => false,
-                'message' => 'Site visit already completed',
-            ], 422);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'feedback' => 'nullable|string',
-            'rating' => 'nullable|integer|min:1|max:5',
-            'visit_notes' => 'nullable|string',
-            'proof_photos' => 'required|array|min:1',
-            'proof_photos.*' => 'required|image|mimes:jpeg,jpg,png,webp|max:5120', // Max 5MB per image
-        ]);
-
-        if ($validator->fails()) {
+                'success' => true,
+                'message' => 'Site visit completed with proof photos. Awaiting verification.',
+                'data' => $siteVisit->fresh(['lead', 'creator', 'assignedTo']),
+            ])->header('Content-Type', 'application/json');
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
+                'errors' => $e->errors(),
+            ], 422)->header('Content-Type', 'application/json');
+        } catch (\Exception $e) {
+            Log::error('Error completing site visit: ' . $e->getMessage(), [
+                'site_visit_id' => $siteVisit->id ?? null,
+                'user_id' => $request->user()?->id,
+                'error' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while completing the site visit. Please try again.',
+                'error' => config('app.debug') ? $e->getMessage() : null,
+            ], 500)->header('Content-Type', 'application/json');
         }
-
-        // Handle proof photo uploads
-        $proofPhotoPaths = [];
-        if ($request->hasFile('proof_photos')) {
-            foreach ($request->file('proof_photos') as $photo) {
-                $filename = 'site-visits/proof/' . time() . '_' . uniqid() . '.' . $photo->getClientOriginalExtension();
-                $photo->storeAs('public', $filename);
-                $proofPhotoPaths[] = $filename;
-            }
-        }
-
-        $data = $validator->validated();
-        unset($data['proof_photos']); // Remove from update data
-        $data['completion_proof_photos'] = $proofPhotoPaths;
-        
-        $siteVisit->markAsCompleted();
-        $siteVisit->update($data);
-
-        // Update lead status based on lead_type
-        if ($siteVisit->lead) {
-            $leadType = $siteVisit->lead_type ?? null;
-            if ($leadType === 'Revisited') {
-                $siteVisit->lead->updateStatusIfAllowed('revisited_completed');
-            } else {
-                // Default to visit_done for 'New Visit' or other types
-                $siteVisit->lead->updateStatusIfAllowed('visit_done');
-            }
-        }
-
-        // Send verification notification to CRM/Admin
-        $crmUsers = User::whereHas('role', function($q) {
-            $q->whereIn('slug', ['admin', 'crm']);
-        })->get();
-
-        foreach ($crmUsers as $crmUser) {
-            $actionUrl = url('/crm/verifications');
-            $customerName = $siteVisit->customer_name ?? ($siteVisit->lead ? $siteVisit->lead->name : 'Customer');
-            $this->notificationService->notifyNewVerification(
-                $crmUser,
-                'site_visit',
-                'New Site Visit Verification',
-                "Site visit for '{$customerName}' requires verification",
-                $actionUrl,
-                [
-                    'site_visit_id' => $siteVisit->id,
-                    'customer_name' => $customerName,
-                ]
-            );
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Site visit completed with proof photos. Awaiting verification.',
-            'data' => $siteVisit->fresh(['lead', 'creator', 'assignedTo']),
-        ]);
     }
 
     /**
@@ -474,6 +505,50 @@ class SiteVisitController extends Controller
         $leadStatus = $request->input('lead_status');
         $siteVisit->verify($user->id, $notes, $leadStatus);
 
+        // Check if this site visit is eligible for Telecaller incentive
+        // Load lead with prospects to check telecaller_id
+        $siteVisit->load(['lead.prospects']);
+        
+        if ($siteVisit->lead) {
+            $lead = $siteVisit->lead;
+            
+            // Check if lead has a prospect with telecaller_id
+            $prospect = $lead->prospects()
+                ->whereNotNull('telecaller_id')
+                ->latest('created_at')
+                ->first();
+            
+            if ($prospect && $prospect->telecaller_id) {
+                try {
+                    $telecaller = User::find($prospect->telecaller_id);
+                    
+                    if ($telecaller && $telecaller->isTelecaller()) {
+                        // Check if incentive already requested for this site visit
+                        $existingIncentive = \App\Models\Incentive::where('site_visit_id', $siteVisit->id)
+                            ->where('type', 'site_visit')
+                            ->where('user_id', $telecaller->id)
+                            ->first();
+                        
+                        if (!$existingIncentive) {
+                            // Send notification to Telecaller
+                            $actionUrl = url('/telecaller/notifications');
+                            $this->notificationService->notifyEligibleSiteVisitForIncentive(
+                                $telecaller,
+                                $siteVisit,
+                                $actionUrl
+                            );
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Log error but don't fail verification
+                    Log::warning('Error notifying telecaller about eligible site visit: ' . $e->getMessage(), [
+                        'site_visit_id' => $siteVisit->id,
+                        'prospect_id' => $prospect->id ?? null,
+                    ]);
+                }
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Site visit verified successfully. This counts as a Site Visit achievement.',
@@ -529,7 +604,8 @@ class SiteVisitController extends Controller
     {
         $user = $request->user();
 
-        if (!$user->isAdmin() && !$user->isCrm()) {
+        // Allow Admin, CRM, and Sales Head to verify closers
+        if (!$user->isAdmin() && !$user->isCrm() && !$user->isSalesHead()) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -549,7 +625,7 @@ class SiteVisitController extends Controller
 
         $validator = Validator::make($request->all(), [
             'notes' => 'nullable|string',
-            'lead_status' => 'required|in:hot,warm,cold,junk',
+            'adjusted_amount' => 'required|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -561,12 +637,48 @@ class SiteVisitController extends Controller
         }
 
         $notes = $request->input('notes');
-        $leadStatus = $request->input('lead_status');
-        $siteVisit->verifyCloser($user->id, $notes, $leadStatus);
+        $adjustedAmount = $request->input('adjusted_amount');
+        
+        // Update incentive amount in site visit
+        $siteVisit->incentive_amount = $adjustedAmount;
+        $siteVisit->save();
+        
+        // Update incentive record if exists
+        $incentive = \App\Models\Incentive::where('site_visit_id', $siteVisit->id)
+            ->where('type', 'closer')
+            ->first();
+        
+        if ($incentive) {
+            $incentive->amount = $adjustedAmount;
+            // Mark as verified based on who is verifying
+            if ($user->isCrm() || $user->isAdmin()) {
+                $incentive->status = 'verified';
+                $incentive->crm_verified_by = $user->id;
+                $incentive->crm_verified_at = now();
+                // If sales head already verified, keep that
+                if (!$incentive->sales_head_verified_by && $user->isSalesHead()) {
+                    $incentive->sales_head_verified_by = $user->id;
+                    $incentive->sales_head_verified_at = now();
+                }
+            } elseif ($user->isSalesHead()) {
+                $incentive->sales_head_verified_by = $user->id;
+                $incentive->sales_head_verified_at = now();
+                // If already verified by CRM, mark as fully verified
+                if ($incentive->crm_verified_by) {
+                    $incentive->status = 'verified';
+                } else {
+                    $incentive->status = 'pending_crm';
+                }
+            }
+            $incentive->save();
+        }
+        
+        // Verify closer (without lead_status, as it's not needed for closer verification)
+        $siteVisit->verifyCloser($user->id, $notes, null);
 
         return response()->json([
             'success' => true,
-            'message' => 'Closer verified successfully. This counts as a Closer achievement.',
+            'message' => 'Closer verified successfully with adjusted incentive amount. This counts as a Closer achievement.',
             'data' => $siteVisit->fresh(['lead', 'creator', 'closerVerifiedBy']),
         ]);
     }
@@ -611,13 +723,124 @@ class SiteVisitController extends Controller
     }
 
     /**
+     * Verify closing (CRM/Admin only) - Verifies closing request with KYC details
+     */
+    public function verifyClosing(Request $request, SiteVisit $siteVisit)
+    {
+        $user = $request->user();
+
+        // Only CRM/Admin can verify closing
+        if (!$user->isAdmin() && !$user->isCrm()) {
+            return response()->json(['message' => 'Forbidden. Only CRM/Admin can verify closing.'], 403);
+        }
+
+        if ($siteVisit->closing_verification_status === 'verified') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Closing already verified',
+            ], 422);
+        }
+
+        if ($siteVisit->closing_verification_status !== 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Closing must be pending before verification',
+            ], 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $notes = $request->input('notes');
+        
+        // Verify closing - this will also set closer_status to verified
+        $siteVisit->verifyClosing($user->id, $notes);
+
+        // Send notification to user who requested closing
+        try {
+            $this->notificationService->notifyClosingVerified($siteVisit, $user->id);
+        } catch (\Exception $e) {
+            Log::warning('Error sending closing verification notification: ' . $e->getMessage());
+        }
+
+        // Send notification to CRM about pending closing verification (when request is made)
+        // This is handled in requestCloser method
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Closing verified successfully. Users can now request incentives for this closed lead.',
+            'data' => $siteVisit->fresh(['lead', 'creator', 'closingVerifiedBy']),
+        ]);
+    }
+
+    /**
+     * Reject closing (CRM/Admin only)
+     */
+    public function rejectClosing(Request $request, SiteVisit $siteVisit)
+    {
+        $user = $request->user();
+
+        // Only CRM/Admin can reject closing
+        if (!$user->isAdmin() && !$user->isCrm()) {
+            return response()->json(['message' => 'Forbidden. Only CRM/Admin can reject closing.'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'reason' => 'required|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        if ($siteVisit->closing_verification_status !== 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Closing must be pending before rejection',
+            ], 422);
+        }
+
+        $siteVisit->rejectClosing($user->id, $request->reason);
+
+        // Send notification to user who requested closing
+        try {
+            $this->notificationService->notifyClosingRejected($siteVisit, $user->id, $request->reason);
+        } catch (\Exception $e) {
+            Log::warning('Error sending closing rejection notification: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Closing rejected',
+            'data' => $siteVisit->fresh(['lead', 'creator', 'closingVerifiedBy']),
+        ]);
+    }
+
+    /**
      * Request closer with proof photos
      */
     public function requestCloser(Request $request, SiteVisit $siteVisit)
     {
         $user = $request->user();
 
-        // Check access
+        // Check access - Only Managers and Assistant Sales Managers can request closer
+        if (!$user->isSalesManager() && !$user->isAssistantSalesManager()) {
+            return response()->json(['message' => 'Only Sales Managers and Assistant Sales Managers can request closer.'], 403);
+        }
+        
         if ($user->isSalesManager() && $siteVisit->created_by !== $user->id) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
@@ -639,8 +862,19 @@ class SiteVisitController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
+            // KYC fields
+            'customer_name' => 'required|string|max:255',
+            'nominee_name' => 'required|string|max:255',
+            'second_customer_name' => 'nullable|string|max:255',
+            'customer_dob' => 'required|date',
+            'pan_card' => 'required|string|max:20',
+            'aadhaar_card_no' => 'required|string|max:20',
+            'kyc_documents' => 'required|array|min:1',
+            'kyc_documents.*' => 'required|file|mimes:jpeg,jpg,png,pdf|max:5120', // Max 5MB per file
+            // Existing fields
             'proof_photos' => 'required|array|min:1',
             'proof_photos.*' => 'required|image|mimes:jpeg,jpg,png,webp|max:5120', // Max 5MB per image
+            'incentive_amount' => 'required|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -649,6 +883,16 @@ class SiteVisitController extends Controller
                 'message' => 'Validation failed',
                 'errors' => $validator->errors(),
             ], 422);
+        }
+
+        // Handle KYC document uploads
+        $kycDocumentPaths = [];
+        if ($request->hasFile('kyc_documents')) {
+            foreach ($request->file('kyc_documents') as $document) {
+                $filename = 'closings/kyc/' . time() . '_' . uniqid() . '.' . $document->getClientOriginalExtension();
+                $document->storeAs('public', $filename);
+                $kycDocumentPaths[] = $filename;
+            }
         }
 
         // Handle proof photo uploads
@@ -662,17 +906,41 @@ class SiteVisitController extends Controller
         }
 
         try {
-            $siteVisit->closer_status = 'pending';
+            // Update site visit with KYC details and set closing verification status to pending
+            $siteVisit->customer_name = $request->input('customer_name');
+            $siteVisit->nominee_name = $request->input('nominee_name');
+            $siteVisit->second_customer_name = $request->input('second_customer_name');
+            $siteVisit->customer_dob = $request->input('customer_dob');
+            $siteVisit->pan_card = $request->input('pan_card');
+            $siteVisit->aadhaar_card_no = $request->input('aadhaar_card_no');
+            $siteVisit->kyc_documents = $kycDocumentPaths;
+            $siteVisit->closer_status = 'pending'; // Pending for closing verification
             $siteVisit->converted_to_closer_at = now();
             $siteVisit->closer_request_proof_photos = $proofPhotoPaths;
+            $siteVisit->incentive_amount = $request->input('incentive_amount');
+            $siteVisit->closing_verification_status = 'pending'; // New field for CRM closing verification
             $siteVisit->save();
+
+            // Send notification to CRM about pending closing verification
+            try {
+                $this->notificationService->notifyClosingVerificationPending($siteVisit, $user->id);
+            } catch (\Exception $e) {
+                Log::warning('Error sending closing verification pending notification: ' . $e->getMessage());
+            }
+
+            // Don't create incentive here - it will be created after closing verification via requestIncentive endpoint
 
             return response()->json([
                 'success' => true,
-                'message' => 'Closer request submitted with proof photos. Awaiting verification.',
+                'message' => 'Closing request submitted with KYC details. Awaiting CRM verification.',
                 'data' => $siteVisit->fresh(['lead', 'creator', 'assignedTo']),
             ]);
         } catch (\Exception $e) {
+            \Log::error('Error requesting closer: ' . $e->getMessage(), [
+                'site_visit_id' => $siteVisit->id,
+                'user_id' => $user->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),

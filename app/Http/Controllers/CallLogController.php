@@ -30,7 +30,7 @@ class CallLogController extends Controller
         $query = CallLog::with(['lead', 'user', 'telecaller']);
 
         // Role-based filtering
-        if ($user->isTelecaller() || $user->isSalesExecutive()) {
+        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             // Own calls only
             $query->forUser($user->id);
         } elseif ($user->isSalesManager() || $user->isSalesHead()) {
@@ -111,7 +111,7 @@ class CallLogController extends Controller
         // Get leads for dropdown
         $leadsQuery = Lead::query();
         
-        if ($user->isTelecaller() || $user->isSalesExecutive()) {
+        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             // Only assigned leads
             $leadIds = Lead::whereHas('activeAssignments', function ($q) use ($user) {
                 $q->where('assigned_to', $user->id);
@@ -190,7 +190,7 @@ class CallLogController extends Controller
         $callLog = CallLog::with(['lead', 'user', 'telecaller', 'task'])->findOrFail($id);
 
         // Check access
-        if ($user->isTelecaller() || $user->isSalesExecutive()) {
+        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             if ($callLog->user_id !== $user->id && $callLog->telecaller_id !== $user->id) {
                 abort(403, 'Unauthorized');
             }
@@ -238,7 +238,7 @@ class CallLogController extends Controller
 
         // Get leads for dropdown
         $leadsQuery = Lead::query();
-        if ($user->isTelecaller() || $user->isSalesExecutive()) {
+        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             $leadIds = Lead::whereHas('activeAssignments', function ($q) use ($user) {
                 $q->where('assigned_to', $user->id);
             })->pluck('id');
@@ -317,7 +317,7 @@ class CallLogController extends Controller
         $user = $request->user();
         $dateRange = $request->get('date_range', 'today');
 
-        if ($user->isTelecaller() || $user->isSalesExecutive()) {
+        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             $stats = $this->callLogService->getCallStatistics($user->id, $dateRange);
         } elseif ($user->isSalesManager() || $user->isSalesHead()) {
             $stats = $this->callLogService->getTeamCallStatistics($user->id, $dateRange);
@@ -359,7 +359,7 @@ class CallLogController extends Controller
         $query = CallLog::with(['lead', 'user', 'telecaller']);
 
         // Apply same filters as index
-        if ($user->isTelecaller() || $user->isSalesExecutive()) {
+        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             $query->forUser($user->id);
         } elseif ($user->isSalesManager() || $user->isSalesHead()) {
             $teamMemberIds = $user->getAllTeamMemberIds();

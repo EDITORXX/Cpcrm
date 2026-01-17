@@ -35,7 +35,7 @@ class ExportController extends Controller
         
         $users = User::where('is_active', true)
             ->whereHas('role', function($q) {
-                $q->whereIn('slug', [Role::SALES_MANAGER, Role::SALES_EXECUTIVE, Role::TELECALLER]);
+                $q->whereIn('slug', [Role::SALES_MANAGER, Role::ASSISTANT_SALES_MANAGER, Role::SALES_EXECUTIVE]);
             })
             ->orderBy('name')
             ->get();

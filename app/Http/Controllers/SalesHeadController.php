@@ -370,8 +370,8 @@ class SalesHeadController extends Controller
                 'children' => [],
             ];
 
-            // If it's a manager or executive, get their team
-            if ($member->isSalesManager() || $member->isSalesExecutive()) {
+            // If it's a manager or assistant sales manager, get their team
+            if ($member->isSalesManager() || $member->isAssistantSalesManager()) {
                 $memberData['children'] = $this->buildTeamHierarchy($member)['children'];
             }
 

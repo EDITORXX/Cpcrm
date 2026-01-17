@@ -36,17 +36,17 @@ class ChatbotAssistant {
         return tokenFromMeta || telecallerToken || tokenFromLocalStorage || tokenFromSessionStorage;
     }
     
-    isTelecaller() {
-        // Check if user is telecaller by checking for telecaller token or user role
-        const telecallerToken = localStorage.getItem('telecaller_token');
-        const userData = localStorage.getItem('telecaller_user');
-        if (telecallerToken || userData) {
+    isSalesExecutive() {
+        // Check if user is sales executive by checking for sales executive token or user role
+        const salesExecutiveToken = localStorage.getItem('telecaller_token'); // Keep token name for backward compatibility
+        const userData = localStorage.getItem('telecaller_user'); // Keep key name for backward compatibility
+        if (salesExecutiveToken || userData) {
             try {
                 if (userData) {
                     const user = JSON.parse(userData);
-                    return user.role?.slug === 'telecaller' || user.role?.name === 'Telecaller';
+                    return user.role?.slug === 'sales_executive' || user.role?.name === 'Sales Executive';
                 }
-                return true; // If telecaller token exists, assume telecaller
+                return true; // If token exists, assume sales executive
             } catch (e) {
                 return false;
             }
@@ -54,22 +54,34 @@ class ChatbotAssistant {
         return false;
     }
     
+    // Deprecated: Use isSalesExecutive() instead
+    isTelecaller() {
+        return this.isSalesExecutive();
+    }
+    
     getNotificationsEndpoint() {
-        // Check if telecaller, use telecaller endpoint
-        if (this.isTelecaller()) {
-            return '/api/telecaller/notifications/unread';
+        // Check if sales executive, use sales executive endpoint
+        if (this.isSalesExecutive()) {
+            return '/api/telecaller/notifications/unread'; // Keep endpoint name for backward compatibility
         }
         // Otherwise use general endpoint (if exists)
         return '/api/notifications/unread';
     }
     
     getNotificationReadEndpoint(notificationId) {
-        // Check if telecaller, use telecaller endpoint
-        if (this.isTelecaller()) {
+        // Check if sales executive, use sales executive endpoint
+        if (this.isSalesExecutive()) {
             return `/api/telecaller/notifications/${notificationId}/read`;
         }
         // Otherwise use general endpoint (if exists)
         return `/api/notifications/${notificationId}/read`;
+    }
+
+    getMarkAllReadEndpoint() {
+        if (this.isTelecaller()) {
+            return '/api/telecaller/notifications/mark-all-read';
+        }
+        return '/api/notifications/mark-all-read';
     }
 
     getUserId() {
@@ -246,8 +258,14 @@ class ChatbotAssistant {
         const timeAgo = this.getTimeAgo(notification.created_at);
         const isUnread = !notification.read_at;
         
-        // Check if this is a lead notification and has action_url
-        const isLeadNotification = notification.type === 'new_lead' && notification.action_url;
+        const hasActionUrl = !!notification.action_url;
+        
+        // Telecaller: show a Task button when action_url points to telecaller tasks (any notification type)
+        const isTelecallerTaskNotification = hasActionUrl &&
+                                             notification.action_url.includes('/telecaller/tasks');
+        
+        // Non-telecaller lead notification
+        const isLeadNotification = notification.type === 'new_lead' && hasActionUrl && !isTelecallerTaskNotification;
         
         return `
             <div class="chatbot-notification ${isUnread ? 'unread' : ''}">
@@ -261,9 +279,16 @@ class ChatbotAssistant {
                 <div class="chatbot-notification-message">
                     ${this.escapeHtml(notification.message)}
                 </div>
-                ${isLeadNotification ? `
+                ${isTelecallerTaskNotification ? `
                     <div class="chatbot-notification-action">
-                        <button onclick="chatbotAssistant.handleNotificationClick(${notification.id}, '${notification.action_url}')" 
+                        <button onclick="chatbotAssistant.handleNotificationClick(${notification.id}, '${notification.action_url.replace(/'/g, "\\'")}')" 
+                                class="chatbot-view-lead-btn">
+                            Task Section
+                        </button>
+                    </div>
+                ` : isLeadNotification ? `
+                    <div class="chatbot-notification-action">
+                        <button onclick="chatbotAssistant.handleNotificationClick(${notification.id}, '${notification.action_url.replace(/'/g, "\\'")}')" 
                                 class="chatbot-view-lead-btn">
                             View Lead
                         </button>
@@ -280,6 +305,8 @@ class ChatbotAssistant {
             'followup_reminder': '📅',
             'admin_broadcast': '📢',
             'call_reminder': '📞',
+            'site_visit': '📍',
+            'meeting': '🤝',
         };
         return icons[type] || '🔔';
     }
@@ -330,6 +357,35 @@ class ChatbotAssistant {
         this.loadNotifications();
     }
 
+    async cleanAllNotifications() {
+        try {
+            const headers = {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            };
+
+            if (this.apiToken) {
+                headers['Authorization'] = `Bearer ${this.apiToken}`;
+            }
+
+            const endpoint = this.getMarkAllReadEndpoint();
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: headers,
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to mark all as read');
+            }
+
+            // Refresh list + badge
+            await this.loadNotifications();
+        } catch (error) {
+            console.error('Chatbot Assistant: Error cleaning notifications', error);
+        }
+    }
+
     showBrowserNotification(notification) {
         if (!('Notification' in window)) return;
         if (Notification.permission !== 'granted') return;
@@ -370,6 +426,7 @@ class ChatbotAssistant {
 let chatbotAssistant;
 document.addEventListener('DOMContentLoaded', function() {
     chatbotAssistant = new ChatbotAssistant();
+    window.chatbotAssistant = chatbotAssistant;
     
     // Expose loadChatbotNotifications for toggle function
     window.loadChatbotNotifications = function() {

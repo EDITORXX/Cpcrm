@@ -38,11 +38,7 @@
                                         <label class="form-label">Role <span class="text-danger">*</span></label>
                                         <select class="form-select" id="user-role" required onchange="handleRoleChange()">
                                             <option value="">Select Role...</option>
-                                            <option value="1">Sales Executive</option>
-                                            <option value="2">Admin</option>
-                                            <option value="3">Manager</option>
-                                            <option value="4">Telecaller</option>
-                                            <option value="5">CRM</option>
+                                            <!-- Roles will be loaded dynamically via JavaScript -->
                                         </select>
                                     </div>
                                 </div>

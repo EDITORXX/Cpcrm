@@ -10,39 +10,60 @@
         padding: 24px;
         border-radius: 12px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    /* Mobile container padding */
+    @media (max-width: 768px) {
+        .leads-container {
+            padding: 12px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .leads-container {
+            padding: 8px;
+        }
     }
     .search-filter-bar {
         display: flex;
         gap: 12px;
         margin-bottom: 20px;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        width: 100%;
     }
     .search-input {
-        flex: 1;
-        min-width: 250px;
+        flex: 0 0 50%;
+        width: 50%;
         padding: 12px;
         border: 2px solid #e0e0e0;
         border-radius: 8px;
         font-size: 16px;
         background: #ffffff;
+        box-sizing: border-box;
     }
     .search-input:focus {
         outline: none;
         border-color: #205A44;
     }
     .status-filter {
+        flex: 0 0 50%;
+        width: 50%;
         padding: 12px;
         border: 2px solid #e0e0e0;
         border-radius: 8px;
         font-size: 16px;
         background: #ffffff;
-        min-width: 150px;
+        box-sizing: border-box;
     }
     .leads-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 20px;
         margin-top: 20px;
+        width: 100%;
+        box-sizing: border-box;
     }
     
     /* Tablet view - 2 columns */
@@ -52,18 +73,101 @@
         }
     }
     
-    /* Mobile/Phone view - 2 columns */
+    /* Mobile/Phone view - 2 columns (50%-50%) */
     @media (max-width: 768px) {
         .leads-grid {
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
+            gap: 8px;
+            width: 100%;
+            padding: 0;
+            margin-left: 0;
+            margin-right: 0;
+        }
+        .lead-card {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            margin: 0;
+            min-width: 0;
+        }
+        .lead-card-header {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+        }
+        .lead-avatar {
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+            margin-right: 8px;
+        }
+        .lead-name {
+            font-size: 14px;
+        }
+        .lead-info-row {
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+        .lead-card-footer {
+            margin-top: 12px;
+            padding-top: 12px;
+            gap: 6px;
+        }
+        .lead-card-btn {
+            padding: 8px 6px;
+            font-size: 11px;
+            gap: 4px;
+        }
+        .lead-card-btn i {
+            font-size: 12px;
         }
     }
     
-    /* Small mobile view - 1 column */
+    /* Small mobile view - 2 columns (50%-50%) */
     @media (max-width: 480px) {
         .leads-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            width: 100%;
+            padding: 0;
+        }
+        .lead-card {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            padding: 10px;
+            margin: 0;
+            min-width: 0;
+        }
+        .lead-card-header {
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+        }
+        .lead-avatar {
+            width: 35px;
+            height: 35px;
+            font-size: 14px;
+            margin-right: 6px;
+        }
+        .lead-name {
+            font-size: 13px;
+        }
+        .lead-info-row {
+            font-size: 11px;
+            margin-bottom: 5px;
+        }
+        .lead-card-footer {
+            margin-top: 10px;
+            padding-top: 10px;
+            gap: 4px;
+        }
+        .lead-card-btn {
+            padding: 7px 4px;
+            font-size: 10px;
+            gap: 3px;
+        }
+        .lead-card-btn i {
+            font-size: 11px;
         }
     }
     .lead-card {
@@ -151,14 +255,16 @@
         padding-top: 16px;
         border-top: 2px solid #f0f0f0;
         display: flex;
-        gap: 10px;
+        gap: 8px;
+        width: 100%;
     }
     .lead-card-btn {
-        flex: 1;
-        padding: 10px 16px;
+        flex: 0 0 33.33%;
+        width: 33.33%;
+        padding: 10px 12px;
         border: none;
         border-radius: 8px;
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.3s;
@@ -166,6 +272,7 @@
         align-items: center;
         justify-content: center;
         gap: 6px;
+        box-sizing: border-box;
     }
     .lead-card-btn:hover {
         transform: translateY(-1px);
@@ -187,6 +294,124 @@
         background: linear-gradient(135deg, #15803d 0%, #166534 100%);
         box-shadow: 0 4px 8px rgba(21, 128, 61, 0.4);
         transform: translateY(-1px);
+    }
+    .btn-view-detail {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        text-decoration: none;
+        box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+    }
+    .btn-view-detail:hover {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        box-shadow: 0 4px 8px rgba(37, 99, 235, 0.4);
+        transform: translateY(-1px);
+        color: white;
+        text-decoration: none;
+    }
+    
+    /* New Card Structure Styles */
+    .lead-card-header-new {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .lead-name-new {
+        font-size: 16px;
+        font-weight: 600;
+        color: #063A1C;
+        margin: 0;
+        flex: 1;
+    }
+    .status-badge-new {
+        padding: 3px 8px;
+        border-radius: 10px;
+        font-size: 9px;
+        font-weight: 600;
+        display: inline-block;
+    }
+    .status-badge-new.status-pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    .status-badge-new.status-rejected {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    .status-badge-new.status-verified_prospect {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    .lead-info-new {
+        margin-bottom: 16px;
+    }
+    .lead-info-row-new {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        font-size: 13px;
+        color: #063A1C;
+    }
+    .lead-info-row-new i {
+        color: #205A44;
+        width: 16px;
+        font-size: 14px;
+    }
+    .lead-info-label {
+        font-weight: 500;
+        color: #666;
+    }
+    .lead-info-value-new {
+        color: #063A1C;
+    }
+    .lead-card-footer-new {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #f0f0f0;
+    }
+    .lead-card-btn-new {
+        width: 100%;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        text-decoration: none;
+        box-sizing: border-box;
+    }
+    .btn-view-detail-new {
+        background: linear-gradient(135deg, #205A44 0%, #063A1C 100%);
+        color: white;
+    }
+    .btn-view-detail-new:hover {
+        background: linear-gradient(135deg, #063A1C 0%, #205A44 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(32, 90, 68, 0.3);
+        color: white;
+        text-decoration: none;
+    }
+    .btn-short-detail-new {
+        background: linear-gradient(135deg, #205A44 0%, #063A1C 100%);
+        color: white;
+    }
+    .btn-short-detail-new:hover {
+        background: linear-gradient(135deg, #063A1C 0%, #205A44 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(32, 90, 68, 0.3);
+        color: white;
+        text-decoration: none;
     }
     .empty-state {
         text-align: center;
@@ -271,6 +496,23 @@
             </div>
         </div>
     </div>
+
+<!-- Short Details Modal -->
+<div id="shortDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Short Details</h3>
+                <button onclick="closeShortDetailsModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="shortDetailsContent" class="text-gray-700">
+                <!-- Lead details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -393,6 +635,9 @@
             'closed_won': 'Closed Won',
             'closed_lost': 'Closed Lost',
             'on_hold': 'On Hold',
+            'verified_prospect': 'Verified',
+            'pending': 'Pending',
+            'rejected': 'Rejected',
         };
         return statusMap[status] || status;
     }
@@ -590,53 +835,48 @@
 
         leads.forEach(lead => {
             const assignedDate = lead.assigned_at ? formatDate(lead.assigned_at) : '-';
-            const lastContacted = lead.last_contacted_at ? formatDate(lead.last_contacted_at) : '-';
-            const location = lead.city ? `${lead.city}${lead.state ? ', ' + lead.state : ''}` : '-';
             const statusClass = `status-${lead.status}`;
-            const initial = lead.name ? lead.name.charAt(0).toUpperCase() : 'L';
+            
+            // Format date and time for display
+            const dateTime = lead.assigned_at ? new Date(lead.assigned_at) : (lead.created_at ? new Date(lead.created_at) : null);
+            const formattedDateTime = dateTime ? dateTime.toLocaleString('en-IN', { 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            }) : '-';
 
             cardsHTML += `
                 <div class="lead-card">
-                    <div class="lead-card-header">
-                        <div class="lead-avatar">${initial}</div>
-                        <h3 class="lead-name">${lead.name || '-'}</h3>
+                    <div class="lead-card-header-new">
+                        <h3 class="lead-name-new">${lead.name || '-'}</h3>
+                        <span class="status-badge-new ${statusClass}">${formatStatus(lead.status)}</span>
                     </div>
-                    <div class="lead-info">
-                        <div class="lead-info-row">
+                    <div class="lead-info-new">
+                        <div class="lead-info-row-new">
+                            <span class="lead-info-label">Assigned to:</span>
+                            <span class="lead-info-value-new">${lead.assigned_to_name || 'Not Assigned'}</span>
+                        </div>
+                        <div class="lead-info-row-new">
                             <i class="fas fa-phone"></i>
-                            <span class="lead-info-value">${lead.phone || '-'}</span>
+                            <span class="lead-info-value-new">${lead.phone || '-'}</span>
                         </div>
-                        ${lead.email ? `
-                        <div class="lead-info-row">
-                            <i class="fas fa-envelope"></i>
-                            <span class="lead-info-value">${lead.email}</span>
-                        </div>
-                        ` : ''}
-                        <div class="lead-info-row">
-                            <i class="fas fa-map-marker-alt"></i>
-                            <span class="lead-info-value">${location}</span>
-                        </div>
-                        <div class="lead-info-row">
+                        <div class="lead-info-row-new">
                             <i class="fas fa-calendar"></i>
-                            <span class="lead-info-value">Assigned: ${assignedDate}</span>
+                            <span class="lead-info-value-new">${formattedDateTime}</span>
                         </div>
-                        ${lastContacted !== '-' ? `
-                        <div class="lead-info-row">
-                            <i class="fas fa-clock"></i>
-                            <span class="lead-info-value">Last Contacted: ${lastContacted}</span>
-                        </div>
-                        ` : ''}
-                        <span class="status-badge ${statusClass}">${formatStatus(lead.status)}</span>
                     </div>
-                    <div class="lead-card-footer">
-                        <button class="lead-card-btn btn-call" onclick="initiateCall(${lead.id}, ${JSON.stringify(lead.phone || '')})">
-                            <i class="fas fa-phone"></i>
-                            Call
-                        </button>
-                        <button class="lead-card-btn btn-whatsapp" onclick="openWhatsApp(${lead.id}, ${JSON.stringify(lead.phone || '')})">
-                            <i class="fab fa-whatsapp"></i>
-                            WhatsApp
-                        </button>
+                    <div class="lead-card-footer-new">
+                        <a href="/leads/${lead.id}" class="lead-card-btn-new btn-view-detail-new">
+                            <i class="fas fa-eye"></i>
+                            View Detail
+                        </a>
+                        <a href="/leads/${lead.id}/short-details" class="lead-card-btn-new btn-short-detail-new" onclick="event.preventDefault(); viewShortDetails(${lead.id}); return false;">
+                            <i class="fas fa-info-circle"></i>
+                            Short Detail
+                        </a>
                     </div>
                 </div>
             `;
@@ -669,6 +909,141 @@
             loadLeads(1);
         }, 500);
     }
+
+    // View short details modal
+    async function viewShortDetails(leadId) {
+        const modal = document.getElementById('shortDetailsModal');
+        const content = document.getElementById('shortDetailsContent');
+        
+        // Show loading state
+        content.innerHTML = '<div class="text-center py-8"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div><p class="mt-4 text-gray-600">Loading lead details...</p></div>';
+        modal.classList.remove('hidden');
+        
+        try {
+            const response = await fetch(`/leads/${leadId}/short-details`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to load lead details');
+            }
+            
+            const data = await response.json();
+            const lead = data.data || data;
+            
+            // Render lead details
+            const statusLabels = {
+                'new': 'New',
+                'contacted': 'Contacted',
+                'connected': 'Connected',
+                'verified_prospect': 'Verified Prospect',
+                'pending': 'Pending',
+                'rejected': 'Rejected',
+                'meeting_scheduled': 'Meeting Scheduled',
+                'meeting_completed': 'Meeting Completed',
+                'visit_scheduled': 'Visit Scheduled',
+                'visit_done': 'Visit Done',
+                'closed': 'Closed',
+                'dead': 'Dead',
+                'on_hold': 'On Hold',
+            };
+            
+            const statusLabel = statusLabels[lead.status] || lead.status;
+            const createdDate = lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' }) : '-';
+            
+            content.innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">${lead.name || '-'}</h4>
+                        <p class="text-sm text-gray-600">Status: <span class="font-medium">${statusLabel}</span></p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                        ${lead.phone ? `
+                        <div>
+                            <span class="text-gray-500">Phone:</span>
+                            <span class="font-medium text-gray-900 ml-2">${lead.phone}</span>
+                        </div>
+                        ` : ''}
+                        ${lead.email ? `
+                        <div>
+                            <span class="text-gray-500">Email:</span>
+                            <span class="font-medium text-gray-900 ml-2">${lead.email}</span>
+                        </div>
+                        ` : ''}
+                        ${lead.city ? `
+                        <div>
+                            <span class="text-gray-500">City:</span>
+                            <span class="font-medium text-gray-900 ml-2">${lead.city}${lead.state ? ', ' + lead.state : ''}</span>
+                        </div>
+                        ` : ''}
+                        ${lead.budget ? `
+                        <div>
+                            <span class="text-gray-500">Budget:</span>
+                            <span class="font-medium text-gray-900 ml-2">₹${parseFloat(lead.budget).toLocaleString('en-IN')}</span>
+                        </div>
+                        ` : ''}
+                        ${lead.preferred_location ? `
+                        <div>
+                            <span class="text-gray-500">Location:</span>
+                            <span class="font-medium text-gray-900 ml-2">${lead.preferred_location}</span>
+                        </div>
+                        ` : ''}
+                        ${createdDate !== '-' ? `
+                        <div>
+                            <span class="text-gray-500">Created:</span>
+                            <span class="font-medium text-gray-900 ml-2">${createdDate}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    ${lead.notes ? `
+                    <div class="pt-2 border-t">
+                        <span class="text-gray-500 text-sm">Notes:</span>
+                        <p class="text-gray-900 mt-1">${lead.notes}</p>
+                    </div>
+                    ` : ''}
+                    <div class="pt-4 border-t">
+                        <a href="/leads/${leadId}" class="block w-full text-center px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 text-sm font-medium">
+                            View Full Details
+                        </a>
+                    </div>
+                </div>
+            `;
+        } catch (error) {
+            content.innerHTML = `
+                <div class="text-center py-8">
+                    <p class="text-red-600">Failed to load lead details. Please try again.</p>
+                    <button onclick="viewShortDetails(${leadId})" class="mt-4 px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d]">
+                        Retry
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    function closeShortDetailsModal() {
+        document.getElementById('shortDetailsModal').classList.add('hidden');
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('shortDetailsModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeShortDetailsModal();
+        }
+    });
+    
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeShortDetailsModal();
+        }
+    });
 
     // Call button functions
     function initiateCall(leadId, phoneNumber) {

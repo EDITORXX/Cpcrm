@@ -26,9 +26,9 @@ class SheetAssignmentController extends Controller
 
             // Get all eligible users (telecaller, sales_manager, sales_executive)
             $eligibleRoleIds = Role::whereIn('slug', [
-                Role::TELECALLER,
+                Role::SALES_EXECUTIVE,
                 Role::SALES_MANAGER,
-                Role::SALES_EXECUTIVE
+                Role::ASSISTANT_SALES_MANAGER
             ])->pluck('id');
             
             $eligibleUsers = User::whereIn('role_id', $eligibleRoleIds)
@@ -128,10 +128,10 @@ class SheetAssignmentController extends Controller
 
         if ($request->telecaller_id) {
             $telecaller = User::findOrFail($request->telecaller_id);
-            if (!$telecaller->isTelecaller()) {
+            if (!$telecaller->isSalesExecutive()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'User is not a telecaller.'
+                    'message' => 'User is not a sales executive.'
                 ], 422);
             }
         }

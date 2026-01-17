@@ -26,6 +26,23 @@ class LeadImportController extends Controller
         $this->importService = $importService;
         $this->sheetsService = $sheetsService;
     }
+    
+    /**
+     * Convert index to column letter (0=A, 1=B, ..., 25=Z, 26=AA, 27=AB, etc.)
+     */
+    private static function indexToColumnLetter(int $index): string
+    {
+        $result = '';
+        $index++; // Convert to 1-based
+        
+        while ($index > 0) {
+            $index--;
+            $result = chr(65 + ($index % 26)) . $result;
+            $index = intval($index / 26);
+        }
+        
+        return $result;
+    }
 
     /**
      * Lead Import Dashboard
@@ -305,6 +322,76 @@ class LeadImportController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete configuration.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Fetch Sheet Headers (First Row)
+     */
+    public function fetchSheetHeaders(Request $request)
+    {
+        $request->validate([
+            'sheet_id' => 'required|string',
+            'sheet_name' => 'required|string|max:255',
+            'api_key' => 'nullable|string|max:255',
+            'service_account_json_path' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            // Extract sheet ID from URL if needed
+            $sheetId = GoogleSheetsConfig::extractSheetId($request->sheet_id);
+            if (!$sheetId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid sheet ID format. Please provide a valid Google Sheet ID or URL.',
+                ], 400);
+            }
+
+            // Fetch only row 1 (headers)
+            $headers = $this->sheetsService->fetchSheetData(
+                $sheetId,
+                $request->sheet_name,
+                'A:Z', // Default range
+                $request->api_key,
+                $request->service_account_json_path,
+                1 // Start from row 1
+            );
+
+            if (empty($headers) || !isset($headers[0])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No headers found in the sheet. Please check the sheet name and ensure row 1 contains column headers.',
+                ], 404);
+            }
+
+            // Get first row as headers
+            $headerRow = $headers[0];
+            
+            // Convert to column format with positions
+            $columns = [];
+            
+            foreach ($headerRow as $index => $headerText) {
+                // Convert index to column letter (A=0, B=1, ..., Z=25, AA=26, AB=27, etc.)
+                $columnLetter = self::indexToColumnLetter($index);
+                
+                $columns[] = [
+                    'position' => $columnLetter,
+                    'header' => trim($headerText ?? ''),
+                    'index' => $index,
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'columns' => $columns,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Error fetching sheet headers: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch headers: ' . $e->getMessage(),
             ], 500);
         }
     }

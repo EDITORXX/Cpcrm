@@ -108,6 +108,114 @@
             display: none !important;
         }
         
+        /* Green Gradient Background for All Dashboard Cards on Mobile (like chatbot button) */
+        .stats-grid > div,
+        .stats-grid > div.bg-white,
+        .stats-grid > .dashboard-card {
+            background: linear-gradient(135deg, #063A1C 0%, #205A44 100%) !important;
+            background-color: transparent !important;
+            color: white !important;
+            border: none !important;
+            box-shadow: 0 4px 12px rgba(6, 58, 28, 0.4), 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+            position: relative;
+            overflow: visible;
+        }
+        
+        /* Remove any white background or overlay completely */
+        .stats-grid > div.bg-white,
+        .stats-grid > div[class*="bg-white"] {
+            background: linear-gradient(135deg, #063A1C 0%, #205A44 100%) !important;
+            background-color: transparent !important;
+        }
+        
+        /* Remove any overlay pseudo-elements completely */
+        .stats-grid > div::before,
+        .stats-grid > div::after,
+        .stats-grid > div > div::before,
+        .stats-grid > div > div::after,
+        .stats-grid > div.bg-white::before,
+        .stats-grid > div.bg-white::after {
+            display: none !important;
+            content: none !important;
+            background: none !important;
+            opacity: 0 !important;
+        }
+        
+        /* Show flex container with full opacity - no white overlay */
+        .stats-grid > div > div.flex.items-center.justify-between {
+            opacity: 1 !important;
+            visibility: visible !important;
+            background: transparent !important;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Ensure no white background on any child elements */
+        .stats-grid > div > * {
+            background: transparent !important;
+        }
+        
+        /* Force remove white background from bg-white class */
+        .stats-grid > div.bg-white {
+            background: linear-gradient(135deg, #063A1C 0%, #205A44 100%) !important;
+            background-color: transparent !important;
+            background-image: none !important;
+        }
+        
+        /* Ensure all text is visible and white on green background */
+        .stats-grid > div p,
+        .stats-grid > div p.text-gray-500,
+        .stats-grid > div .text-gray-500 {
+            color: rgba(255, 255, 255, 0.95) !important;
+            font-weight: 500 !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        
+        .stats-grid > div h3,
+        .stats-grid > div h3.text-gray-900,
+        .stats-grid > div .text-gray-900 {
+            color: white !important;
+            font-weight: 700 !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        
+        /* Ensure flex container and all child divs are visible */
+        .stats-grid > div > div.flex.items-center.justify-between {
+            opacity: 1 !important;
+            visibility: visible !important;
+            display: flex !important;
+        }
+        
+        .stats-grid > div > div.flex.items-center.justify-between > div {
+            opacity: 1 !important;
+            visibility: visible !important;
+            display: block !important;
+        }
+        
+        /* Hide icon boxes completely on mobile - only hide icon divs with bg-* classes */
+        .stats-grid > div .bg-indigo-100,
+        .stats-grid > div .bg-green-100,
+        .stats-grid > div .bg-yellow-100,
+        .stats-grid > div .bg-red-100,
+        .stats-grid > div .bg-blue-100,
+        .stats-grid > div .bg-orange-100 {
+            display: none !important;
+            visibility: hidden !important;
+        }
+        
+        /* Improve card hover effect */
+        .stats-grid > div {
+            transition: all 0.3s ease !important;
+        }
+        
+        .stats-grid > div:active {
+            transform: scale(0.98) !important;
+            box-shadow: 0 2px 6px rgba(6, 58, 28, 0.3) !important;
+        }
+        
         /* Team call stats section */
         #teamCallStatsSection > div:first-child {
             flex-direction: column;
@@ -152,11 +260,235 @@
         .grid.grid-cols-1.md\:grid-cols-2 > a i {
             font-size: 24px !important;
         }
+        
+        /* Hide Quick Actions on Mobile */
+        .quick-actions-section {
+            display: none !important;
+        }
+    }
+    
+    /* Recent Tasks Section Styles */
+    .recent-tasks-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    
+    .recent-task-card {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-height: 100px;
+    }
+    
+    .recent-task-card .task-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #063A1C;
+        margin: 0;
+        line-height: 1.4;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+    
+    .recent-task-card .task-time {
+        font-size: 11px;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+    }
+    
+    .recent-task-card .call-btn {
+        width: 100%;
+        padding: 8px 12px;
+        background: linear-gradient(135deg, #063A1C 0%, #205A44 100%);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 0.2s;
+        margin-top: auto;
+    }
+    
+    .recent-task-card .call-btn:hover {
+        background: linear-gradient(135deg, #205A44 0%, #15803d 100%);
+        transform: translateY(-1px);
+    }
+    
+    /* Desktop: Hide Recent Tasks, Show Quick Actions */
+    @media (min-width: 768px) {
+        .recent-tasks-mobile {
+            display: none !important;
+        }
+        .quick-actions-section {
+            display: block;
+        }
+        
+        /* Dark Green Gradient Background for All Dashboard Cards on Desktop */
+        .stats-grid > div,
+        .stats-grid > div.bg-white,
+        .stats-grid > .dashboard-card {
+            background: linear-gradient(135deg, #063A1C 0%, #205A44 100%) !important;
+            background-color: transparent !important;
+            color: white !important;
+            border: none !important;
+            box-shadow: 0 4px 12px rgba(6, 58, 28, 0.4), 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        /* Ensure all text is visible and white on green background */
+        .stats-grid > div p,
+        .stats-grid > div p.text-gray-500,
+        .stats-grid > div .text-gray-500 {
+            color: rgba(255, 255, 255, 0.95) !important;
+            font-weight: 500 !important;
+        }
+        
+        .stats-grid > div h3,
+        .stats-grid > div h3.text-gray-900,
+        .stats-grid > div .text-gray-900 {
+            color: white !important;
+            font-weight: 700 !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+        }
+        
+        /* Card hover effect */
+        .stats-grid > div {
+            transition: all 0.3s ease !important;
+        }
+        
+        .stats-grid > div:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 16px rgba(6, 58, 28, 0.5), 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+        }
+    }
+    
+    /* Mobile: Show Recent Tasks, Hide Quick Actions */
+    @media (max-width: 767px) {
+        .recent-tasks-mobile {
+            display: block;
+        }
+        .quick-actions-section {
+            display: none !important;
+        }
+        
+        .recent-tasks-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .recent-task-card {
+            padding: 12px;
+        }
+        
+        /* Royal Green Background for All Dashboard Cards on Mobile */
+        .stats-grid > div {
+            background: #1E8449 !important; /* Royal green color */
+            color: white !important;
+            border: none !important;
+        }
+        
+        .stats-grid > div p {
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+        
+        .stats-grid > div h3 {
+            color: white !important;
+        }
+        
+        /* Icon background - make it lighter/transparent on royal green */
+        .stats-grid > div > div:last-child {
+            background: rgba(255, 255, 255, 0.2) !important;
+        }
+        
+        .stats-grid > div > div:last-child i {
+            color: white !important;
+        }
     }
     
     @media (min-width: 768px) and (max-width: 1023px) {
         .chart-container {
             height: 280px;
+        }
+    }
+    
+    /* Target Cards Styling */
+    .target-card-manager,
+    .target-card-team {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .target-card-manager::before,
+    .target-card-team::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        opacity: 0.1;
+        background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.3), transparent 70%);
+        pointer-events: none;
+    }
+    
+    .target-card-manager h2,
+    .target-card-team h2 {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .target-card-manager .space-y-5 > div,
+    .target-card-team .space-y-5 > div {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .target-card-manager p,
+    .target-card-team p {
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* Progress bar styling for target cards */
+    .target-card-manager .bg-gray-300,
+    .target-card-team .bg-gray-300 {
+        background-color: rgba(255, 255, 255, 0.3) !important;
+    }
+    
+    .target-card-manager .bg-white,
+    .target-card-team .bg-white {
+        background-color: rgba(255, 255, 255, 0.95) !important;
+    }
+    
+    /* Responsive adjustments for target cards */
+    @media (max-width: 767px) {
+        .target-card-manager,
+        .target-card-team {
+            padding: 20px !important;
+        }
+        
+        .target-card-manager h2,
+        .target-card-team h2 {
+            font-size: 18px !important;
+            margin-bottom: 20px !important;
+        }
+        
+        .target-card-manager .space-y-5 > div,
+        .target-card-team .space-y-5 > div {
+            margin-bottom: 16px !important;
         }
     }
 </style>
@@ -167,80 +499,73 @@
     <!-- Stats Cards - Reordered for mobile: Leads Received, Today Prospects, Pending Verifications, Over Due Task, Team Members -->
     
     <!-- 1. Leads Received -->
-    <div class="bg-white rounded-lg shadow p-6">
+    <div class="rounded-lg shadow p-6 dashboard-card">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-gray-500 text-sm">Leads Received</p>
                 <h3 class="text-2xl font-bold text-gray-900 mt-1" id="assignedLeads">0</h3>
             </div>
-            <div class="bg-indigo-100 rounded-full p-3">
-                <i class="fas fa-briefcase text-indigo-600 text-xl"></i>
-            </div>
         </div>
     </div>
 
     <!-- 2. Today's Prospects -->
-    <div class="bg-white rounded-lg shadow p-6">
+    <div class="rounded-lg shadow p-6 dashboard-card">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-gray-500 text-sm">Today's Prospects</p>
                 <h3 class="text-2xl font-bold text-gray-900 mt-1" id="todayProspects">0</h3>
             </div>
-            <div class="bg-green-100 rounded-full p-3">
-                <i class="fas fa-star text-green-600 text-xl"></i>
-            </div>
         </div>
     </div>
 
     <!-- 3. Pending Verifications -->
-    <div class="bg-white rounded-lg shadow p-6">
+    <div class="rounded-lg shadow p-6 dashboard-card">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-gray-500 text-sm">Pending Verifications</p>
                 <h3 class="text-2xl font-bold text-gray-900 mt-1" id="pendingVerifications">0</h3>
             </div>
-            <div class="bg-yellow-100 rounded-full p-3">
-                <i class="fas fa-clock text-yellow-600 text-xl"></i>
-            </div>
         </div>
     </div>
 
     <!-- 4. Over Due Task -->
-    <div class="bg-white rounded-lg shadow p-6">
+    <div class="rounded-lg shadow p-6 dashboard-card">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-gray-500 text-sm">Over Due Task</p>
                 <h3 class="text-2xl font-bold text-gray-900 mt-1" id="overdueTasks">0</h3>
             </div>
-            <div class="bg-red-100 rounded-full p-3">
-                <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
-            </div>
         </div>
     </div>
 
     <!-- 5. Team Members (hidden on mobile) -->
-    <div class="bg-white rounded-lg shadow p-6 team-members-card">
+    <div class="rounded-lg shadow p-6 dashboard-card team-members-card">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-gray-500 text-sm">Team Members</p>
                 <h3 class="text-2xl font-bold text-gray-900 mt-1" id="teamMembersCount">0</h3>
             </div>
-            <div class="bg-blue-100 rounded-full p-3">
-                <i class="fas fa-users text-blue-600 text-xl"></i>
-            </div>
         </div>
     </div>
 
     <!-- 6. Pending Tasks (kept for desktop) -->
-    <div class="bg-white rounded-lg shadow p-6">
+    <div class="rounded-lg shadow p-6 dashboard-card">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-gray-500 text-sm">Pending Tasks</p>
                 <h3 class="text-2xl font-bold text-gray-900 mt-1" id="pendingTasks">0</h3>
             </div>
-            <div class="bg-orange-100 rounded-full p-3">
-                <i class="fas fa-tasks text-orange-600 text-xl"></i>
-            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Tasks Section (Mobile View) -->
+<div class="bg-white rounded-lg shadow p-6 mb-6 recent-tasks-mobile">
+    <h2 class="text-xl font-bold text-gray-900 mb-4">Recent Tasks</h2>
+    <div id="recentTasksGrid" class="recent-tasks-grid">
+        <div class="text-center py-8">
+            <i class="fas fa-spinner fa-spin text-gray-400 text-2xl mb-2"></i>
+            <p class="text-gray-500 text-sm">Loading tasks...</p>
         </div>
     </div>
 </div>
@@ -313,8 +638,123 @@
     </div>
 </div>
 
-<!-- Quick Actions -->
-<div class="bg-white rounded-lg shadow p-6">
+<!-- Target vs Achievements Section -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Manager's Own Targets -->
+    <div class="rounded-xl shadow-lg p-6 target-card-manager" id="managerTargetsSection" style="background: linear-gradient(135deg, #063A1C 0%, #205A44 100%);">
+        <h2 class="text-xl font-bold text-white mb-6 flex items-center">
+            <i class="fas fa-bullseye mr-3 text-white"></i>My Targets vs Achievements
+        </h2>
+        <div class="space-y-5">
+            <!-- Meetings -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center">
+                        <i class="fas fa-calendar-alt mr-3 text-white text-lg"></i>
+                        <span class="text-sm font-medium text-white">Meetings</span>
+                    </div>
+                    <span class="text-sm font-semibold text-white" id="managerMeetingsProgress">0 / 0 (0%)</span>
+                </div>
+                <div class="w-full bg-gray-300 bg-opacity-30 rounded-full h-2 mt-2">
+                    <div class="bg-white h-2 rounded-full transition-all" id="managerMeetingsBar" style="width: 0%"></div>
+                </div>
+            </div>
+            <!-- Visits -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center">
+                        <i class="fas fa-map-marker-alt mr-3 text-white text-lg"></i>
+                        <span class="text-sm font-medium text-white">Site Visits</span>
+                    </div>
+                    <span class="text-sm font-semibold text-white" id="managerVisitsProgress">0 / 0 (0%)</span>
+                </div>
+                <div class="w-full bg-gray-300 bg-opacity-30 rounded-full h-2 mt-2">
+                    <div class="bg-white h-2 rounded-full transition-all" id="managerVisitsBar" style="width: 0%"></div>
+                </div>
+            </div>
+            <!-- Closers -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center">
+                        <i class="fas fa-bullseye mr-3 text-white text-lg"></i>
+                        <span class="text-sm font-medium text-white">Closers</span>
+                    </div>
+                    <span class="text-sm font-semibold text-white" id="managerClosersProgress">0 / 0 (0%)</span>
+                </div>
+                <div class="w-full bg-gray-300 bg-opacity-30 rounded-full h-2 mt-2">
+                    <div class="bg-white h-2 rounded-full transition-all" id="managerClosersBar" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+        <p class="text-center text-white text-sm mt-6 opacity-90">Set your goals and start tracking!</p>
+    </div>
+
+    <!-- Team Targets -->
+    <div class="rounded-xl shadow-lg p-6 target-card-team" id="teamTargetsSection" style="background: linear-gradient(135deg, #0F4C75 0%, #1B5E7A 100%);">
+        <h2 class="text-xl font-bold text-white mb-6 flex items-center">
+            <i class="fas fa-users mr-3 text-white"></i>Team Targets vs Achievements
+        </h2>
+        <div class="space-y-5">
+            <!-- Team Meetings -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center">
+                        <i class="fas fa-calendar-alt mr-3 text-white text-lg"></i>
+                        <span class="text-sm font-medium text-white">Meetings</span>
+                    </div>
+                    <span class="text-sm font-semibold text-white" id="teamMeetingsProgress">0 / 0 (0%)</span>
+                </div>
+                <div class="w-full bg-gray-300 bg-opacity-30 rounded-full h-2 mt-2">
+                    <div class="bg-white h-2 rounded-full transition-all" id="teamMeetingsBar" style="width: 0%"></div>
+                </div>
+            </div>
+            <!-- Team Visits -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center">
+                        <i class="fas fa-map-marker-alt mr-3 text-white text-lg"></i>
+                        <span class="text-sm font-medium text-white">Site Visits</span>
+                    </div>
+                    <span class="text-sm font-semibold text-white" id="teamVisitsProgress">0 / 0 (0%)</span>
+                </div>
+                <div class="w-full bg-gray-300 bg-opacity-30 rounded-full h-2 mt-2">
+                    <div class="bg-white h-2 rounded-full transition-all" id="teamVisitsBar" style="width: 0%"></div>
+                </div>
+            </div>
+            <!-- Team Closers -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center">
+                        <i class="fas fa-bullseye mr-3 text-white text-lg"></i>
+                        <span class="text-sm font-medium text-white">Closers</span>
+                    </div>
+                    <span class="text-sm font-semibold text-white" id="teamClosersProgress">0 / 0 (0%)</span>
+                </div>
+                <div class="w-full bg-gray-300 bg-opacity-30 rounded-full h-2 mt-2">
+                    <div class="bg-white h-2 rounded-full transition-all" id="teamClosersBar" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+        <p class="text-center text-white text-sm mt-6 opacity-90">Set your goals and start tracking!</p>
+    </div>
+</div>
+
+<!-- Individual Team Member Cards Section -->
+<div class="mb-6" id="teamMembersCardsSection">
+    <h2 class="text-xl font-bold text-gray-900 mb-4">
+        <i class="fas fa-users mr-2 text-indigo-600"></i>Team Members Targets vs Achievements
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="teamMembersCardsContainer">
+        <!-- Individual team member cards will be loaded here -->
+        <div class="text-center py-8 text-gray-500">
+            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+            <p>Loading team members...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions (Hidden on Mobile) -->
+<div class="bg-white rounded-lg shadow p-6 quick-actions-section">
     <h2 class="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <a href="{{ route('sales-manager.leads') }}" class="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all text-center">
@@ -325,6 +765,44 @@
             <i class="fas fa-tasks text-3xl text-orange-600 mb-2"></i>
             <p class="font-semibold text-gray-900">View Tasks</p>
         </a>
+    </div>
+</div>
+
+<!-- Incentives Section -->
+<div class="bg-white rounded-lg shadow p-6 mb-6" id="incentivesSection">
+    <h2 class="text-xl font-bold text-gray-900 mb-4">
+        <i class="fas fa-money-bill-wave mr-2 text-green-600"></i>Earn Incentive
+    </h2>
+    
+    <!-- Incentive Potential -->
+    <div class="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border-2 border-green-200">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-semibold text-green-900">Incentive Potential</span>
+            <span class="text-2xl font-bold text-green-700" id="incentivePotential">₹0</span>
+        </div>
+        <p class="text-xs text-green-700" id="incentivePotentialDetails">Target: 0 Closers × ₹0 = ₹0</p>
+    </div>
+
+    <!-- Pending Incentives -->
+    <div class="mb-4">
+        <h3 class="text-lg font-semibold text-gray-800 mb-3">Pending Incentives</h3>
+        <div id="pendingIncentivesList" class="space-y-2">
+            <p class="text-gray-500 text-sm">No pending incentives</p>
+        </div>
+    </div>
+
+    <!-- Verified Incentives -->
+    <div>
+        <h3 class="text-lg font-semibold text-gray-800 mb-3">Earned Incentives</h3>
+        <div class="mb-3 p-3 bg-green-50 rounded-lg">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-gray-700">Total Earned</span>
+                <span class="text-xl font-bold text-green-700" id="totalEarnedIncentives">₹0</span>
+            </div>
+        </div>
+        <div id="verifiedIncentivesList" class="space-y-2">
+            <p class="text-gray-500 text-sm">No verified incentives yet</p>
+        </div>
     </div>
 </div>
 @endsection
@@ -425,15 +903,318 @@
             } else {
                 console.error('Profile API failed or no team_stats:', profile);
             }
+
+            // Load dashboard data for incentives and targets
+            try {
+                const dashboardData = await fetch('{{ url("/api/dashboard") }}', {
+                    headers: {
+                        'Authorization': `Bearer ${getToken()}`,
+                        'Accept': 'application/json',
+                    }
+                });
+
+                if (dashboardData.ok) {
+                    const data = await dashboardData.json();
+                    console.log('Dashboard data:', data);
+                    console.log('Manager targets data:', data.manager_targets);
+
+                    // Load incentives
+                    if (data.incentives) {
+                        loadIncentives(data.incentives);
+                    }
+
+                    // Load incentive potential
+                    if (data.incentive_potential) {
+                        loadIncentivePotential(data.incentive_potential);
+                    }
+
+                    // Load manager targets
+                    if (data.manager_targets) {
+                        console.log('Loading manager targets:', data.manager_targets);
+                        loadManagerTargets(data.manager_targets);
+                    } else {
+                        console.warn('No manager_targets data found in response');
+                    }
+
+                    // Load team targets
+                    if (data.team_targets && data.team_targets.team_totals) {
+                        loadTeamTargets(data.team_targets.team_totals);
+                    }
+
+                    // Load individual team member cards
+                    if (data.team_targets && data.team_targets.team_members) {
+                        loadTeamMemberCards(data.team_targets.team_members);
+                    }
+                } else {
+                    console.error('Dashboard API error:', dashboardData.status, dashboardData.statusText);
+                    const errorText = await dashboardData.text();
+                    console.error('Error response:', errorText);
+                }
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+            }
         } catch (error) {
             console.error('Error loading dashboard data:', error);
             console.error('Error details:', error.message, error.stack);
         }
     }
 
+    function loadIncentives(incentives) {
+        // Pending incentives
+        const pendingList = document.getElementById('pendingIncentivesList');
+        if (incentives.pending && incentives.pending.length > 0) {
+            pendingList.innerHTML = incentives.pending.map(inc => `
+                <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">${inc.site_visit?.customer_name || 'N/A'}</p>
+                            <p class="text-xs text-gray-600">Status: ${inc.status === 'pending_sales_head' ? 'Awaiting Sales Head' : 'Awaiting CRM'}</p>
+                        </div>
+                        <span class="text-lg font-bold text-yellow-700">₹${parseFloat(inc.amount).toFixed(2)}</span>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            pendingList.innerHTML = '<p class="text-gray-500 text-sm">No pending incentives</p>';
+        }
+
+        // Total earned
+        document.getElementById('totalEarnedIncentives').textContent = `₹${parseFloat(incentives.total_earned || 0).toFixed(2)}`;
+
+        // Verified incentives
+        const verifiedList = document.getElementById('verifiedIncentivesList');
+        if (incentives.verified && incentives.verified.length > 0) {
+            verifiedList.innerHTML = incentives.verified.slice(0, 5).map(inc => `
+                <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">${inc.site_visit?.customer_name || 'N/A'}</p>
+                            <p class="text-xs text-gray-600">Verified on ${inc.crm_verified_at ? new Date(inc.crm_verified_at).toLocaleDateString('en-IN') : 'N/A'}</p>
+                        </div>
+                        <span class="text-lg font-bold text-green-700">₹${parseFloat(inc.amount).toFixed(2)}</span>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            verifiedList.innerHTML = '<p class="text-gray-500 text-sm">No verified incentives yet</p>';
+        }
+    }
+
+    function loadIncentivePotential(potential) {
+        document.getElementById('incentivePotential').textContent = `₹${parseFloat(potential.potential || 0).toFixed(2)}`;
+        document.getElementById('incentivePotentialDetails').textContent = 
+            `Target: ${potential.target_closers || 0} Closers × ₹${parseFloat(potential.incentive_per_closer || 0).toFixed(2)} = ₹${parseFloat(potential.potential || 0).toFixed(2)}`;
+    }
+
+    function loadManagerTargets(targets) {
+        // Meetings
+        const meetings = targets.meetings || {target: 0, achieved: 0, percentage: 0};
+        document.getElementById('managerMeetingsProgress').textContent = 
+            `${meetings.achieved} / ${meetings.target} (${meetings.percentage}%)`;
+        document.getElementById('managerMeetingsBar').style.width = `${meetings.percentage}%`;
+
+        // Visits
+        const visits = targets.visits || {target: 0, achieved: 0, percentage: 0};
+        document.getElementById('managerVisitsProgress').textContent = 
+            `${visits.achieved} / ${visits.target} (${visits.percentage}%)`;
+        document.getElementById('managerVisitsBar').style.width = `${visits.percentage}%`;
+
+        // Closers
+        const closers = targets.closers || {target: 0, achieved: 0, percentage: 0};
+        document.getElementById('managerClosersProgress').textContent = 
+            `${closers.achieved} / ${closers.target} (${closers.percentage}%)`;
+        document.getElementById('managerClosersBar').style.width = `${closers.percentage}%`;
+    }
+
+    function loadTeamTargets(teamTotals) {
+        // Team Meetings
+        const meetings = teamTotals.meetings || {target: 0, achieved: 0, percentage: 0};
+        document.getElementById('teamMeetingsProgress').textContent = 
+            `${meetings.achieved} / ${meetings.target} (${meetings.percentage}%)`;
+        document.getElementById('teamMeetingsBar').style.width = `${meetings.percentage}%`;
+
+        // Team Visits
+        const visits = teamTotals.visits || {target: 0, achieved: 0, percentage: 0};
+        document.getElementById('teamVisitsProgress').textContent = 
+            `${visits.achieved} / ${visits.target} (${visits.percentage}%)`;
+        document.getElementById('teamVisitsBar').style.width = `${visits.percentage}%`;
+
+        // Team Closers
+        const closers = teamTotals.closers || {target: 0, achieved: 0, percentage: 0};
+        document.getElementById('teamClosersProgress').textContent = 
+            `${closers.achieved} / ${closers.target} (${closers.percentage}%)`;
+        document.getElementById('teamClosersBar').style.width = `${closers.percentage}%`;
+    }
+
+    function loadTeamMemberCards(teamMembers) {
+        const container = document.getElementById('teamMembersCardsContainer');
+        
+        if (!teamMembers || teamMembers.length === 0) {
+            container.innerHTML = '<div class="text-center py-8 text-gray-500 col-span-full"><p>No team members with targets found.</p></div>';
+            return;
+        }
+
+        // Generate cards for each team member
+        container.innerHTML = teamMembers.map(member => {
+            const meetings = member.targets.meetings || {target: 0, achieved: 0, percentage: 0};
+            const visits = member.targets.visits || {target: 0, achieved: 0, percentage: 0};
+            const closers = member.targets.closers || {target: 0, achieved: 0, percentage: 0};
+            
+            // Determine card color based on role
+            let cardGradient = 'linear-gradient(135deg, #0F4C75 0%, #1B5E7A 100%)'; // Default teal
+            if (member.user_role === 'telecaller') {
+                cardGradient = 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)'; // Blue
+            } else if (member.user_role === 'sales_executive') {
+                cardGradient = 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)'; // Purple
+            }
+
+            return `
+                <div class="rounded-xl shadow-lg p-6" style="background: ${cardGradient};">
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center">
+                        <i class="fas fa-user mr-2 text-white"></i>${member.user_name}
+                    </h3>
+                    <p class="text-xs text-white opacity-80 mb-4 uppercase">${member.user_role_name}</p>
+                    
+                    <div class="space-y-4">
+                        <!-- Meetings -->
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center">
+                                    <i class="fas fa-calendar-alt mr-2 text-white text-sm"></i>
+                                    <span class="text-xs font-medium text-white">Meetings</span>
+                                </div>
+                                <span class="text-xs font-semibold text-white">${meetings.achieved} / ${meetings.target} (${meetings.percentage}%)</span>
+                            </div>
+                            <div class="w-full bg-gray-300 bg-opacity-30 rounded-full h-1.5 mt-1">
+                                <div class="bg-white h-1.5 rounded-full transition-all" style="width: ${meetings.percentage}%"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Visits -->
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center">
+                                    <i class="fas fa-map-marker-alt mr-2 text-white text-sm"></i>
+                                    <span class="text-xs font-medium text-white">Site Visits</span>
+                                </div>
+                                <span class="text-xs font-semibold text-white">${visits.achieved} / ${visits.target} (${visits.percentage}%)</span>
+                            </div>
+                            <div class="w-full bg-gray-300 bg-opacity-30 rounded-full h-1.5 mt-1">
+                                <div class="bg-white h-1.5 rounded-full transition-all" style="width: ${visits.percentage}%"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Closers -->
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center">
+                                    <i class="fas fa-bullseye mr-2 text-white text-sm"></i>
+                                    <span class="text-xs font-medium text-white">Closers</span>
+                                </div>
+                                <span class="text-xs font-semibold text-white">${closers.achieved} / ${closers.target} (${closers.percentage}%)</span>
+                            </div>
+                            <div class="w-full bg-gray-300 bg-opacity-30 rounded-full h-1.5 mt-1">
+                                <div class="bg-white h-1.5 rounded-full transition-all" style="width: ${closers.percentage}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Load recent tasks for mobile view
+    async function loadRecentTasks() {
+        try {
+            const isMobile = window.innerWidth <= 767;
+            const recentTasksSection = document.querySelector('.recent-tasks-mobile');
+            const tasksGrid = document.getElementById('recentTasksGrid');
+            
+            if (!tasksGrid) return;
+            
+            if (!isMobile) {
+                // Hide recent tasks section on desktop
+                if (recentTasksSection) {
+                    recentTasksSection.style.display = 'none';
+                }
+                return;
+            }
+            
+            // Show section on mobile
+            if (recentTasksSection) {
+                recentTasksSection.style.display = 'block';
+            }
+            
+            const result = await apiCall('/tasks?status=pending');
+            
+            if (result && result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
+                const tasks = result.data.slice(0, 4); // Limit to 4 tasks
+                
+                tasksGrid.innerHTML = tasks.map(task => {
+                    const lead = task.lead || {};
+                    let leadName = lead.name || 'Prospect';
+                    
+                    // Extract name from title if needed
+                    if (task.title && !lead.name) {
+                        const titleMatch = task.title.match(/prospect verification:\s*(.+)/i);
+                        if (titleMatch) {
+                            leadName = titleMatch[1].trim();
+                        }
+                    }
+                    
+                    const scheduledAt = task.scheduled_at ? new Date(task.scheduled_at).toLocaleString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }) : 'Not scheduled';
+                    
+                    const leadId = lead.id || (task.lead_id || null);
+                    
+                    return `
+                        <div class="recent-task-card">
+                            <div class="task-name">${leadName}</div>
+                            <div class="task-time">
+                                <i class="fas fa-clock" style="font-size: 10px; margin-right: 4px;"></i>
+                                ${scheduledAt}
+                            </div>
+                            <button class="call-btn" onclick="handleTaskCall(${task.id}, ${leadId ? leadId : 'null'})">
+                                <i class="fas fa-phone"></i>
+                                Call
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                // Hide if no tasks
+                tasksGrid.innerHTML = '';
+            }
+        } catch (error) {
+            console.error('Error loading recent tasks:', error);
+            const tasksGrid = document.getElementById('recentTasksGrid');
+            if (tasksGrid) {
+                tasksGrid.innerHTML = '';
+            }
+        }
+    }
+    
+    // Handle task call button click
+    function handleTaskCall(taskId, leadId) {
+        // Navigate to tasks page - the task will be highlighted/opened there
+        window.location.href = `{{ url('/sales-manager/tasks') }}?task=${taskId}`;
+    }
+
     // Initialize on page load
     (function() {
         loadDashboardData();
+        loadRecentTasks();
+        
+        // Reload recent tasks on window resize
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(loadRecentTasks, 200);
+        });
     })();
 </script>
 @endpush

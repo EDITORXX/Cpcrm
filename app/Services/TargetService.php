@@ -31,6 +31,10 @@ class TargetService
                 'target_prospects_extract' => $targets['target_prospects_extract'] ?? 0,
                 'target_prospects_verified' => $targets['target_prospects_verified'] ?? 0,
                 'target_calls' => $targets['target_calls'] ?? 0,
+                'manager_target_calculation_logic' => $targets['manager_target_calculation_logic'] ?? null,
+                'manager_junior_scope' => $targets['manager_junior_scope'] ?? null,
+                'incentive_per_closer' => $targets['incentive_per_closer'] ?? null,
+                'incentive_per_visit' => $targets['incentive_per_visit'] ?? null,
             ]
         );
     }
@@ -94,28 +98,91 @@ class TargetService
 
         $targetMonth = Carbon::parse($month . '-01')->startOfMonth();
 
-        // Get all team members (telecallers under this manager)
+        // Get all team members (telecallers and sales executives under this manager)
         $teamMembers = User::where('manager_id', $managerId)
             ->whereHas('role', function($q) {
-                $q->where('slug', 'telecaller');
+                $q->whereIn('slug', ['telecaller', 'sales_executive']);
             })
             ->pluck('id');
 
         $targets = Target::whereIn('user_id', $teamMembers)
             ->where('target_month', $targetMonth)
-            ->with('user')
+            ->with(['user.role'])
             ->get();
 
-        $result = [];
+        // Calculate team totals
+        $teamMeetingsTarget = $targets->sum('target_meetings');
+        $teamVisitsTarget = $targets->sum('target_visits');
+        $teamClosersTarget = $targets->sum('target_closers');
+
+        $teamMeetingsAchieved = 0;
+        $teamVisitsAchieved = 0;
+        $teamClosersAchieved = 0;
+
         foreach ($targets as $target) {
-            $result[] = [
-                'user' => $target->user,
-                'target' => $target,
-                'progress' => $target->getProgressData(),
+            $meetingsProgress = $target->getAchievementProgress('meetings');
+            $visitsProgress = $target->getAchievementProgress('visits');
+            $closersProgress = $target->getAchievementProgress('closers');
+
+            $teamMeetingsAchieved += $meetingsProgress['achieved'];
+            $teamVisitsAchieved += $visitsProgress['achieved'];
+            $teamClosersAchieved += $closersProgress['achieved'];
+        }
+
+        $teamMeetingsPercentage = $teamMeetingsTarget > 0 ? min(100, round(($teamMeetingsAchieved / $teamMeetingsTarget) * 100, 2)) : 0;
+        $teamVisitsPercentage = $teamVisitsTarget > 0 ? min(100, round(($teamVisitsAchieved / $teamVisitsTarget) * 100, 2)) : 0;
+        $teamClosersPercentage = $teamClosersTarget > 0 ? min(100, round(($teamClosersAchieved / $teamClosersTarget) * 100, 2)) : 0;
+
+        // Build individual team member data
+        $teamMembersData = [];
+        foreach ($targets as $target) {
+            if (!$target->user) {
+                continue; // Skip if user not found
+            }
+            
+            // Ensure role is loaded
+            if (!$target->user->relationLoaded('role')) {
+                $target->user->load('role');
+            }
+            
+            $meetingsProgress = $target->getAchievementProgress('meetings');
+            $visitsProgress = $target->getAchievementProgress('visits');
+            $closersProgress = $target->getAchievementProgress('closers');
+            
+            $teamMembersData[] = [
+                'user_id' => $target->user_id,
+                'user_name' => $target->user->name ?? 'N/A',
+                'user_role' => $target->user->role->slug ?? 'N/A',
+                'user_role_name' => $target->user->role->name ?? 'N/A',
+                'targets' => [
+                    'meetings' => $meetingsProgress,
+                    'visits' => $visitsProgress,
+                    'closers' => $closersProgress,
+                ],
             ];
         }
 
-        return $result;
+        // Return structured data
+        return [
+            'team_totals' => [
+                'meetings' => [
+                    'target' => $teamMeetingsTarget,
+                    'achieved' => $teamMeetingsAchieved,
+                    'percentage' => $teamMeetingsPercentage,
+                ],
+                'visits' => [
+                    'target' => $teamVisitsTarget,
+                    'achieved' => $teamVisitsAchieved,
+                    'percentage' => $teamVisitsPercentage,
+                ],
+                'closers' => [
+                    'target' => $teamClosersTarget,
+                    'achieved' => $teamClosersAchieved,
+                    'percentage' => $teamClosersPercentage,
+                ],
+            ],
+            'team_members' => $teamMembersData,
+        ];
     }
 
     /**

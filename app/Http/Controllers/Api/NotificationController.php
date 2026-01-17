@@ -15,17 +15,43 @@ class NotificationController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        
-        // Get recent notifications (both read and unread for dropdown)
-        $notifications = AppNotification::where('user_id', $user->id)
-            ->recent(50)
-            ->with('telecallerTask.lead')
-            ->orderBy('created_at', 'desc')
-            ->get();
 
-        $unreadCount = AppNotification::where('user_id', $user->id)
-            ->unread()
-            ->count();
+        $notificationsQuery = AppNotification::where('user_id', $user->id)
+            ->with('telecallerTask.lead')
+            ->orderBy('created_at', 'desc');
+
+        $unreadCountQuery = AppNotification::where('user_id', $user->id)
+            ->unread();
+
+        // Sales Executive bot should NOT show manager-only "New Prospect Verification" items
+        if ($user && method_exists($user, 'isSalesExecutive') && $user->isSalesExecutive()) {
+            $filterOutProspectVerification = function ($query) {
+                $query->where(function ($q) {
+                    $q->where('type', '!=', AppNotification::TYPE_NEW_VERIFICATION)
+                        ->orWhere(function ($q) {
+                            $q->where('type', AppNotification::TYPE_NEW_VERIFICATION)
+                                ->where(function ($q) {
+                                    // Keep verification notifications except the "prospect" (pending verification) type
+                                    $q->whereNull('data->verification_type')
+                                        ->orWhere('data->verification_type', '!=', 'prospect');
+                                })
+                                ->where(function ($q) {
+                                    // Extra safety for older records
+                                    $q->whereNull('title')
+                                        ->orWhere('title', '!=', 'New Prospect Verification');
+                                });
+                        });
+                });
+            };
+
+            $filterOutProspectVerification($notificationsQuery);
+            $filterOutProspectVerification($unreadCountQuery);
+        }
+
+        // Get recent notifications (both read and unread for dropdown)
+        $notifications = $notificationsQuery->recent(50)->get();
+
+        $unreadCount = $unreadCountQuery->count();
 
         return response()->json([
             'success' => true,
@@ -119,12 +145,31 @@ class NotificationController extends Controller
     public function getUnread(Request $request)
     {
         $user = $request->user();
-        
-        $notifications = AppNotification::where('user_id', $user->id)
+
+        $notificationsQuery = AppNotification::where('user_id', $user->id)
             ->unread()
             ->orderBy('created_at', 'desc')
-            ->limit(50)
-            ->get();
+            ->limit(50);
+
+        // Sales Executive bot should NOT show manager-only "New Prospect Verification" items
+        if ($user && method_exists($user, 'isSalesExecutive') && $user->isSalesExecutive()) {
+            $notificationsQuery->where(function ($q) {
+                $q->where('type', '!=', AppNotification::TYPE_NEW_VERIFICATION)
+                    ->orWhere(function ($q) {
+                        $q->where('type', AppNotification::TYPE_NEW_VERIFICATION)
+                            ->where(function ($q) {
+                                $q->whereNull('data->verification_type')
+                                    ->orWhere('data->verification_type', '!=', 'prospect');
+                            })
+                            ->where(function ($q) {
+                                $q->whereNull('title')
+                                    ->orWhere('title', '!=', 'New Prospect Verification');
+                            });
+                    });
+            });
+        }
+
+        $notifications = $notificationsQuery->get();
 
         $unreadCount = $notifications->count();
 

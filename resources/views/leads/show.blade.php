@@ -1,145 +1,152 @@
 @php
     $user = auth()->user();
-    if ($user && !$user->relationLoaded('role')) {
-        $user->load('role');
-    }
 @endphp
-@if($user && $user->isSalesManager())
-    @extends('sales-manager.layout')
-@elseif($user && ($user->isAdmin() || $user->isCrm()))
-    @extends('layouts.app')
-@elseif($user && $user->isSalesHead() && !$user->isAdmin() && !$user->isCrm())
-    @extends('sales-head.layout')
-@elseif($user && $user->isSalesExecutive())
-    @extends('sales-head.layout')
-@elseif($user && $user->isTelecaller())
-    @extends('telecaller.layout')
-@else
-    @extends('layouts.app')
-@endif
+@extends($layout ?? 'layouts.app')
 
 @section('title', $lead->name . ' - Lead Details')
 @section('page-title', 'Lead Details')
 
 @section('content')
-<div class="space-y-6">
-    <!-- Header Section -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div class="flex items-center justify-between mb-4">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-900">{{ $lead->name }}</h1>
-                <div class="flex items-center gap-4 mt-2">
-                    <span class="px-3 py-1 rounded-full text-sm font-medium {{ 
-                        $lead->status === 'dead' ? 'bg-red-100 text-red-800' : 
-                        ($lead->status === 'closed' ? 'bg-green-100 text-green-800' : 
-                        'bg-blue-100 text-blue-800') 
-                    }}">
-                        {{ ucfirst(str_replace('_', ' ', $lead->status)) }}
-                    </span>
-                    <span class="text-sm text-gray-500">
-                        <i class="fas fa-calendar mr-1"></i>
-                        Created {{ $lead->created_at->format('M d, Y') }}
-                    </span>
+<div class="space-y-6 lead-detail-container" style="width: 100%; max-width: 100%; overflow-x: hidden; box-sizing: border-box;">
+    <!-- Professional Header Section -->
+    <div class="bg-gradient-to-r from-[#063A1C] via-[#205A44] to-[#063A1C] rounded-2xl shadow-xl border border-emerald-800/20 overflow-hidden mb-6">
+        <div class="p-4 sm:p-6 md:p-8">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4 sm:mb-6">
+                <div class="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+                    <div class="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-sm border-2 border-white/20 flex items-center justify-center text-white text-xl sm:text-2xl md:text-3xl font-bold shadow-lg flex-shrink-0">
+                        {{ strtoupper(substr($lead->name, 0, 1)) }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2 leading-tight break-words word-wrap">{{ $lead->name }}</h1>
+                        <div class="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 sm:mt-3">
+                            <a href="tel:{{ $lead->phone }}" class="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-lg text-white text-xs sm:text-sm md:text-base font-medium transition-all duration-200 border border-white/20 shadow-sm whitespace-nowrap">
+                                <i class="fas fa-phone text-xs sm:text-sm"></i>
+                                <span class="truncate max-w-[120px] sm:max-w-none">{{ $lead->phone }}</span>
+                            </a>
+                            @if($lead->email)
+                            <a href="mailto:{{ $lead->email }}" class="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-lg text-white text-xs sm:text-sm md:text-base font-medium transition-all duration-200 border border-white/20 shadow-sm whitespace-nowrap">
+                                <i class="fas fa-envelope text-xs sm:text-sm"></i>
+                                <span class="hidden sm:inline truncate max-w-xs">{{ $lead->email }}</span>
+                                <span class="sm:hidden">Email</span>
+                            </a>
+                            @endif
+                            <span class="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold whitespace-nowrap {{
+                                $lead->status === 'dead' ? 'bg-red-500/20 text-red-100 border border-red-400/30' : 
+                                ($lead->status === 'closed' ? 'bg-green-500/20 text-green-100 border border-green-400/30' : 
+                                'bg-blue-500/20 text-blue-100 border border-blue-400/30') 
+                            }}">
+                                {{ ucfirst(str_replace('_', ' ', $lead->status)) }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <a href="{{ route('leads.index') }}" class="px-3 sm:px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-lg text-white text-xs sm:text-sm font-medium transition-all duration-200 border border-white/20 shadow-sm whitespace-nowrap">
+                        <i class="fas fa-arrow-left mr-1.5 sm:mr-2"></i><span class="hidden sm:inline">Back</span><span class="sm:hidden">Back</span>
+                    </a>
                 </div>
             </div>
-            <div class="flex gap-2">
-                <a href="{{ route('leads.index') }}" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
-                    <i class="fas fa-arrow-left mr-2"></i>Back
-                </a>
-            </div>
-        </div>
-        
-        <!-- Quick Actions Section -->
-        <div class="mt-6 pt-6 border-t border-gray-200">
-            <h3 class="text-sm font-semibold text-gray-700 mb-3">Quick Actions</h3>
-            <div class="flex flex-wrap gap-3">
-                <!-- Call Button -->
-                <button onclick="openCallModal()" class="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-all duration-200 shadow-sm font-medium">
-                    <i class="fas fa-phone"></i>
-                    <span>Call</span>
-                </button>
-                
-                <!-- WhatsApp Button -->
-                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $lead->phone) }}?text=Hello%20{{ urlencode($lead->name) }}" 
-                   target="_blank"
-                   class="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-all duration-200 shadow-sm font-medium">
-                    <i class="fab fa-whatsapp"></i>
-                    <span>WhatsApp</span>
-                </a>
-                
-                <!-- Follow-up Button -->
-                <button onclick="openFollowupModal()" class="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-all duration-200 shadow-sm font-medium">
-                    <i class="fas fa-calendar-check"></i>
-                    <span>Follow-up</span>
-                </button>
-                
-                <!-- Site Visit Button -->
-                <button onclick="openSiteVisitModal()" class="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-all duration-200 shadow-sm font-medium">
-                    <i class="fas fa-map-marker-alt"></i>
-                    <span>Site Visit</span>
-                </button>
-                
-                <!-- Meeting Button -->
-                <button onclick="openMeetingModal()" class="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-all duration-200 shadow-sm font-medium">
-                    <i class="fas fa-handshake"></i>
-                    <span>Meeting</span>
-                </button>
-                
-                <!-- Schedule Call Task Button -->
-                <button onclick="openScheduleCallTaskModal()" class="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-all duration-200 shadow-sm font-medium">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Schedule Call Task</span>
-                </button>
-                
-                <!-- Edit Requirements Button - Show for roles that can use centralized form -->
-                @if($user && ($user->isTelecaller() || $user->isSalesManager() || $user->isSalesHead() || $user->isAdmin() || $user->isCrm()))
-                    <a href="{{ route('leads.edit', $lead->id) }}" class="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-sm font-medium">
-                        <i class="fas fa-edit"></i>
-                        <span>Edit Requirements</span>
+            
+            <!-- Quick Actions Section -->
+            <div class="pt-4 sm:pt-6 border-t border-white/10">
+                <h3 class="text-xs sm:text-sm font-semibold text-white/90 mb-3 sm:mb-4 uppercase tracking-wider">Quick Actions</h3>
+                <div class="flex flex-wrap gap-2 sm:gap-3">
+                    <!-- Call Button -->
+                    <button onclick="openCallModal()" class="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg transition-all duration-200 border border-white/20 shadow-sm font-medium text-xs sm:text-sm whitespace-nowrap min-w-[80px] sm:min-w-0">
+                        <i class="fas fa-phone text-xs sm:text-sm"></i>
+                        <span>Call</span>
+                    </button>
+                    
+                    <!-- WhatsApp Button -->
+                    <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $lead->phone) }}?text=Hello%20{{ urlencode($lead->name) }}" 
+                       target="_blank"
+                       class="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg transition-all duration-200 border border-white/20 shadow-sm font-medium text-xs sm:text-sm whitespace-nowrap min-w-[100px] sm:min-w-0">
+                        <i class="fab fa-whatsapp text-xs sm:text-sm"></i>
+                        <span>WhatsApp</span>
                     </a>
-                @endif
+                    
+                    <!-- Follow-up Button -->
+                    <button onclick="openFollowupModal()" class="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg transition-all duration-200 border border-white/20 shadow-sm font-medium text-xs sm:text-sm whitespace-nowrap min-w-[100px] sm:min-w-0">
+                        <i class="fas fa-calendar-check text-xs sm:text-sm"></i>
+                        <span>Follow-up</span>
+                    </button>
+                    
+                    <!-- Site Visit Button -->
+                    <button onclick="openSiteVisitModal()" class="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg transition-all duration-200 border border-white/20 shadow-sm font-medium text-xs sm:text-sm whitespace-nowrap min-w-[110px] sm:min-w-0">
+                        <i class="fas fa-map-marker-alt text-xs sm:text-sm"></i>
+                        <span>Site Visit</span>
+                    </button>
+                    
+                    <!-- Meeting Button -->
+                    <button onclick="openMeetingModal()" class="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg transition-all duration-200 border border-white/20 shadow-sm font-medium text-xs sm:text-sm whitespace-nowrap min-w-[100px] sm:min-w-0">
+                        <i class="fas fa-handshake text-xs sm:text-sm"></i>
+                        <span>Meeting</span>
+                    </button>
+                    
+                    <!-- Schedule Call Task Button -->
+                    <button onclick="openScheduleCallTaskModal()" class="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg transition-all duration-200 border border-white/20 shadow-sm font-medium text-xs sm:text-sm whitespace-nowrap min-w-[120px] sm:min-w-0">
+                        <i class="fas fa-calendar-alt text-xs sm:text-sm"></i>
+                        <span>Schedule Task</span>
+                    </button>
+                    
+                    <!-- Edit Requirements Button - Show for roles that can use centralized form -->
+                    @if($user && ($user->isTelecaller() || $user->isSalesManager() || $user->isSalesHead() || $user->isAdmin() || $user->isCrm()))
+                        <a href="{{ route('leads.edit', $lead->id) }}" class="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg transition-all duration-200 border border-white/20 shadow-sm font-medium text-xs sm:text-sm whitespace-nowrap min-w-[140px] sm:min-w-0">
+                            <i class="fas fa-edit text-xs sm:text-sm"></i>
+                            <span>Edit Requirements</span>
+                        </a>
+                    @endif
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6" style="width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden;">
         <!-- Lead Information Card -->
         <div class="lg:col-span-1">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-                <h2 class="text-xl font-bold text-gray-900 mb-4">Lead Information</h2>
-                
-                <div class="space-y-4">
+            <div class="bg-white rounded-xl sm:rounded-2xl shadow-md border border-slate-200/80 p-4 sm:p-6 md:p-8 mb-4 sm:mb-6">
+                <div class="flex items-center justify-between mb-6">
                     <div>
-                        <label class="text-sm font-medium text-gray-500">Name</label>
-                        <p class="text-gray-900 font-medium">{{ $lead->name }}</p>
+                        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500 mb-1">Lead Information</p>
+                        <h2 class="text-xl md:text-2xl font-bold text-slate-900">Contact Details</h2>
+                    </div>
+                    <div class="hidden md:flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 text-white shadow-sm">
+                        <i class="fas fa-user-circle text-lg"></i>
+                    </div>
+                </div>
+                
+                <div class="space-y-3 sm:space-y-4 md:space-y-5">
+                    <div class="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200/70">
+                        <p class="text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1.5 sm:mb-2">Name</p>
+                        <p class="text-sm sm:text-base font-semibold text-slate-900 break-words">{{ $lead->name }}</p>
                     </div>
                     
                     @if($lead->email)
-                    <div>
-                        <label class="text-sm font-medium text-gray-500">Email</label>
-                        <p class="text-gray-900">
-                            <a href="mailto:{{ $lead->email }}" class="text-blue-600 hover:underline">
+                    <div class="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200/70">
+                        <p class="text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1.5 sm:mb-2">Email</p>
+                        <p class="text-sm sm:text-base font-semibold text-slate-900 break-all">
+                            <a href="mailto:{{ $lead->email }}" class="text-blue-600 hover:text-blue-700 hover:underline transition-colors break-all">
                                 {{ $lead->email }}
                             </a>
                         </p>
                     </div>
                     @endif
                     
-                    <div>
-                        <label class="text-sm font-medium text-gray-500">Phone</label>
-                        <p class="text-gray-900">
-                            <a href="tel:{{ $lead->phone }}" class="text-blue-600 hover:underline">
+                    <div class="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200/70">
+                        <p class="text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1.5 sm:mb-2">Phone</p>
+                        <p class="text-sm sm:text-base font-semibold text-slate-900 break-words">
+                            <a href="tel:{{ $lead->phone }}" class="text-blue-600 hover:text-blue-700 hover:underline transition-colors break-words">
                                 {{ $lead->phone }}
                             </a>
                         </p>
                     </div>
                     
                     @if($lead->address)
-                    <div>
-                        <label class="text-sm font-medium text-gray-500">Address</label>
-                        <p class="text-gray-900">{{ $lead->address }}</p>
+                    <div class="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200/70">
+                        <p class="text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1.5 sm:mb-2">Address</p>
+                        <p class="text-sm sm:text-base font-semibold text-slate-900 break-words">{{ $lead->address }}</p>
                         @if($lead->city || $lead->state || $lead->pincode)
-                            <p class="text-sm text-gray-600">
+                            <p class="text-xs sm:text-sm text-slate-600 mt-1 break-words">
                                 {{ trim(implode(', ', array_filter([$lead->city, $lead->state, $lead->pincode]))) }}
                             </p>
                         @endif
@@ -147,23 +154,23 @@
                     @endif
                     
                     @if($lead->source)
-                    <div>
-                        <label class="text-sm font-medium text-gray-500">Source</label>
-                        <p class="text-gray-900">{{ ucfirst(str_replace('_', ' ', $lead->source)) }}</p>
+                    <div class="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200/70">
+                        <p class="text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1.5 sm:mb-2">Source</p>
+                        <p class="text-sm sm:text-base font-semibold text-slate-900 break-words">{{ ucfirst(str_replace('_', ' ', $lead->source)) }}</p>
                     </div>
                     @endif
                     
                     @if($lead->budget)
-                    <div>
-                        <label class="text-sm font-medium text-gray-500">Budget</label>
-                        <p class="text-gray-900">{{ $lead->budget }}</p>
+                    <div class="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200/70">
+                        <p class="text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1.5 sm:mb-2">Budget</p>
+                        <p class="text-sm sm:text-base font-semibold text-slate-900 break-words">{{ $lead->budget }}</p>
                     </div>
                     @endif
                     
                     @if($lead->property_type)
-                    <div>
-                        <label class="text-sm font-medium text-gray-500">Property Type</label>
-                        <p class="text-gray-900">{{ ucfirst($lead->property_type) }}</p>
+                    <div class="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200/70">
+                        <p class="text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1.5 sm:mb-2">Property Type</p>
+                        <p class="text-sm sm:text-base font-semibold text-slate-900 break-words">{{ ucfirst($lead->property_type) }}</p>
                     </div>
                     @endif
                     
@@ -179,11 +186,11 @@
                     @endphp
                     
                     @if($uniqueProjects->count() > 0)
-                    <div>
-                        <label class="text-sm font-medium text-gray-500">Interested Projects</label>
-                        <div class="flex flex-wrap gap-2 mt-1">
+                    <div class="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200/70">
+                        <p class="text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-2 sm:mb-3">Interested Projects</p>
+                        <div class="flex flex-wrap gap-1.5 sm:gap-2">
                             @foreach($uniqueProjects as $project)
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white">
+                                <span class="inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-semibold bg-gradient-to-r from-slate-600 to-slate-700 text-white shadow-sm break-words">
                                     {{ $project->name }}
                                 </span>
                             @endforeach
@@ -191,27 +198,70 @@
                     </div>
                     @endif
                     
-                    <div>
-                        <label class="text-sm font-medium text-gray-500">Created By</label>
-                        <p class="text-gray-900">{{ $lead->creator->name ?? 'N/A' }}</p>
-                        <p class="text-sm text-gray-500">{{ $lead->created_at->format('M d, Y h:i A') }}</p>
+                    <div class="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200/70">
+                        <p class="text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1.5 sm:mb-2">Created By</p>
+                        <p class="text-sm sm:text-base font-semibold text-slate-900 break-words">{{ $lead->creator->name ?? 'N/A' }}</p>
+                        <p class="text-xs sm:text-sm text-slate-500 mt-1">{{ $lead->created_at->format('M d, Y h:i A') }}</p>
                     </div>
                     
                     @if($lead->activeAssignments->count() > 0)
-                    <div>
-                        <label class="text-sm font-medium text-gray-500">Assigned To</label>
-                        <div class="space-y-1">
+                    <div class="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200/70">
+                        <p class="text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1.5 sm:mb-2">Assigned To</p>
+                        <div class="space-y-1.5 sm:space-y-2">
                             @foreach($lead->activeAssignments as $assignment)
-                                <p class="text-gray-900">{{ $assignment->assignedTo->name ?? 'N/A' }}</p>
+                                <p class="text-sm sm:text-base font-semibold text-slate-900 break-words">{{ $assignment->assignedTo->name ?? 'N/A' }}</p>
                             @endforeach
                         </div>
                     </div>
                     @endif
                     
+                    <!-- Response Time Section -->
+                    @if(isset($responseTimeData) && $responseTimeData['assigned_at'])
+                    <div class="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/70 mt-4">
+                        <h3 class="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                            <i class="fas fa-clock text-blue-600"></i>
+                            Response Time
+                        </h3>
+                        <div class="space-y-3">
+                            <div>
+                                <p class="text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1">Assigned At</p>
+                                <p class="text-sm font-semibold text-slate-900">
+                                    {{ $responseTimeData['assigned_at']->format('M d, Y h:i A') }}
+                                </p>
+                            </div>
+                            @if($responseTimeData['called_at'])
+                            <div>
+                                <p class="text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1">Called At</p>
+                                <p class="text-sm font-semibold text-slate-900">
+                                    {{ $responseTimeData['called_at']->format('M d, Y h:i A') }}
+                                </p>
+                            </div>
+                            @if($responseTimeData['response_time_minutes'] !== null)
+                            <div>
+                                <p class="text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1">Response Time</p>
+                                <p class="text-base font-bold text-blue-600">
+                                    @if($responseTimeData['response_time_minutes'] < 60)
+                                        {{ $responseTimeData['response_time_minutes'] }} minutes
+                                    @else
+                                        {{ floor($responseTimeData['response_time_minutes'] / 60) }}h {{ $responseTimeData['response_time_minutes'] % 60 }}m
+                                    @endif
+                                </p>
+                            </div>
+                            @endif
+                            @else
+                            <div>
+                                <p class="text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1">Status</p>
+                                <p class="text-sm font-semibold text-orange-600">Not Called Yet</p>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    @endif
+                    
                     @if($lead->notes)
-                    <div>
-                        <label class="text-sm font-medium text-gray-500">Notes</label>
-                        <p class="text-gray-900 whitespace-pre-wrap">{{ $lead->notes }}</p>
+                    <div class="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-slate-50 border border-slate-200/70">
+                        <p class="text-[11px] sm:text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-1.5 sm:mb-2">Notes</p>
+                        <p class="text-xs sm:text-sm text-slate-900 whitespace-pre-wrap leading-relaxed break-words">{{ $lead->notes }}</p>
                     </div>
                     @endif
                     
@@ -234,49 +284,29 @@
                             $sourceInfo['type'] = ucfirst(str_replace('_', ' ', $lead->source ?? 'Other'));
                         }
                         
-                        // Get form field values for source tracking
+                        // Get form field values for source tracking (excluding sheet_name and sheet_id as per user request)
                         $sourceFields = $lead->formFieldValues()->whereIn('field_key', [
-                            'source_sheet_name',
-                            'source_sheet_id',
                             'source_row_number'
                         ])->get()->keyBy('field_key');
-                        
-                        if ($sourceFields->has('source_sheet_name')) {
-                            $sourceInfo['sheet_name'] = $sourceFields['source_sheet_name']->field_value;
-                        }
-                        if ($sourceFields->has('source_sheet_id')) {
-                            $sourceInfo['sheet_id'] = $sourceFields['source_sheet_id']->field_value;
-                        }
+
                         if ($sourceFields->has('source_row_number')) {
                             $sourceInfo['row_number'] = $sourceFields['source_row_number']->field_value;
                         }
                     @endphp
                     
-                    @if(!empty($sourceInfo))
-                    <div class="mt-4 pt-4 border-t">
-                        <label class="text-sm font-medium text-gray-500 mb-2 block">Source Information</label>
-                        <div class="space-y-1">
-                            <p class="text-sm text-gray-900">
-                                <span class="font-medium">Type:</span> {{ $sourceInfo['type'] ?? 'N/A' }}
-                            </p>
-                            @if(isset($sourceInfo['sheet_name']))
-                            <p class="text-sm text-gray-900">
-                                <span class="font-medium">Sheet:</span> {{ $sourceInfo['sheet_name'] }}
-                            </p>
-                            @endif
+                    @if(!empty($sourceInfo) && isset($sourceInfo['type']))
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/70 mt-4">
+                        <p class="text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-500 mb-3">Source Information</p>
+                        <div class="space-y-2">
+                            <div>
+                                <p class="text-xs text-slate-500 mb-1">Type</p>
+                                <p class="text-sm font-semibold text-slate-900">{{ $sourceInfo['type'] ?? 'N/A' }}</p>
+                            </div>
                             @if(isset($sourceInfo['row_number']))
-                            <p class="text-sm text-gray-900">
-                                <span class="font-medium">Row:</span> {{ $sourceInfo['row_number'] }}
-                            </p>
-                            @endif
-                            @if(isset($sourceInfo['sheet_id']))
-                            <p class="text-sm text-gray-600">
-                                <a href="https://docs.google.com/spreadsheets/d/{{ $sourceInfo['sheet_id'] }}" 
-                                   target="_blank" 
-                                   class="text-blue-600 hover:underline">
-                                    <i class="fas fa-external-link-alt mr-1"></i>View Sheet
-                                </a>
-                            </p>
+                            <div>
+                                <p class="text-xs text-slate-500 mb-1">Row Number</p>
+                                <p class="text-sm font-semibold text-slate-900">{{ $sourceInfo['row_number'] }}</p>
+                            </div>
                             @endif
                         </div>
                     </div>
@@ -303,23 +333,87 @@
             @endphp
             
             @if($formFieldValues->isNotEmpty())
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h2 class="text-xl font-bold text-gray-900 mb-4">Form Data / Additional Information</h2>
-                <div class="space-y-6">
-                    @foreach($formFieldValues as $groupName => $fields)
+            <div class="bg-white rounded-2xl shadow-md border border-slate-200/80 p-6 md:p-8">
+                <div class="flex items-center justify-between mb-6">
                     <div>
-                        <h3 class="text-sm font-semibold text-gray-700 mb-3">{{ $groupName }}</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <p class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Form Data</p>
+                        <h2 class="text-xl md:text-2xl font-bold text-slate-900">Additional Information</h2>
+                    </div>
+                    <div class="hidden md:flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 text-white shadow-sm">
+                        <i class="fas fa-list-alt"></i>
+                    </div>
+                </div>
+                <div class="space-y-5">
+                    @foreach($formFieldValues as $groupName => $fields)
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 md:p-5">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center text-sm font-semibold uppercase">
+                                {{ substr($groupName, 0, 1) }}
+                            </div>
+                            <h3 class="text-sm md:text-base font-semibold text-slate-800">{{ $groupName }}</h3>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                             @foreach($fields as $fieldValue)
-                            <div>
-                                <label class="text-sm font-medium text-gray-500">
-                                    @php
-                                        $fieldConfig = $fieldValue->fieldConfig();
-                                        $displayLabel = $fieldConfig ? $fieldConfig->field_label : str_replace('_', ' ', ucfirst(str_replace(['meta_', 'custom_'], '', $fieldValue->field_key)));
-                                    @endphp
-                                    {{ $displayLabel }}
-                                </label>
-                                <p class="text-gray-900 mt-1">{{ $fieldValue->field_value ?? 'N/A' }}</p>
+                            @php
+                                $fieldConfig = $fieldValue->fieldConfig();
+                                $displayLabel = $fieldConfig ? $fieldConfig->field_label : str_replace('_', ' ', ucfirst(str_replace(['meta_', 'custom_'], '', $fieldValue->field_key)));
+                                $fieldValueText = $fieldValue->field_value ?? 'N/A';
+                                
+                                // Determine icon based on field key
+                                $icon = 'fa-file-alt';
+                                $fieldKeyLower = strtolower($fieldValue->field_key);
+                                if (str_contains($fieldKeyLower, 'name') || str_contains($fieldKeyLower, 'ad')) {
+                                    $icon = 'fa-building';
+                                } elseif (str_contains($fieldKeyLower, 'budget') || str_contains($fieldKeyLower, 'price') || str_contains($fieldKeyLower, 'amount')) {
+                                    $icon = 'fa-money-bill-wave';
+                                } elseif (str_contains($fieldKeyLower, 'email')) {
+                                    $icon = 'fa-envelope';
+                                } elseif (str_contains($fieldKeyLower, 'phone') || str_contains($fieldKeyLower, 'mobile')) {
+                                    $icon = 'fa-phone';
+                                } elseif (str_contains($fieldKeyLower, 'location') || str_contains($fieldKeyLower, 'address') || str_contains($fieldKeyLower, 'city') || str_contains($fieldKeyLower, 'lucknow')) {
+                                    $icon = 'fa-map-marker-alt';
+                                } elseif (str_contains($fieldKeyLower, 'property') || str_contains($fieldKeyLower, 'plot') || str_contains($fieldKeyLower, 'villa')) {
+                                    $icon = 'fa-home';
+                                } elseif (str_contains($fieldKeyLower, 'purpose') || str_contains($fieldKeyLower, 'use')) {
+                                    $icon = 'fa-key';
+                                } elseif (str_contains($fieldKeyLower, 'job') || str_contains($fieldKeyLower, 'title') || str_contains($fieldKeyLower, 'occupation')) {
+                                    $icon = 'fa-briefcase';
+                                } elseif (str_contains($fieldKeyLower, 'buy') || str_contains($fieldKeyLower, 'when') || str_contains($fieldKeyLower, 'time')) {
+                                    $icon = 'fa-calendar';
+                                } elseif (str_contains($fieldKeyLower, 'row') || str_contains($fieldKeyLower, 'number')) {
+                                    $icon = 'fa-hashtag';
+                                }
+                                
+                                // Check if value should be displayed as a badge/pill
+                                $isBadgeValue = in_array(strtolower($fieldValueText), ['yes', 'no', 'end use / reside', 'end_use_/_reside', 'plots_/_villas', 'plots & villas', 'within_month', 'within a month', 'immediate_use_(_1_yr)', 'immediate use (1 yr)']) || 
+                                               str_contains(strtolower($fieldValueText), '₹') || 
+                                               str_contains(strtolower($fieldValueText), 'lk') || 
+                                               str_contains(strtolower($fieldValueText), 'cr');
+                            @endphp
+                            <div class="p-4 rounded-xl bg-white border border-slate-200/70 shadow-sm hover:shadow-md transition-shadow duration-200">
+                                <div class="flex items-start gap-3">
+                                    <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                        <i class="fas {{ $icon }} text-slate-600 text-sm"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500 mb-2">
+                                            {{ $displayLabel }}
+                                        </p>
+                                        @if($isBadgeValue)
+                                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                                            {{ $fieldValueText }}
+                                        </span>
+                                        @elseif(str_contains(strtolower($fieldValueText), '@') && str_contains(strtolower($fieldValueText), '.'))
+                                        <a href="mailto:{{ $fieldValueText }}" class="text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline break-all">
+                                            {{ $fieldValueText }}
+                                        </a>
+                                        @else
+                                        <p class="text-sm font-semibold text-slate-900 leading-snug break-words">
+                                            {{ $fieldValueText }}
+                                        </p>
+                                        @endif
+                                    </div>
+                                </div>
                             </div>
                             @endforeach
                         </div>
@@ -335,7 +429,7 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <p class="text-sm text-gray-500">Calls</p>
-                        <p class="text-2xl font-bold text-gray-900">{{ $lead->callLogs->count() }}</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ $lead->tasks()->where('task_type', 'calling')->count() + $lead->managerTasks()->where('type', 'phone_call')->count() }}</p>
                     </div>
                     <div>
                         <p class="text-sm text-gray-500">Site Visits</p>
@@ -633,99 +727,128 @@
     </div>
 </div>
 
-<!-- Meeting Modal -->
-<div id="meetingModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
-    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
-        <div class="mt-3">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-medium text-gray-900">Schedule Meeting</h3>
-                <button onclick="closeMeetingModal()" class="text-gray-400 hover:text-gray-600">
-                    <i class="fas fa-times"></i>
-                </button>
+<!-- Simplified Meeting Modal -->
+<div id="meetingModal" class="fixed inset-0 bg-black bg-opacity-60 hidden h-full w-full z-50 flex items-center justify-center" style="backdrop-filter: blur(3px);">
+    <div class="w-full max-w-2xl mx-3 sm:mx-0">
+        <div class="bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <!-- Header with gradient -->
+            <div class="bg-gradient-to-r from-green-800 to-green-600 px-6 py-5 rounded-t-2xl w-full">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-calendar-check text-white text-lg"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-white">Schedule Meeting</h3>
+                    </div>
+                    <button onclick="closeMeetingModal()" class="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
             </div>
-            <form id="meetingForm" onsubmit="submitMeeting(event)">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Customer Name *</label>
-                        <input type="text" name="customer_name" value="{{ $lead->name }}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
-                        <input type="text" name="phone" value="{{ $lead->phone }}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Project</label>
-                        <input type="text" name="project" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Budget Range *</label>
-                            <select name="budget_range" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="Under 50 Lac">Under 50 Lac</option>
-                                <option value="50 Lac – 1 Cr">50 Lac – 1 Cr</option>
-                                <option value="1 Cr – 2 Cr">1 Cr – 2 Cr</option>
-                                <option value="2 Cr – 3 Cr">2 Cr – 3 Cr</option>
-                                <option value="Above 3 Cr">Above 3 Cr</option>
+
+            <!-- Form Body -->
+            <form id="meetingForm" onsubmit="submitMeeting(event)" class="flex flex-col flex-1 min-h-0">
+                <div class="px-6 py-5 overflow-y-auto flex-1">
+                    <div class="space-y-4">
+                        <!-- Meeting Type -->
+                        <div class="form-group">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-tag text-green-600 mr-1"></i> Meeting Type
+                            </label>
+                            <select id="meeting_sequence" name="meeting_sequence" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white transition">
+                                <option value="1">🎯 Fresh Meeting (1st)</option>
+                                <option value="2">🔄 2nd Meeting</option>
+                                <option value="3">⭐ 3rd Meeting</option>
                             </select>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Property Type *</label>
-                            <select name="property_type" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="Plot/Villa">Plot/Villa</option>
-                                <option value="Flat">Flat</option>
-                                <option value="Commercial">Commercial</option>
-                                <option value="Just Exploring">Just Exploring</option>
-                            </select>
+
+                        <!-- Date & Time -->
+                        <div class="form-group">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-clock text-green-600 mr-1"></i> Scheduled Date & Time
+                            </label>
+                            <input type="datetime-local" name="scheduled_at" id="scheduled_at" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
                         </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Payment Mode *</label>
-                            <select name="payment_mode" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="Self Fund">Self Fund</option>
-                                <option value="Loan">Loan</option>
-                            </select>
+
+                        <!-- Meeting Mode -->
+                        <div class="form-group">
+                            <label class="block text-sm font-semibold text-gray-700 mb-3">
+                                <i class="fas fa-video text-green-600 mr-1"></i> Meeting Mode
+                            </label>
+                            <div class="flex gap-3">
+                                <label class="flex-1 cursor-pointer">
+                                    <input type="radio" name="meeting_mode" value="online" class="hidden peer" onchange="toggleMeetingModeFields()">
+                                    <div class="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-xl peer-checked:border-green-600 peer-checked:bg-green-50 peer-checked:text-green-700 transition hover:border-gray-300">
+                                        <i class="fas fa-video"></i>
+                                        <span class="font-medium">Online</span>
+                                    </div>
+                                </label>
+                                <label class="flex-1 cursor-pointer">
+                                    <input type="radio" name="meeting_mode" value="offline" checked class="hidden peer" onchange="toggleMeetingModeFields()">
+                                    <div class="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-xl peer-checked:border-green-600 peer-checked:bg-green-50 peer-checked:text-green-700 transition hover:border-gray-300">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        <span class="font-medium">Offline</span>
+                                    </div>
+                                </label>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Tentative Period *</label>
-                            <select name="tentative_period" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="Within 1 Month">Within 1 Month</option>
-                                <option value="Within 3 Months">Within 3 Months</option>
-                                <option value="Within 6 Months">Within 6 Months</option>
-                                <option value="More than 6 Months">More than 6 Months</option>
-                            </select>
+
+                        <!-- Conditional: Online = Link -->
+                        <div id="onlineFields" style="display:none;" class="form-group">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-link text-green-600 mr-1"></i> Meeting Link (Optional)
+                            </label>
+                            <input type="url" name="meeting_link" placeholder="https://meet.google.com/..." class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
                         </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Lead Type *</label>
-                        <select name="lead_type" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option value="New Visit">New Visit</option>
-                            <option value="Revisited">Revisited</option>
-                            <option value="Meeting">Meeting</option>
-                            <option value="Prospect">Prospect</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Date of Visit *</label>
-                        <input type="date" name="date_of_visit" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Scheduled Date & Time *</label>
-                        <input type="datetime-local" name="scheduled_at" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Meeting Notes</label>
-                        <textarea name="meeting_notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+
+                        <!-- Conditional: Offline = Location -->
+                        <div id="offlineFields" class="form-group">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-map-marker-alt text-green-600 mr-1"></i> Location
+                            </label>
+                            <input type="text" name="location" id="location_input" placeholder="Office address, project site, etc." class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
+                        </div>
+
+                        <!-- Remember Me Checkbox -->
+                        <div class="form-group bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border-2 border-green-100">
+                            <label class="flex items-start cursor-pointer group">
+                                <input type="checkbox" name="reminder_enabled" checked class="mt-1 mr-3 w-5 h-5 text-green-600 rounded border-2 border-green-300 focus:ring-green-500">
+                                <div>
+                                    <span class="text-sm font-semibold text-green-900 group-hover:text-green-700 transition">
+                                        <i class="fas fa-bell text-green-600 mr-1"></i> Remind me before meeting
+                                    </span>
+                                    <p class="text-xs text-green-700 mt-1">Get a calling task 5 minutes before the meeting time</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- Meeting Notes -->
+                        <div class="form-group">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-sticky-note text-green-600 mr-1"></i> Meeting Notes (Optional)
+                            </label>
+                            <textarea name="meeting_notes" rows="3" placeholder="Add any additional notes or agenda..." class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition resize-none"></textarea>
+                        </div>
                     </div>
                 </div>
-                <div class="flex justify-end gap-3 mt-6">
-                    <button type="button" onclick="closeMeetingModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Schedule</button>
+
+                <!-- Footer with buttons -->
+                <div class="bg-gray-50 px-6 py-3 border-t border-gray-200 flex gap-3 shrink-0">
+                    <button type="button" onclick="closeMeetingModal()" class="flex-1 h-12 bg-white border-2 border-green-700 rounded-lg text-green-800 hover:bg-green-50 font-semibold transition-all shadow-sm flex items-center justify-center">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </button>
+                    <button type="submit" class="flex-1 h-12 bg-gradient-to-r from-green-700 to-green-600 text-white rounded-lg hover:from-green-800 hover:to-green-700 font-semibold transition-all shadow-md hover:shadow-lg flex items-center justify-center">
+                        <i class="fas fa-calendar-check mr-2"></i>Schedule Meeting
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<!-- Include Meeting Post-Call Popup Component -->
+@include('components.meeting-post-call-popup')
+
 @endsection
 
 @push('styles')
@@ -742,6 +865,206 @@
         bottom: 0;
         width: 2px;
         background: #e5e7eb;
+    }
+    
+    /* Lead Detail Page Responsive Fixes */
+    .lead-detail-container {
+        width: 100%;
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0;
+        box-sizing: border-box;
+        overflow-x: hidden; /* Prevent horizontal scroll */
+    }
+    
+    /* Ensure proper word wrapping */
+    .word-wrap {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        hyphens: auto;
+    }
+    
+    /* Desktop view fixes - prevent overflow and ensure proper layout */
+    @media (min-width: 1024px) {
+        .lead-detail-container {
+            overflow-x: hidden !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin-left: 0 !important;
+            padding-left: 0 !important;
+        }
+        
+        /* Ensure grid uses full width properly - respect Tailwind lg:grid-cols-3 */
+        .lead-detail-container > .grid.lg\:grid-cols-3 {
+            width: 100% !important;
+            max-width: 100% !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 1.5rem !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+            display: grid !important;
+        }
+        
+        /* Ensure col-span classes work properly */
+        .lead-detail-container > .grid > .lg\:col-span-1 {
+            grid-column: span 1 / span 1 !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+        }
+        
+        .lead-detail-container > .grid > .lg\:col-span-2 {
+            grid-column: span 2 / span 2 !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+        }
+        
+        /* Prevent any child from causing overflow */
+        .lead-detail-container > .grid > * {
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+        }
+        
+        /* Ensure all cards use proper width */
+        .lead-detail-container .bg-white {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+        }
+        
+        /* Fix grid inside cards */
+        .lead-detail-container .grid.grid-cols-2 {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+        }
+        
+        /* Ensure no horizontal scroll */
+        .lead-detail-container * {
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        
+        /* Ensure grid children don't force full width on desktop */
+        .lead-detail-container > .grid > .lg\:col-span-1 > *,
+        .lead-detail-container > .grid > .lg\:col-span-2 > * {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+    }
+    
+    /* Mobile specific fixes */
+    @media (max-width: 640px) {
+        .lead-detail-container {
+            padding: 0 8px;
+        }
+        
+        /* Ensure grid takes full width on mobile */
+        .lead-detail-container .grid {
+            grid-template-columns: 1fr !important;
+            gap: 1rem !important;
+        }
+        
+        /* Fix contact details spacing */
+        .lead-detail-container .space-y-3 > * + * {
+            margin-top: 0.75rem;
+        }
+        
+        /* Ensure buttons don't overflow */
+        .lead-detail-container button,
+        .lead-detail-container a {
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        
+        /* Meeting Modal - Mobile optimization */
+        #meetingModal {
+            padding: 0.5rem !important;
+        }
+        
+        #meetingModal > div {
+            max-width: 100% !important;
+        }
+        
+        #meetingModal .bg-white {
+            max-height: calc(100vh - 1rem) !important;
+            margin-bottom: 0 !important;
+        }
+        
+        /* Compact spacing */
+        #meetingModal .px-6 {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+        
+        #meetingModal .py-5 {
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
+        }
+        
+        /* Compact button footer on mobile */
+        #meetingModal .bg-gray-50 {
+            padding: 0.75rem 1rem !important;
+        }
+        
+        /* Smaller buttons on mobile */
+        #meetingModal button {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            font-size: 0.875rem !important;
+        }
+    }
+    
+    /* Prevent content cutoff */
+    .lead-detail-container * {
+        box-sizing: border-box;
+    }
+    
+    /* Ensure text doesn't overflow */
+    .lead-detail-container p,
+    .lead-detail-container span,
+    .lead-detail-container a {
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+
+    /* Meeting Modal Clean Layout */
+    #meetingModal {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    #meetingModal.hidden {
+        display: none !important;
+    }
+    
+    /* Remove extra spacing in form */
+    #meetingForm .space-y-4 > * + * {
+        margin-top: 1rem !important;
+    }
+    
+    /* Compact button footer - NO extra space */
+    #meetingModal .bg-gray-50 {
+        min-height: auto !important;
+        padding-bottom: 0.875rem !important;
+    }
+    
+    /* Ensure buttons are properly styled */
+    #meetingModal button {
+        white-space: nowrap;
+    }
+    
+    /* Remove any bottom margin/padding from modal container */
+    #meetingModal .bg-white {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
     }
 </style>
 @endpush
@@ -773,10 +1096,22 @@
 
 @push('scripts')
 <script>
-    const API_BASE_URL = '{{ url("/api") }}';
-    const API_TOKEN = '{{ auth()->check() ? (session("api_token") ?? auth()->user()->createToken("web-token")->plainTextToken) : "" }}';
+    // Prevent duplicate declaration - use window object or check before declaring
+    if (typeof window.API_BASE_URL === 'undefined') {
+        window.API_BASE_URL = '{{ url("/api") }}';
+    }
+    if (typeof window.API_TOKEN === 'undefined') {
+        window.API_TOKEN = '{{ auth()->check() ? (session("api_token") ?? auth()->user()->createToken("web-token")->plainTextToken) : "" }}';
+    }
+    // Use window object for consistency
+    const API_BASE_URL = window.API_BASE_URL;
+    const API_TOKEN = window.API_TOKEN;
     const LEAD_ID = {{ $lead->id }};
     const LEAD_INTERESTED_PROJECTS = @json($uniqueProjectNames ?? []);
+    if (typeof window.USER_ROLE === 'undefined') {
+        window.USER_ROLE = '{{ $user->role->slug ?? "" }}';
+    }
+    const USER_ROLE = window.USER_ROLE;
 
     // Modal open/close functions
     function openCallModal() {
@@ -927,23 +1262,74 @@
         return div.innerHTML;
     }
 
-    function openMeetingModal() {
+    async function openMeetingModal() {
         document.getElementById('meetingModal').classList.remove('hidden');
+        
         // Set default scheduled time to tomorrow same time
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         tomorrow.setMinutes(tomorrow.getMinutes() - tomorrow.getTimezoneOffset());
         document.querySelector('#meetingForm input[name="scheduled_at"]').value = tomorrow.toISOString().slice(0, 16);
-        // Set date of visit to today
-        const today = new Date();
-        today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
-        document.querySelector('#meetingForm input[name="date_of_visit"]').value = today.toISOString().slice(0, 10);
+        
+        // Fetch meeting history to auto-suggest sequence
+        try {
+            const response = await fetch(`${API_BASE_URL}/sales-manager/leads/${LEAD_ID}/meeting-history`, {
+                headers: {
+                    'Authorization': `Bearer ${API_TOKEN}`,
+                    'Accept': 'application/json',
+                }
+            });
+            
+            if (response.ok) {
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const result = await response.json();
+                    document.getElementById('meeting_sequence').value = result.next_sequence || 1;
+                } else {
+                    console.warn('Non-JSON response for meeting history');
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load meeting history:', error);
+            // Default to 1 if fetch fails
+            document.getElementById('meeting_sequence').value = 1;
+        }
     }
 
     function closeMeetingModal() {
         document.getElementById('meetingModal').classList.add('hidden');
         document.getElementById('meetingForm').reset();
+        toggleMeetingModeFields(); // Reset to default (offline)
     }
+
+    function toggleMeetingModeFields() {
+        const mode = document.querySelector('input[name="meeting_mode"]:checked').value;
+        const onlineFields = document.getElementById('onlineFields');
+        const offlineFields = document.getElementById('offlineFields');
+        const locationInput = document.getElementById('location_input');
+        const meetingLinkInput = document.querySelector('input[name="meeting_link"]');
+        
+        if (mode === 'online') {
+            onlineFields.style.display = 'block';
+            offlineFields.style.display = 'none';
+            locationInput.removeAttribute('required');
+            if (meetingLinkInput) {
+                meetingLinkInput.removeAttribute('required');
+            }
+        } else {
+            onlineFields.style.display = 'none';
+            offlineFields.style.display = 'block';
+            locationInput.setAttribute('required', 'required');
+            if (meetingLinkInput) {
+                meetingLinkInput.removeAttribute('required');
+            }
+        }
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleMeetingModeFields();
+    });
 
     function openScheduleCallTaskModal() {
         document.getElementById('scheduleCallTaskModal').classList.remove('hidden');
@@ -985,7 +1371,18 @@
                 body: JSON.stringify(data),
             });
 
-            const result = await response.json();
+            // Check if response is JSON before parsing
+            const contentType = response.headers.get('content-type');
+            let result;
+            
+            if (contentType && contentType.includes('application/json')) {
+                result = await response.json();
+            } else {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                alert('Server error: Invalid response format. Please try again.');
+                return;
+            }
 
             if (response.ok && result.success) {
                 alert('Call logged successfully!');
@@ -1022,7 +1419,18 @@
                 body: JSON.stringify(data),
             });
 
-            const result = await response.json();
+            // Check if response is JSON before parsing
+            const contentType = response.headers.get('content-type');
+            let result;
+            
+            if (contentType && contentType.includes('application/json')) {
+                result = await response.json();
+            } else {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                alert('Server error: Invalid response format. Please try again.');
+                return;
+            }
 
             if (response.ok) {
                 alert('Follow-up scheduled successfully!');
@@ -1059,7 +1467,22 @@
                 body: JSON.stringify(data),
             });
 
-            const result = await response.json();
+            // Check if response is JSON before parsing
+            const contentType = response.headers.get('content-type');
+            let result;
+            
+            if (contentType && contentType.includes('application/json')) {
+                result = await response.json();
+            } else {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                if (typeof showNotification === 'function') {
+                    showNotification('Server error: Invalid response format. Please try again.', 'error', 3000);
+                } else {
+                    alert('Server error: Invalid response format. Please try again.');
+                }
+                return;
+            }
 
             if (response.ok && result.success) {
                 if (typeof showNotification === 'function') {
@@ -1088,23 +1511,21 @@
         event.preventDefault();
         const form = event.target;
         const formData = new FormData(form);
+        
         const data = {
             lead_id: LEAD_ID,
-            customer_name: formData.get('customer_name'),
-            phone: formData.get('phone'),
-            project: formData.get('project') || null,
-            budget_range: formData.get('budget_range'),
-            property_type: formData.get('property_type'),
-            payment_mode: formData.get('payment_mode'),
-            tentative_period: formData.get('tentative_period'),
-            lead_type: formData.get('lead_type'),
-            date_of_visit: formData.get('date_of_visit'),
+            meeting_sequence: parseInt(formData.get('meeting_sequence')),
             scheduled_at: new Date(formData.get('scheduled_at')).toISOString(),
+            meeting_mode: formData.get('meeting_mode'),
+            meeting_link: formData.get('meeting_link') || null,
+            location: formData.get('location') || null,
+            reminder_enabled: formData.get('reminder_enabled') === 'on',
+            reminder_minutes: 5,
             meeting_notes: formData.get('meeting_notes') || null,
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/meetings`, {
+            const response = await fetch(`${API_BASE_URL}/sales-manager/meetings/quick-schedule-with-reminder`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${API_TOKEN}`,
@@ -1114,18 +1535,40 @@
                 body: JSON.stringify(data),
             });
 
-            const result = await response.json();
-
-            if (response.ok && result.success) {
-                alert('Meeting scheduled successfully!');
-                closeMeetingModal();
-                location.reload(); // Reload to show in timeline
+            // Check if response is JSON before parsing
+            const contentType = response.headers.get('content-type');
+            let result;
+            
+            if (contentType && contentType.includes('application/json')) {
+                result = await response.json();
             } else {
-                alert(result.message || 'Failed to schedule meeting');
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                alert('Server error: Invalid response format. Please try again.');
+                return;
+            }
+
+            if (response.ok && (result.success !== false)) {
+                const message = 'Meeting scheduled successfully!' + (data.reminder_enabled ? ' You will get a reminder 5 minutes before.' : '');
+                showSuccessPopup(message);
+                closeMeetingModal();
+                setTimeout(() => {
+                    location.reload(); // Reload to show in timeline
+                }, 2000);
+            } else {
+                // Show detailed error message
+                let errorMsg = result.message || 'Failed to schedule meeting';
+                if (result.errors) {
+                    const errorList = Object.values(result.errors).flat().join('\n');
+                    errorMsg += '\n\n' + errorList;
+                } else if (result.error) {
+                    errorMsg += '\n\n' + result.error;
+                }
+                alert(errorMsg);
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('An error occurred while scheduling the meeting');
+            alert('An error occurred while scheduling the meeting. Please check console for details.');
         }
     }
 
@@ -1140,7 +1583,16 @@
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/tasks/schedule-call`, {
+            // Determine the correct API endpoint based on user role
+            let endpoint;
+            if (USER_ROLE === 'telecaller') {
+                endpoint = `${API_BASE_URL}/telecaller/tasks/schedule-call`;
+            } else {
+                // For sales managers, sales executives, and others, use sales-manager endpoint
+                endpoint = `${API_BASE_URL}/sales-manager/tasks/schedule-call`;
+            }
+            
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${API_TOKEN}`,
@@ -1150,23 +1602,100 @@
                 body: JSON.stringify(data),
             });
 
-            const result = await response.json();
+            // Check if response is JSON before parsing
+            const contentType = response.headers.get('content-type');
+            let result;
+            
+            if (contentType && contentType.includes('application/json')) {
+                result = await response.json();
+            } else {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                alert('Server error: Invalid response format. Please try again.');
+                return;
+            }
 
             if (response.ok && result.success) {
-                if (typeof showNotification === 'function') {
-                    showNotification('Call task scheduled successfully!', 'success', 3000);
-                } else {
-                    alert('Call task scheduled successfully!');
-                }
+                // Show success message with button to go to task section
                 closeScheduleCallTaskModal();
-                setTimeout(() => {
-                    location.reload(); // Reload to show in timeline
-                }, 1500);
-            } else {
-                if (typeof showNotification === 'function') {
-                    showNotification(result.message || 'Failed to schedule call task', 'error', 3000);
+                
+                // Determine task route based on user role
+                let taskRoute = '#';
+                if (USER_ROLE === 'telecaller') {
+                    taskRoute = '{{ route("telecaller.tasks") }}';
+                } else if (USER_ROLE === 'sales_manager' || USER_ROLE === 'sales_executive') {
+                    @php
+                        try {
+                            $tasksRoute = route('sales-manager.tasks');
+                        } catch (\Exception $e) {
+                            $tasksRoute = '/sales-manager/tasks';
+                        }
+                    @endphp
+                    taskRoute = '{{ $tasksRoute }}';
                 } else {
-                    alert(result.message || 'Failed to schedule call task');
+                    // For other roles, try to construct the URL
+                    taskRoute = '/sales-manager/tasks';
+                }
+                
+                // Create success message with button
+                const successMessage = `
+                    <div id="taskSuccessMessage" style="position: fixed; top: 20px; right: 20px; z-index: 10000; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 20px 24px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); min-width: 320px; max-width: 400px; animation: slideInRight 0.3s ease-out;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                            <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold;">
+                                ✓
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">Task Created Successfully!</div>
+                                <div style="font-size: 14px; opacity: 0.9;">Call task has been scheduled.</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="document.getElementById('taskSuccessMessage').remove(); window.location.href='${taskRoute}';" style="flex: 1; background: white; color: #059669; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; transition: all 0.2s;" onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                                Go to Task Section
+                            </button>
+                            <button onclick="document.getElementById('taskSuccessMessage').remove(); location.reload();" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)';" onmouseout="this.style.background='rgba(255,255,255,0.2)';">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                    <style>
+                        @keyframes slideInRight {
+                            from {
+                                transform: translateX(100%);
+                                opacity: 0;
+                            }
+                            to {
+                                transform: translateX(0);
+                                opacity: 1;
+                            }
+                        }
+                    </style>
+                `;
+                
+                // Insert success message
+                document.body.insertAdjacentHTML('beforeend', successMessage);
+                
+                // Auto-remove after 10 seconds
+                setTimeout(() => {
+                    const msg = document.getElementById('taskSuccessMessage');
+                    if (msg) msg.remove();
+                }, 10000);
+            } else {
+                // Show detailed error message
+                let errorMsg = result.message || 'Failed to schedule call task';
+                if (result.errors) {
+                    const errorDetails = Object.values(result.errors).flat().join(', ');
+                    errorMsg += ': ' + errorDetails;
+                }
+                
+                console.error('Task creation error:', result);
+                console.error('Response status:', response.status);
+                console.error('Response body:', result);
+                
+                if (typeof showNotification === 'function') {
+                    showNotification(errorMsg, 'error', 5000);
+                } else {
+                    alert(errorMsg);
                 }
             }
         } catch (error) {
@@ -1203,5 +1732,111 @@
             closeScheduleCallTaskModal();
         }
     }
+
+    // Animated Success Popup
+    function showSuccessPopup(message) {
+        // Create popup if it doesn't exist
+        let popup = document.getElementById('successPopup');
+        if (!popup) {
+            popup = document.createElement('div');
+            popup.id = 'successPopup';
+            popup.className = 'fixed inset-0 z-[9999] flex items-center justify-center pointer-events-none';
+            popup.innerHTML = `
+                <div class="bg-black bg-opacity-50 fixed inset-0 pointer-events-auto" id="successPopupOverlay"></div>
+                <div id="successPopupContent" class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 transform scale-0 pointer-events-auto relative z-10">
+                    <div class="flex flex-col items-center">
+                        <div class="success-tick-container w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center mb-4 shadow-lg">
+                            <svg class="success-tick" width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="24" cy="24" r="22" stroke="white" stroke-width="3" class="tick-circle"/>
+                                <path d="M14 24 L20 30 L34 16" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" class="tick-path" fill="none"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">Success!</h3>
+                        <p class="text-gray-600 text-center">${message}</p>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(popup);
+        }
+
+        // Update message
+        const messageEl = popup.querySelector('p');
+        if (messageEl) {
+            messageEl.textContent = message;
+        }
+
+        // Show popup with animation
+        popup.style.display = 'flex';
+        const content = document.getElementById('successPopupContent');
+        content.style.transform = 'scale(0)';
+        content.style.opacity = '0';
+
+        // Trigger animation
+        setTimeout(() => {
+            content.style.transition = 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+            content.style.transform = 'scale(1)';
+            content.style.opacity = '1';
+        }, 10);
+
+        // Auto-hide after 2 seconds
+        setTimeout(() => {
+            content.style.transition = 'all 0.3s ease-in';
+            content.style.transform = 'scale(0.8)';
+            content.style.opacity = '0';
+            setTimeout(() => {
+                popup.style.display = 'none';
+            }, 300);
+        }, 2000);
+    }
 </script>
+
+<style>
+    @keyframes tickDraw {
+        0% {
+            stroke-dasharray: 0, 100;
+            stroke-dashoffset: 0;
+        }
+        100% {
+            stroke-dasharray: 100, 0;
+            stroke-dashoffset: 0;
+        }
+    }
+
+    @keyframes tickScale {
+        0% {
+            transform: scale(0);
+        }
+        50% {
+            transform: scale(1.1);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    @keyframes circleDraw {
+        0% {
+            stroke-dasharray: 0, 138;
+            stroke-dashoffset: 0;
+        }
+        100% {
+            stroke-dasharray: 138, 0;
+            stroke-dashoffset: 0;
+        }
+    }
+
+    .success-tick-container {
+        animation: tickScale 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+    .success-tick .tick-circle {
+        stroke-dasharray: 0, 138;
+        animation: circleDraw 0.6s ease-out forwards;
+    }
+
+    .success-tick .tick-path {
+        stroke-dasharray: 0, 30;
+        animation: tickDraw 0.4s ease-out 0.3s forwards;
+    }
+</style>
 @endpush

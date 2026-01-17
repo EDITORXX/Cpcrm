@@ -82,8 +82,8 @@ class LoginController extends Controller
         // Mark user as present (all users, not just telecallers)
         $this->markUserAsPresent($user);
 
-        // Mark attendance for telecallers
-        if ($user->isTelecaller()) {
+        // Mark attendance for sales executives
+        if ($user->isSalesExecutive()) {
             $this->markTelecallerAttendance($user);
             // Generate API token for telecaller and store in session
             $token = $user->createToken('web-login-token')->plainTextToken;

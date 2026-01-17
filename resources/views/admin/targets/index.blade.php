@@ -34,6 +34,7 @@
         .badge-success { background: #d4edda; color: #155724; }
         .badge-warning { background: #fff3cd; color: #856404; }
         .badge-danger { background: #f8d7da; color: #721c24; }
+        .badge-info { background: #d1ecf1; color: #0c5460; }
     </style>
 </head>
 <body>
@@ -45,7 +46,7 @@
                     @if(auth()->user()->isSalesHead())
                         Set targets for Sales Executives and Sales Managers. Telecaller targets are view-only.
                     @else
-                        Set and manage monthly targets for telecallers
+                        Set and manage monthly targets for Telecallers, Sales Executives, and Sales Managers
                     @endif
                 </p>
             </div>
@@ -82,6 +83,9 @@
                             <th>Prospects Extract</th>
                             <th>Prospects Verified</th>
                             <th>Calls</th>
+                            <th>Visits</th>
+                            <th>Meetings</th>
+                            <th>Closers</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -91,31 +95,124 @@
                                 $progress = $target->getProgressData();
                             @endphp
                             <tr>
-                                <td><strong>{{ $target->user->name }}</strong><br><small style="color: #666;">{{ $target->user->email }}</small></td>
-                                <td>{{ $target->target_month->format('M Y') }}</td>
                                 <td>
-                                    <div>{{ $progress['prospects_extract']['actual'] }} / {{ $target->target_prospects_extract }}</div>
-                                    <div class="progress-bar">
-                                        <div class="progress-fill {{ $progress['prospects_extract']['percentage'] >= 100 ? '' : ($progress['prospects_extract']['percentage'] >= 50 ? 'warning' : 'danger') }}" 
-                                             style="width: {{ min(100, $progress['prospects_extract']['percentage']) }}%"></div>
-                                    </div>
-                                    <small style="color: #666;">{{ number_format($progress['prospects_extract']['percentage'], 1) }}%</small>
+                                    <strong>{{ $target->user->name }}</strong><br>
+                                    <small style="color: #666;">{{ $target->user->email }}</small><br>
+                                    <span class="badge {{ $target->user->isSalesExecutive() ? 'badge-info' : ($target->user->isSalesManager() ? 'badge-warning' : 'badge-success') }}" style="margin-top: 4px; display: inline-block;">
+                                        {{ $target->user->getDisplayRoleName() }}
+                                    </span>
+                                    @if($target->user->isSalesManager() && $target->manager_target_calculation_logic)
+                                        <br>
+                                        <small style="color: #16a34a; font-weight: 600; margin-top: 4px; display: inline-block;">
+                                            @if($target->manager_target_calculation_logic === 'juniors_sum')
+                                                Logic 1: Juniors Sum
+                                            @else
+                                                Logic 2: Individual + Team
+                                            @endif
+                                            @if($target->manager_junior_scope)
+                                                ({{ $target->manager_junior_scope === 'executives_only' ? 'Executives Only' : 'Executives + Telecallers' }})
+                                            @endif
+                                        </small>
+                                    @endif
+                                </td>
+                                <td><strong>{{ $target->target_month->format('M Y') }}</strong></td>
+                                <td>
+                                    @if($target->user->isSalesManager())
+                                        <span style="color: #999;">N/A</span>
+                                    @else
+                                        <div>{{ $progress['prospects_extract']['actual'] }} / {{ $target->target_prospects_extract }}</div>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill {{ $progress['prospects_extract']['percentage'] >= 100 ? '' : ($progress['prospects_extract']['percentage'] >= 50 ? 'warning' : 'danger') }}" 
+                                                 style="width: {{ min(100, $progress['prospects_extract']['percentage']) }}%"></div>
+                                        </div>
+                                        <small style="color: #666;">{{ number_format($progress['prospects_extract']['percentage'], 1) }}%</small>
+                                    @endif
                                 </td>
                                 <td>
-                                    <div>{{ $progress['prospects_verified']['actual'] }} / {{ $target->target_prospects_verified }}</div>
-                                    <div class="progress-bar">
-                                        <div class="progress-fill {{ $progress['prospects_verified']['percentage'] >= 100 ? '' : ($progress['prospects_verified']['percentage'] >= 50 ? 'warning' : 'danger') }}" 
-                                             style="width: {{ min(100, $progress['prospects_verified']['percentage']) }}%"></div>
-                                    </div>
-                                    <small style="color: #666;">{{ number_format($progress['prospects_verified']['percentage'], 1) }}%</small>
+                                    @if($target->user->isSalesManager())
+                                        <span style="color: #999;">N/A</span>
+                                    @else
+                                        <div>{{ $progress['prospects_verified']['actual'] }} / {{ $target->target_prospects_verified }}</div>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill {{ $progress['prospects_verified']['percentage'] >= 100 ? '' : ($progress['prospects_verified']['percentage'] >= 50 ? 'warning' : 'danger') }}" 
+                                                 style="width: {{ min(100, $progress['prospects_verified']['percentage']) }}%"></div>
+                                        </div>
+                                        <small style="color: #666;">{{ number_format($progress['prospects_verified']['percentage'], 1) }}%</small>
+                                    @endif
                                 </td>
                                 <td>
-                                    <div>{{ $progress['calls']['actual'] }} / {{ $target->target_calls }}</div>
-                                    <div class="progress-bar">
-                                        <div class="progress-fill {{ $progress['calls']['percentage'] >= 100 ? '' : ($progress['calls']['percentage'] >= 50 ? 'warning' : 'danger') }}" 
-                                             style="width: {{ min(100, $progress['calls']['percentage']) }}%"></div>
-                                    </div>
-                                    <small style="color: #666;">{{ number_format($progress['calls']['percentage'], 1) }}%</small>
+                                    @if($target->user->isSalesManager())
+                                        <span style="color: #999;">N/A</span>
+                                    @else
+                                        <div>{{ $progress['calls']['actual'] }} / {{ $target->target_calls }}</div>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill {{ $progress['calls']['percentage'] >= 100 ? '' : ($progress['calls']['percentage'] >= 50 ? 'warning' : 'danger') }}" 
+                                                 style="width: {{ min(100, $progress['calls']['percentage']) }}%"></div>
+                                        </div>
+                                        <small style="color: #666;">{{ number_format($progress['calls']['percentage'], 1) }}%</small>
+                                    @endif
+                                </td>
+                                <td>
+                                    @php
+                                        $visitsTarget = $target->user->isSalesManager() && $target->manager_target_calculation_logic 
+                                            ? $target->calculateManagerTarget('visits') 
+                                            : ($target->target_visits ?? 0);
+                                    @endphp
+                                    @if($visitsTarget > 0)
+                                        <div>{{ $progress['visits']['achieved'] }} / {{ $visitsTarget }}</div>
+                                        @php
+                                            $visitsPercentage = $visitsTarget > 0 ? min(100, round(($progress['visits']['achieved'] / $visitsTarget) * 100, 1)) : 0;
+                                        @endphp
+                                        <div class="progress-bar">
+                                            <div class="progress-fill {{ $visitsPercentage >= 100 ? '' : ($visitsPercentage >= 50 ? 'warning' : 'danger') }}" 
+                                                 style="width: {{ $visitsPercentage }}%"></div>
+                                        </div>
+                                        <small style="color: #666;">{{ number_format($visitsPercentage, 1) }}%</small>
+                                        @if($target->user->isSalesManager() && $target->manager_target_calculation_logic && $visitsTarget != $target->target_visits)
+                                            <br><small style="color: #16a34a; font-size: 10px;">(Calculated)</small>
+                                        @endif
+                                    @else
+                                        <span style="color: #999;">-</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @php
+                                        $meetingsTarget = $target->user->isSalesManager() && $target->manager_target_calculation_logic 
+                                            ? $target->calculateManagerTarget('meetings') 
+                                            : ($target->target_meetings ?? 0);
+                                    @endphp
+                                    @if($meetingsTarget > 0)
+                                        <div>{{ $progress['meetings']['achieved'] }} / {{ $meetingsTarget }}</div>
+                                        @php
+                                            $meetingsPercentage = $meetingsTarget > 0 ? min(100, round(($progress['meetings']['achieved'] / $meetingsTarget) * 100, 1)) : 0;
+                                        @endphp
+                                        <div class="progress-bar">
+                                            <div class="progress-fill {{ $meetingsPercentage >= 100 ? '' : ($meetingsPercentage >= 50 ? 'warning' : 'danger') }}" 
+                                                 style="width: {{ $meetingsPercentage }}%"></div>
+                                        </div>
+                                        <small style="color: #666;">{{ number_format($meetingsPercentage, 1) }}%</small>
+                                        @if($target->user->isSalesManager() && $target->manager_target_calculation_logic && $meetingsTarget != $target->target_meetings)
+                                            <br><small style="color: #16a34a; font-size: 10px;">(Calculated)</small>
+                                        @endif
+                                    @else
+                                        <span style="color: #999;">-</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($target->user->isSalesManager() || $target->user->isSalesExecutive())
+                                        @if($target->target_closers > 0)
+                                            <div>{{ $progress['closers']['achieved'] }} / {{ $target->target_closers }}</div>
+                                            <div class="progress-bar">
+                                                <div class="progress-fill {{ $progress['closers']['percentage'] >= 100 ? '' : ($progress['closers']['percentage'] >= 50 ? 'warning' : 'danger') }}" 
+                                                     style="width: {{ min(100, $progress['closers']['percentage']) }}%"></div>
+                                            </div>
+                                            <small style="color: #666;">{{ number_format($progress['closers']['percentage'], 1) }}%</small>
+                                        @else
+                                            <span style="color: #999;">-</span>
+                                        @endif
+                                    @else
+                                        <span style="color: #999;">N/A</span>
+                                    @endif
                                 </td>
                                 <td>
                                     @if(auth()->user()->isSalesHead() && $target->user->isTelecaller())

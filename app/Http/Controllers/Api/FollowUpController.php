@@ -23,7 +23,7 @@ class FollowUpController extends Controller
         $query = FollowUp::with(['lead', 'creator']);
 
         // Role-based filtering
-        if ($user->isSalesExecutive() || $user->isTelecaller()) {
+        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             $query->where('created_by', $user->id);
         } elseif ($user->isSalesManager()) {
             $teamMemberIds = $user->teamMembers()->pluck('id');

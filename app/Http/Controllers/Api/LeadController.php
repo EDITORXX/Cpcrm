@@ -19,32 +19,25 @@ class LeadController extends Controller
         $query = Lead::with(['creator', 'activeAssignments.assignedTo']);
 
         // Role-based filtering
-        if ($user->isSalesExecutive() || $user->isTelecaller()) {
+        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             $query->whereHas('activeAssignments', function ($q) use ($user) {
                 $q->where('assigned_to', $user->id);
             });
         } elseif ($user->isSalesManager()) {
             $teamMemberIds = $user->teamMembers()->pluck('id');
-            $allUserIds = $teamMemberIds->merge([$user->id])->toArray();
             
-            // Show leads that are:
-            // 1. Directly assigned to this sales manager (active or inactive - to show all historical leads)
-            // 2. OR assigned to any team member (active or inactive - to show all historical leads)
-            // 3. OR came from verified prospects of team members
-            $query->where(function ($q) use ($user, $teamMemberIds, $allUserIds) {
-                // Leads assigned to manager or any team member (include both active and inactive assignments)
-                $q->whereHas('assignments', function ($assignmentQ) use ($allUserIds) {
-                    $assignmentQ->whereIn('assigned_to', $allUserIds);
+            // Show only leads that come from verified prospects (manager verified them)
+            // Exclude rejected and pending prospects
+            if ($teamMemberIds->isNotEmpty()) {
+                $query->whereHas('prospects', function ($subQ) use ($teamMemberIds, $user) {
+                    $subQ->whereIn('telecaller_id', $teamMemberIds)
+                         ->whereIn('verification_status', ['verified', 'approved'])
+                         ->where('verified_by', $user->id); // Only prospects verified by this manager
                 });
-                
-                // OR leads from verified prospects of team members
-                if ($teamMemberIds->isNotEmpty()) {
-                    $q->orWhereHas('prospects', function ($subQ) use ($teamMemberIds) {
-                        $subQ->whereIn('telecaller_id', $teamMemberIds)
-                             ->whereIn('verification_status', ['verified', 'approved']);
-                    });
-                }
-            });
+            } else {
+                // If no team members, show empty result
+                $query->whereRaw('1 = 0');
+            }
         }
 
         // Filters
@@ -58,6 +51,14 @@ class LeadController extends Controller
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by assigned user
+        if ($request->has('assigned_to')) {
+            $assignedToId = $request->assigned_to;
+            $query->whereHas('activeAssignments', function ($q) use ($assignedToId) {
+                $q->where('assigned_to', $assignedToId);
             });
         }
 

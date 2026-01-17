@@ -86,6 +86,18 @@
         background: #d1fae5;
         color: #065f46;
     }
+    .badge-confirmed {
+        background: #dcfce7;
+        color: #166534;
+    }
+    .badge-pending-conf {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    .badge-cancelled-conf {
+        background: #fee2e2;
+        color: #991b1b;
+    }
     .btn {
         padding: 8px 16px;
         border: none;
@@ -126,6 +138,13 @@
         padding: 60px 20px;
         color: #9ca3af;
     }
+    
+    /* Hide empty states on mobile */
+    @media (max-width: 767px) {
+        .empty-state {
+            display: none !important;
+        }
+    }
     .filters {
         background: white;
         padding: 16px;
@@ -133,7 +152,24 @@
         margin-bottom: 20px;
         display: flex;
         gap: 12px;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        align-items: center;
+    }
+    
+    .filters .filter-select,
+    .filters .filter-btn {
+        flex: 1;
+        width: 25%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    
+    .mobile-text {
+        display: none;
+    }
+    
+    .desktop-text {
+        display: inline;
     }
     
     @media (max-width: 768px) {
@@ -155,16 +191,54 @@
         }
         
         .filters {
-            flex-direction: column;
-            gap: 8px;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            gap: 4px;
+        }
+        
+        .filters .filter-select,
+        .filters .filter-btn {
+            width: 25%;
+            flex: 0 0 25%;
+            padding: 8px 6px;
+            font-size: 12px;
+            box-sizing: border-box;
         }
         
         .filters label {
-            font-size: 14px;
-            font-weight: 500;
+            display: none;
         }
         
-        .filters select,
+        /* Hide "My Meetings" title in phone view */
+        h2.text-2xl {
+            display: none !important;
+        }
+        
+        /* Hide "Schedule New Meeting" button in phone view */
+        div[style*="display: flex"][style*="justify-content: space-between"] > a.btn-primary,
+        div[style*="display: flex"][style*="justify-content: space-between"] > button.btn-primary {
+            display: none !important;
+        }
+
+        /* Show filter action buttons on phone view (one-click meeting/site visit) */
+        .filters .filter-btn.btn.btn-primary {
+            display: flex !important;
+        }
+        
+        /* Also hide the entire header div container if needed */
+        div[style*="display: flex"][style*="justify-content: space-between"] {
+            margin-bottom: 0 !important;
+        }
+        
+        /* Show mobile text, hide desktop text in phone view */
+        .mobile-text {
+            display: inline;
+        }
+        
+        .desktop-text {
+            display: none;
+        }
+        
         .filters input[type="date"] {
             width: 100%;
             padding: 10px;
@@ -245,9 +319,6 @@
 <div class="mb-6">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
         <h2 class="text-2xl font-bold text-gray-900">My Meetings</h2>
-        <a href="{{ route('sales-manager.meetings.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus mr-2"></i>Schedule New Meeting
-        </a>
     </div>
 
     <div class="filters">
@@ -263,7 +334,6 @@
             <option value="verified">Verified</option>
             <option value="rejected">Rejected</option>
         </select>
-        <label>Date:</label>
         <select id="dateFilter" class="filter-select" onchange="toggleCustomDate(); loadMeetings();">
             <option value="">All Dates</option>
             <option value="today">Today</option>
@@ -272,6 +342,11 @@
             <option value="this_year">This Year</option>
             <option value="custom">Custom Date</option>
         </select>
+        <button type="button" class="filter-btn btn btn-primary" style="text-align: center; padding: 10px 16px; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="openQuickMeetingModal()">
+            <i class="fas fa-bolt"></i>
+            <span class="desktop-text">1-Click Meeting</span>
+            <span class="mobile-text">Meeting</span>
+        </button>
         <div id="customDateInputs">
             <input type="date" id="dateFrom" class="filter-select" onchange="loadMeetings()">
             <input type="date" id="dateTo" class="filter-select" onchange="loadMeetings()">
@@ -344,6 +419,199 @@
         }
     }
 
+    let leadOptionsCache = [];
+    let isLeadOptionsLoaded = false;
+
+    function setDefaultQuickMeetingTime() {
+        const scheduledInput = document.getElementById('quickScheduledAt');
+        if (!scheduledInput) return;
+        const minDate = new Date();
+        minDate.setMinutes(minDate.getMinutes() + 30);
+        const iso = minDate.toISOString().slice(0, 16);
+        scheduledInput.min = iso;
+        if (!scheduledInput.value) {
+            scheduledInput.value = iso;
+        }
+    }
+
+    function toggleQuickMeetingModeFields() {
+        const form = document.getElementById('quickMeetingForm');
+        if (!form) return;
+        
+        const mode = form.querySelector('input[name="meeting_mode"]:checked')?.value;
+        const onlineFields = document.getElementById('quickOnlineFields');
+        const offlineFields = document.getElementById('quickOfflineFields');
+        const locationInput = document.getElementById('quickLocationInput');
+        const meetingLinkInput = form.querySelector('input[name="meeting_link"]');
+        
+        if (mode === 'online') {
+            if (onlineFields) onlineFields.style.display = 'block';
+            if (offlineFields) offlineFields.style.display = 'none';
+            if (locationInput) locationInput.removeAttribute('required');
+            if (meetingLinkInput) {
+                meetingLinkInput.removeAttribute('required');
+            }
+        } else {
+            if (onlineFields) onlineFields.style.display = 'none';
+            if (offlineFields) offlineFields.style.display = 'block';
+            if (locationInput) locationInput.setAttribute('required', 'required');
+            if (meetingLinkInput) {
+                meetingLinkInput.removeAttribute('required');
+            }
+        }
+    }
+
+    async function openQuickMeetingModal() {
+        setDefaultQuickMeetingTime();
+        document.getElementById('quickMeetingModal').classList.add('show');
+        document.getElementById('quickMeetingError').textContent = '';
+
+        if (!isLeadOptionsLoaded) {
+            await loadLeadOptions();
+            isLeadOptionsLoaded = true;
+        }
+        
+        // Initialize meeting mode fields
+        toggleQuickMeetingModeFields();
+    }
+
+    function closeQuickMeetingModal() {
+        document.getElementById('quickMeetingModal').classList.remove('show');
+        const form = document.getElementById('quickMeetingForm');
+        if (form) {
+            form.reset();
+        }
+        document.getElementById('leadSelect').value = '';
+        document.getElementById('leadSearchInput').value = '';
+        document.getElementById('quickMeetingError').textContent = '';
+        // Reset to offline mode
+        const offlineRadio = document.querySelector('#quickMeetingForm input[name="meeting_mode"][value="offline"]');
+        if (offlineRadio) {
+            offlineRadio.checked = true;
+            toggleQuickMeetingModeFields();
+        }
+    }
+
+    async function loadLeadOptions(search = '') {
+        const query = search ? `?search=${encodeURIComponent(search)}` : '';
+        const response = await apiCall(`/meetings/lead-options${query}`);
+
+        if (response?.success) {
+            leadOptionsCache = response.data || [];
+            renderLeadOptions(leadOptionsCache);
+        } else {
+            document.getElementById('quickMeetingError').textContent = response?.message || 'Unable to load leads.';
+        }
+    }
+
+    function renderLeadOptions(list) {
+        const select = document.getElementById('leadSelect');
+        if (!select) return;
+        select.innerHTML = '<option value=\"\">Select lead</option>';
+        list.forEach(lead => {
+            const option = document.createElement('option');
+            option.value = lead.id;
+            option.textContent = `${lead.name || 'N/A'} (${lead.phone || 'N/A'})`;
+            select.appendChild(option);
+        });
+    }
+
+    function filterLeadOptions(term) {
+        const searchTerm = term.trim().toLowerCase();
+        if (!searchTerm) {
+            renderLeadOptions(leadOptionsCache);
+            return;
+        }
+
+        const filtered = leadOptionsCache.filter(lead => {
+            const nameMatch = (lead.name || '').toLowerCase().includes(searchTerm);
+            const phoneMatch = (lead.phone || '').toLowerCase().includes(searchTerm);
+            return nameMatch || phoneMatch;
+        });
+
+        renderLeadOptions(filtered);
+    }
+
+    async function submitQuickMeeting(event) {
+        if (event) {
+            event.preventDefault();
+        }
+        
+        const form = document.getElementById('quickMeetingForm');
+        if (!form) {
+            // Fallback for old button onclick
+            const leadId = document.getElementById('leadSelect').value;
+            const scheduledAt = document.getElementById('quickScheduledAt').value;
+            const errorBox = document.getElementById('quickMeetingError');
+            
+            if (!leadId) {
+                errorBox.textContent = 'Please select a lead.';
+                return;
+            }
+            if (!scheduledAt) {
+                errorBox.textContent = 'Please select date and time.';
+                return;
+            }
+            return;
+        }
+        
+        const formData = new FormData(form);
+        const errorBox = document.getElementById('quickMeetingError');
+        errorBox.textContent = '';
+
+        const leadId = formData.get('lead_id');
+        const scheduledAt = formData.get('scheduled_at');
+        const meetingMode = formData.get('meeting_mode');
+        const location = formData.get('location');
+        const meetingLink = formData.get('meeting_link');
+
+        if (!leadId) {
+            errorBox.textContent = 'Please select a lead.';
+            return;
+        }
+
+        if (!scheduledAt) {
+            errorBox.textContent = 'Please select date and time.';
+            return;
+        }
+
+        // Validate location for offline meetings
+        if (meetingMode === 'offline' && !location) {
+            errorBox.textContent = 'Location is required for offline meetings.';
+            return;
+        }
+
+        const data = {
+            lead_id: parseInt(leadId),
+            meeting_sequence: parseInt(formData.get('meeting_sequence')) || 1,
+            scheduled_at: new Date(scheduledAt).toISOString(),
+            meeting_mode: meetingMode || 'offline',
+            meeting_link: meetingLink || null,
+            location: location || null,
+            reminder_enabled: formData.get('reminder_enabled') === 'on',
+            reminder_minutes: 5,
+            meeting_notes: formData.get('meeting_notes') || null,
+        };
+
+        const result = await apiCall('/sales-manager/meetings/quick-schedule-with-reminder', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+
+        if (result?.success !== false) {
+            closeQuickMeetingModal();
+            if (typeof showNotification === 'function') {
+                const message = 'Meeting scheduled successfully!' + (data.reminder_enabled ? ' You will get a reminder 5 minutes before.' : '');
+                showNotification(message, 'success', 2500);
+            } else {
+                alert('Meeting scheduled successfully!');
+            }
+            loadMeetings();
+        } else {
+            errorBox.textContent = result?.message || 'Failed to schedule meeting.';
+        }
+    }
+
     function toggleCustomDate() {
         const dateFilter = document.getElementById('dateFilter').value;
         const customDateInputs = document.getElementById('customDateInputs');
@@ -380,13 +648,8 @@
             const meetings = response?.data || [];
 
             if (meetings.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state" style="grid-column: 1 / -1;">
-                        <i class="fas fa-calendar-times"></i>
-                        <h3 style="font-size: 18px; font-weight: 600; color: #333; margin: 16px 0 8px;">No Meetings Found</h3>
-                        <p>Schedule your first meeting to get started.</p>
-                    </div>
-                `;
+                // Hide empty state on mobile - show nothing
+                container.innerHTML = '';
                 return;
             }
 
@@ -402,6 +665,10 @@
                 const verificationBadge = meeting.verification_status === 'verified' ? 'badge-verified' :
                                         meeting.verification_status === 'pending' ? 'badge-pending' : '';
 
+                const confirmationStatusBadge = meeting.customer_confirmation_status === 'confirmed' ? 'badge-confirmed' :
+                                              meeting.customer_confirmation_status === 'cancelled' ? 'badge-cancelled-conf' : 'badge-pending-conf';
+                const confirmationStatusText = meeting.customer_confirmation_status || 'pending';
+
                 return `
                     <div class="meeting-card ${statusClass}">
                         <div class="meeting-header">
@@ -412,25 +679,38 @@
                                 ${meeting.completed_at ? `<p><i class="fas fa-check-circle mr-2"></i>Completed: ${new Date(meeting.completed_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>` : ''}
                                 <p><i class="fas fa-tag mr-2"></i>Budget: ${meeting.budget_range || 'N/A'}</p>
                                 ${meeting.property_type ? `<p><i class="fas fa-building mr-2"></i>Property: ${meeting.property_type}</p>` : ''}
+                                ${meeting.meeting_mode ? `<p><i class="fas ${meeting.meeting_mode === 'online' ? 'fa-video' : 'fa-map-marker-alt'} mr-2"></i>${meeting.meeting_mode === 'online' ? 'Online' : 'Offline'} Meeting</p>` : ''}
+                                ${meeting.location ? `<p><i class="fas fa-map-marker-alt mr-2"></i>${meeting.location}</p>` : ''}
+                                ${meeting.meeting_link ? `<p><i class="fas fa-link mr-2"></i><a href="${meeting.meeting_link}" target="_blank" class="text-blue-600 hover:underline">Join Meeting</a></p>` : ''}
                                 <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px;">
                                     <span class="badge ${statusBadge}">${meeting.status}</span>
                                     ${meeting.verification_status ? `<span class="badge ${verificationBadge}">${meeting.verification_status}</span>` : ''}
+                                    <span class="badge ${confirmationStatusBadge}">${confirmationStatusText}</span>
                                 </div>
                             </div>
                         </div>
                         <div class="meeting-actions">
-                            ${meeting.status === 'scheduled' ? `
+                            ${meeting.lead_id ? `
+                                <a href="/leads/${meeting.lead_id}" 
+                                   class="btn" 
+                                   style="background: linear-gradient(135deg, #063A1C 0%, #205A44 100%); color: white; margin-bottom: 8px; width: 100%; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-eye mr-2"></i>Lead Detail
+                                </a>
+                            ` : ''}
+                            ${meeting.status === 'scheduled' && meeting.customer_confirmation_status !== 'cancelled' ? `
+                                ${meeting.customer_confirmation_status === 'pending' ? `
+                                    <button class="btn" style="background: #f59e0b; color: white;" onclick="rescheduleMeeting(${meeting.id})">
+                                        <i class="fas fa-calendar mr-2"></i>Reschedule
+                                    </button>
+                                    <button class="btn btn-danger" onclick="cancelMeeting(${meeting.id})">
+                                        <i class="fas fa-times mr-2"></i>Cancel Meeting
+                                    </button>
+                                ` : ''}
                                 <button class="btn btn-success" onclick="showCompleteMeetingModal(${meeting.id})">
                                     <i class="fas fa-check mr-2"></i>Complete
                                 </button>
-                                <button class="btn" style="background: #f59e0b; color: white;" onclick="showRescheduleMeetingModal(${meeting.id})">
-                                    <i class="fas fa-calendar-alt mr-2"></i>Reschedule
-                                </button>
                                 <button class="btn btn-danger" onclick="showMarkDeadModal('meeting', ${meeting.id})">
                                     <i class="fas fa-skull mr-2"></i>Mark as Dead
-                                </button>
-                                <button class="btn btn-danger" onclick="cancelMeeting(${meeting.id})">
-                                    <i class="fas fa-times mr-2"></i>Cancel
                                 </button>
                             ` : ''}
                             ${meeting.status === 'completed' ? `
@@ -474,6 +754,50 @@
         currentMeetingId = null;
     }
 
+    // Helper function to complete the calling task
+    async function completeCallingTask(taskId, taskType) {
+        if (!taskId) return true; // No task to complete
+        
+        const apiToken = window.API_TOKEN || document.querySelector('meta[name="api-token"]')?.content;
+        const apiBase = window.API_BASE_URL || '/api';
+        
+        if (!apiToken) {
+            console.warn('API token not found, skipping task completion');
+            return false;
+        }
+        
+        try {
+            let endpoint;
+            if (taskType === 'Task') {
+                // For manager tasks (Task model)
+                endpoint = `${apiBase}/sales-manager/tasks/${taskId}/complete`;
+            } else {
+                // For telecaller tasks (TelecallerTask model)
+                endpoint = `${apiBase}/telecaller/tasks/${taskId}/complete`;
+            }
+            
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiToken}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                }
+            });
+            
+            if (response.ok) {
+                return true;
+            } else {
+                const result = await response.json();
+                console.error('Failed to complete task:', result.message || 'Unknown error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error completing task:', error);
+            return false;
+        }
+    }
+
     function handleProofPhotosChange(event) {
         const files = event.target.files;
         const preview = document.getElementById('proofPhotosPreview');
@@ -495,6 +819,62 @@
             reader.readAsDataURL(file);
         }
     }
+
+    function parseJsonFromResponseText(responseText) {
+        if (!responseText) return null;
+
+        const trimmed = responseText.trim();
+        try {
+            return JSON.parse(trimmed);
+        } catch (error) {
+            const firstBrace = trimmed.indexOf('{');
+            const lastBrace = trimmed.lastIndexOf('}');
+            if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+                return null;
+            }
+            const jsonCandidate = trimmed.slice(firstBrace, lastBrace + 1);
+            try {
+                return JSON.parse(jsonCandidate);
+            } catch (parseError) {
+                return null;
+            }
+        }
+    }
+
+    function showMeetingSuccessModal(message) {
+        const modal = document.getElementById('meetingSuccessModal');
+        const messageElement = document.getElementById('meetingSuccessMessage');
+        if (messageElement) {
+            messageElement.textContent = message;
+        }
+        if (modal) {
+            modal.classList.add('show');
+        }
+    }
+
+    function closeMeetingSuccessModal() {
+        const modal = document.getElementById('meetingSuccessModal');
+        if (modal) {
+            modal.classList.remove('show');
+        }
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('meetingSuccessModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeMeetingSuccessModal();
+        }
+    });
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('meetingSuccessModal');
+            if (modal && modal.classList.contains('show')) {
+                closeMeetingSuccessModal();
+            }
+        }
+    });
 
     async function submitCompleteMeeting() {
         if (!currentMeetingId) return;
@@ -521,6 +901,11 @@
 
         try {
             const token = getToken();
+            if (!token) {
+                alert('Authentication error. Please refresh the page and try again.');
+                return;
+            }
+
             const response = await fetch(`${API_BASE_URL}/meetings/${currentMeetingId}/complete`, {
                 method: 'POST',
                 headers: {
@@ -530,21 +915,64 @@
                 body: formData,
             });
 
-            const result = await response.json();
+            // Read response as text first (can only read once)
+            let responseText;
+            let result;
 
-            if (result && result.success) {
-                alert('Meeting completed with proof photos! Awaiting verification.');
+            try {
+                responseText = await response.text();
+                result = parseJsonFromResponseText(responseText);
+                if (!result) {
+                    console.error('Invalid JSON response:', responseText.substring(0, 500));
+                    alert('Server returned invalid JSON. Please try again.');
+                    return;
+                }
+            } catch (textError) {
+                console.error('Error reading response:', textError);
+                alert('Network error. Please try again.');
+                return;
+            }
+
+            if (response.ok && result && result.success) {
+                // Complete calling task if pending
+                if (window.pendingTaskCompletion) {
+                    await completeCallingTask(window.pendingTaskCompletion.taskId, window.pendingTaskCompletion.taskType);
+                    window.pendingTaskCompletion = null;
+                }
+                showMeetingSuccessModal('Meeting completed with proof photos! Awaiting verification.');
                 closeCompleteMeetingModal();
                 loadMeetings();
             } else {
-                alert(result.message || 'Failed to complete meeting');
+                // Handle validation errors or other errors
+                let errorMessage = result.message || 'Failed to complete meeting';
+                
                 if (result.errors) {
                     console.error('Validation errors:', result.errors);
+                    // Format validation errors
+                    const errorMessages = [];
+                    if (result.errors.proof_photos) {
+                        errorMessages.push('Proof photos: ' + result.errors.proof_photos.join(', '));
+                    }
+                    if (result.errors.feedback) {
+                        errorMessages.push('Feedback: ' + result.errors.feedback.join(', '));
+                    }
+                    if (result.errors.rating) {
+                        errorMessages.push('Rating: ' + result.errors.rating.join(', '));
+                    }
+                    if (result.errors.meeting_notes) {
+                        errorMessages.push('Notes: ' + result.errors.meeting_notes.join(', '));
+                    }
+                    
+                    if (errorMessages.length > 0) {
+                        errorMessage = errorMessages.join('\n');
+                    }
                 }
+                
+                alert(errorMessage);
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Network error. Please try again.');
+            alert('Network error. Please try again. ' + (error.message || ''));
         }
     }
 
@@ -558,6 +986,78 @@
         document.getElementById('markDeadModal').classList.remove('show');
         document.getElementById('deadReason').value = '';
         currentMeetingId = null;
+    }
+
+    async function rescheduleMeeting(id) {
+        if (!confirm('This will cancel the current meeting. Do you want to reschedule?')) {
+            return;
+        }
+
+        const token = getToken();
+        if (!token) {
+            window.location.href = '{{ route("login") }}';
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/meetings/${id}/cancel`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ reason: 'Rescheduled' })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert('Meeting cancelled. Please create a new meeting with the updated time.');
+                loadMeetings();
+            } else {
+                alert(result.message || 'Failed to cancel meeting');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while rescheduling the meeting');
+        }
+    }
+
+    async function cancelMeeting(id) {
+        if (!confirm('Are you sure you want to cancel this meeting?')) {
+            return;
+        }
+
+        const token = getToken();
+        if (!token) {
+            window.location.href = '{{ route("login") }}';
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/meetings/${id}/cancel`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ reason: 'Cancelled by manager' })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert('Meeting cancelled successfully');
+                loadMeetings();
+            } else {
+                alert(result.message || 'Failed to cancel meeting');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while cancelling the meeting');
+        }
     }
 
     async function submitMarkDead() {
@@ -575,6 +1075,11 @@
         });
 
         if (result && result.success) {
+            // Complete calling task if pending
+            if (window.pendingTaskCompletion) {
+                await completeCallingTask(window.pendingTaskCompletion.taskId, window.pendingTaskCompletion.taskType);
+                window.pendingTaskCompletion = null;
+            }
             alert('Meeting marked as dead successfully');
             closeMarkDeadModal();
             loadMeetings();
@@ -591,6 +1096,11 @@
         });
 
         if (result && result.success) {
+            // Complete calling task if pending
+            if (window.pendingTaskCompletion) {
+                await completeCallingTask(window.pendingTaskCompletion.taskId, window.pendingTaskCompletion.taskType);
+                window.pendingTaskCompletion = null;
+            }
             alert('Meeting cancelled');
             loadMeetings();
         } else {
@@ -598,31 +1108,333 @@
         }
     }
 
-    function showConvertToSiteVisitModal(id) {
+    async function showConvertToSiteVisitModal(id) {
         currentMeetingId = id;
+        
+        // Reset form
+        document.getElementById('convertProjectTagsContainer').innerHTML = '';
+        document.getElementById('convertProjectInput').value = '';
+        document.getElementById('convertProjectHidden').value = '';
+        document.getElementById('convertScheduledAt').value = '';
+        document.getElementById('convertVisitSequence').value = '';
+        document.getElementById('reminderEnabled').value = 'false';
+        document.getElementById('visitTypeWithFamily').checked = false;
+        document.getElementById('visitTypeWithoutFamily').checked = false;
+        toggleReminder(false); // Reset reminder buttons
+        
+        // Show modal
         document.getElementById('convertToSiteVisitModal').classList.add('show');
+        
+        try {
+            // Load meeting data
+            const meeting = await apiCall(`/meetings/${id}`);
+            
+            // Initialize project tags from meeting's project
+            if (meeting && meeting.project) {
+                addConvertProjectTag(meeting.project);
+            }
+            
+            // Load telecallers and pre-select if lead has telecaller
+            await loadTelecallersForConvert(meeting);
+            
+            // Set default scheduled date (next day from meeting scheduled date or tomorrow)
+            const scheduledAtInput = document.getElementById('convertScheduledAt');
+            let defaultDate = new Date();
+            defaultDate.setDate(defaultDate.getDate() + 1); // Tomorrow
+            
+            if (meeting && meeting.scheduled_at) {
+                const meetingDate = new Date(meeting.scheduled_at);
+                meetingDate.setDate(meetingDate.getDate() + 1); // Next day from meeting
+                if (meetingDate > new Date()) {
+                    defaultDate = meetingDate;
+                }
+            }
+            
+            // Set minimum date (must be in future)
+            const minDate = new Date();
+            minDate.setHours(minDate.getHours() + 1); // At least 1 hour from now
+            scheduledAtInput.min = minDate.toISOString().slice(0, 16);
+            
+            // Set default value
+            scheduledAtInput.value = defaultDate.toISOString().slice(0, 16);
+            
+            // Setup project input Enter key handler
+            setupConvertProjectInput();
+            
+        } catch (error) {
+            console.error('Error loading convert form data:', error);
+            alert('Error loading form data. Please try again.');
+            closeConvertToSiteVisitModal();
+        }
     }
 
     function closeConvertToSiteVisitModal() {
         document.getElementById('convertToSiteVisitModal').classList.remove('show');
+        document.getElementById('convertToSiteVisitForm').reset();
+        document.getElementById('convertProjectTagsContainer').innerHTML = '';
+        document.getElementById('convertProjectHidden').value = '';
+        toggleReminder(false);
         currentMeetingId = null;
     }
-
-    async function convertToSiteVisit() {
-        if (!currentMeetingId) return;
-
-        closeConvertToSiteVisitModal();
-
-        const result = await apiCall(`/meetings/${currentMeetingId}/convert-to-site-visit`, {
-            method: 'POST',
-        });
-
-        if (result && result.success) {
-            alert(result.message || 'Meeting converted to Site Visit successfully!');
-            // Reload meetings list to show updated status
-            loadMeetings();
+    
+    // Project Tags Functions
+    function setupConvertProjectInput() {
+        const input = document.getElementById('convertProjectInput');
+        if (input) {
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const value = this.value.trim();
+                    if (value) {
+                        addConvertProjectTag(value);
+                        this.value = '';
+                    }
+                }
+            });
+        }
+        
+    }
+    
+    function addConvertProjectTag(tagName) {
+        const container = document.getElementById('convertProjectTagsContainer');
+        const hiddenInput = document.getElementById('convertProjectHidden');
+        
+        if (!container || !hiddenInput) return;
+        
+        // Check if tag already exists
+        const existingTags = Array.from(container.querySelectorAll('.site-visit-project-tag-text'));
+        const tagExists = existingTags.some(tag => tag.textContent.trim() === tagName.trim());
+        
+        if (tagExists) {
+            return; // Don't add duplicate
+        }
+        
+        // Create tag element
+        const tagElement = document.createElement('span');
+        tagElement.className = 'site-visit-project-tag';
+        tagElement.innerHTML = `
+            <span class="site-visit-project-tag-text">${escapeHtml(tagName)}</span>
+            <span class="site-visit-project-tag-remove" onclick="removeConvertProjectTag(this)">×</span>
+        `;
+        
+        container.appendChild(tagElement);
+        
+        // Update hidden input with comma-separated values
+        updateConvertProjectHiddenInput();
+    }
+    
+    function removeConvertProjectTag(element) {
+        const tagElement = element.closest('.site-visit-project-tag');
+        if (tagElement) {
+            tagElement.remove();
+            updateConvertProjectHiddenInput();
+        }
+    }
+    
+    function updateConvertProjectHiddenInput() {
+        const container = document.getElementById('convertProjectTagsContainer');
+        const hiddenInput = document.getElementById('convertProjectHidden');
+        
+        if (!container || !hiddenInput) return;
+        
+        const tags = Array.from(container.querySelectorAll('.site-visit-project-tag-text'));
+        const projectNames = tags.map(tag => tag.textContent.trim()).filter(name => name);
+        hiddenInput.value = projectNames.join(',');
+    }
+    
+    // Reminder Toggle Function
+    function toggleReminder(enabled) {
+        const enableBtn = document.getElementById('enableReminderBtn');
+        const disableBtn = document.getElementById('disableReminderBtn');
+        const hiddenInput = document.getElementById('reminderEnabled');
+        
+        if (enabled) {
+            enableBtn.classList.remove('bg-gray-200', 'text-gray-700');
+            enableBtn.classList.add('bg-gradient-to-r', 'from-blue-600', 'to-blue-500', 'text-white', 'shadow-md');
+            disableBtn.classList.remove('bg-gradient-to-r', 'from-blue-600', 'to-blue-500', 'text-white', 'shadow-md');
+            disableBtn.classList.add('bg-gray-200', 'text-gray-700');
+            hiddenInput.value = 'true';
         } else {
-            alert(result.message || 'Failed to convert meeting');
+            disableBtn.classList.remove('bg-gray-200', 'text-gray-700');
+            disableBtn.classList.add('bg-gradient-to-r', 'from-blue-600', 'to-blue-500', 'text-white', 'shadow-md');
+            enableBtn.classList.remove('bg-gradient-to-r', 'from-blue-600', 'to-blue-500', 'text-white', 'shadow-md');
+            enableBtn.classList.add('bg-gray-200', 'text-gray-700');
+            hiddenInput.value = 'false';
+        }
+    }
+    
+    // Load Telecallers
+    async function loadTelecallersForConvert(meeting = null) {
+        try {
+            // Try the telecallers endpoint first
+            let telecallers = [];
+            const apiBase = window.API_BASE_URL || '/api';
+            try {
+                const response = await fetch(`${apiBase}/telecallers`, {
+                    headers: {
+                        'Authorization': `Bearer ${getToken()}`,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    telecallers = data.telecallers || data.data || data || [];
+                } else {
+                    throw new Error('Telecallers endpoint not available');
+                }
+            } catch (error) {
+                console.warn('Telecallers endpoint failed, trying users endpoint:', error);
+                // Fallback: Try to get from users endpoint
+                try {
+                    const usersResponse = await fetch(`${apiBase}/users`, {
+                        headers: {
+                            'Authorization': `Bearer ${getToken()}`,
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+                    
+                    if (usersResponse.ok) {
+                        const usersData = await usersResponse.json();
+                        telecallers = (usersData.users || []).filter(u => {
+                            const role = u.role || {};
+                            return role.slug === 'telecaller' || role.name === 'Telecaller' || (typeof role === 'string' && role.toLowerCase().includes('telecaller'));
+                        });
+                    }
+                } catch (e) {
+                    console.error('Error loading telecallers from users endpoint:', e);
+                }
+            }
+            
+            // Get telecaller from lead if meeting has lead
+            let leadTelecallerId = null;
+            if (meeting && meeting.lead) {
+                const lead = meeting.lead;
+                
+                // Get telecaller from active assignments
+                if (lead.active_assignments && Array.isArray(lead.active_assignments) && lead.active_assignments.length > 0) {
+                    const assignment = lead.active_assignments.find(a => {
+                        const user = a.assigned_to || a.assignedTo;
+                        if (!user) return false;
+                        const role = user.role || {};
+                        return role.slug === 'telecaller' || role.name === 'Telecaller' || (typeof role === 'string' && role.toLowerCase().includes('telecaller'));
+                    });
+                    
+                    if (assignment) {
+                        const user = assignment.assigned_to || assignment.assignedTo;
+                        leadTelecallerId = user.id || user.user_id;
+                    }
+                }
+                
+                // Alternative: Check if lead has telecaller_id directly
+                if (!leadTelecallerId && lead.telecaller_id) {
+                    leadTelecallerId = lead.telecaller_id;
+                }
+            }
+            
+            populateTelecallerDropdown(telecallers, leadTelecallerId);
+        } catch (error) {
+            console.error('Error loading telecallers:', error);
+        }
+    }
+    
+    function populateTelecallerDropdown(telecallers, preSelectId = null) {
+        const select = document.getElementById('convertTelecallerSelect');
+        if (!select) return;
+        
+        select.innerHTML = '<option value="">Select Telecaller (Optional)</option>';
+        telecallers.forEach(telecaller => {
+            const option = document.createElement('option');
+            const telecallerId = telecaller.id || telecaller.user_id;
+            option.value = telecallerId;
+            option.textContent = `${telecaller.name || telecaller.user_name || 'Telecaller'} (Telecaller)`;
+            
+            // Pre-select if this is the lead's telecaller
+            if (preSelectId && telecallerId == preSelectId) {
+                option.selected = true;
+            }
+            
+            select.appendChild(option);
+        });
+    }
+    
+    // Escape HTML helper
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    async function convertToSiteVisit(event) {
+        if (event) {
+            event.preventDefault();
+        }
+        
+        if (!currentMeetingId) {
+            alert('Meeting ID not found');
+            return;
+        }
+
+        // Get form data
+        const form = document.getElementById('convertToSiteVisitForm');
+        const formData = new FormData(form);
+        const project = formData.get('project') || document.getElementById('convertProjectHidden').value;
+        const scheduledAt = formData.get('scheduled_at');
+        const visitType = form.querySelector('input[name="visit_type"]:checked')?.value || null;
+        const visitSequence = formData.get('visit_sequence') || null;
+        const reminderEnabled = formData.get('reminder_enabled') === 'true';
+        const reminderMinutes = parseInt(formData.get('reminder_minutes') || '10');
+        const telecallerId = formData.get('telecaller_id') || null;
+
+        // Validate
+        if (!project || !project.trim()) {
+            alert('Please select or type a project');
+            return;
+        }
+
+        if (!scheduledAt) {
+            alert('Please select a scheduled date and time');
+            return;
+        }
+
+        // Validate scheduled date is in future
+        const selectedDate = new Date(scheduledAt);
+        if (selectedDate <= new Date()) {
+            alert('Scheduled date and time must be in the future');
+            return;
+        }
+
+        try {
+            const result = await apiCall(`/meetings/${currentMeetingId}/convert-to-site-visit`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    project: project.trim(),
+                    scheduled_at: scheduledAt,
+                    visit_type: visitType,
+                    visit_sequence: visitSequence,
+                    reminder_enabled: reminderEnabled,
+                    reminder_minutes: reminderMinutes,
+                    telecaller_id: telecallerId,
+                }),
+            });
+
+            if (result && result.success) {
+                if (typeof showNotification === 'function') {
+                    showNotification(result.message || 'Meeting converted to Site Visit successfully!', 'success', 3000);
+                } else {
+                    alert(result.message || 'Meeting converted to Site Visit successfully!');
+                }
+                closeConvertToSiteVisitModal();
+                // Reload meetings list to show updated status
+                loadMeetings();
+            } else {
+                alert(result.message || 'Failed to convert meeting');
+            }
+        } catch (error) {
+            console.error('Error converting meeting:', error);
+            alert('An error occurred while converting the meeting. Please try again.');
         }
     }
 
@@ -681,6 +1493,11 @@
             });
 
             if (result && result.success) {
+                // Complete calling task if pending
+                if (window.pendingTaskCompletion) {
+                    await completeCallingTask(window.pendingTaskCompletion.taskId, window.pendingTaskCompletion.taskType);
+                    window.pendingTaskCompletion = null;
+                }
                 if (typeof showNotification === 'function') {
                     showNotification(result.message || 'Rescheduled successfully! Verification required.', 'success', 3000);
                 } else {
@@ -705,6 +1522,147 @@
         loadMeetings();
     })();
 </script>
+
+<!-- Quick Schedule Meeting Modal -->
+<div id="quickMeetingModal" class="modal">
+    <div class="modal-content" style="max-width: 600px; padding: 0; overflow: hidden;">
+        <!-- Header with gradient (matching lead page style) -->
+        <div class="bg-gradient-to-r from-green-800 to-green-600 px-6 py-5 rounded-t-2xl w-full">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-calendar-check text-white text-lg"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Schedule Meeting</h3>
+                </div>
+                <button onclick="closeQuickMeetingModal()" class="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Form Body -->
+        <form id="quickMeetingForm" onsubmit="submitQuickMeeting(event)" class="flex flex-col flex-1 min-h-0">
+            <div class="px-6 py-5 overflow-y-auto flex-1" style="max-height: 70vh;">
+                <div class="space-y-4">
+                    <!-- Lead Selection (only in meeting section) -->
+                    <div class="form-group">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-user text-green-600 mr-1"></i> Select Lead <span style="color: #ef4444;">*</span>
+                        </label>
+                        <input type="text" id="leadSearchInput" placeholder="Search by name or phone" oninput="filterLeadOptions(this.value)" 
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 mb-2">
+                        <select id="leadSelect" name="lead_id" required 
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <option value="">Loading...</option>
+                        </select>
+                        <small class="text-gray-500">Only leads from your Lead section are listed.</small>
+                    </div>
+
+                    <!-- Meeting Type -->
+                    <div class="form-group">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-tag text-green-600 mr-1"></i> Meeting Type
+                        </label>
+                        <select id="meeting_sequence" name="meeting_sequence" required 
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 bg-white transition">
+                            <option value="1">🎯 Fresh Meeting (1st)</option>
+                            <option value="2">🔄 2nd Meeting</option>
+                            <option value="3">⭐ 3rd Meeting</option>
+                        </select>
+                    </div>
+
+                    <!-- Date & Time -->
+                    <div class="form-group">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-clock text-green-600 mr-1"></i> Scheduled Date & Time
+                        </label>
+                        <input type="datetime-local" name="scheduled_at" id="quickScheduledAt" required 
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
+                    </div>
+
+                    <!-- Meeting Mode -->
+                    <div class="form-group">
+                        <label class="block text-sm font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-video text-green-600 mr-1"></i> Meeting Mode
+                        </label>
+                        <div class="flex gap-3">
+                            <label class="flex-1 cursor-pointer">
+                                <input type="radio" name="meeting_mode" value="online" class="hidden peer" onchange="toggleQuickMeetingModeFields()">
+                                <div class="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-xl peer-checked:border-green-600 peer-checked:bg-green-50 peer-checked:text-green-700 transition hover:border-gray-300">
+                                    <i class="fas fa-video"></i>
+                                    <span class="font-medium">Online</span>
+                                </div>
+                            </label>
+                            <label class="flex-1 cursor-pointer">
+                                <input type="radio" name="meeting_mode" value="offline" checked class="hidden peer" onchange="toggleQuickMeetingModeFields()">
+                                <div class="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-xl peer-checked:border-green-600 peer-checked:bg-green-50 peer-checked:text-green-700 transition hover:border-gray-300">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <span class="font-medium">Offline</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Conditional: Online = Link -->
+                    <div id="quickOnlineFields" style="display:none;" class="form-group">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-link text-green-600 mr-1"></i> Meeting Link (Optional)
+                        </label>
+                        <input type="url" name="meeting_link" placeholder="https://meet.google.com/..." 
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
+                    </div>
+
+                    <!-- Conditional: Offline = Location -->
+                    <div id="quickOfflineFields" class="form-group">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-map-marker-alt text-green-600 mr-1"></i> Location
+                        </label>
+                        <input type="text" name="location" id="quickLocationInput" placeholder="Office address, project site, etc." 
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition">
+                    </div>
+
+                    <!-- Reminder Checkbox -->
+                    <div class="form-group bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border-2 border-green-100">
+                        <label class="flex items-start cursor-pointer group">
+                            <input type="checkbox" name="reminder_enabled" checked 
+                                class="mt-1 mr-3 w-5 h-5 text-green-600 rounded border-2 border-green-300 focus:ring-green-500">
+                            <div>
+                                <span class="text-sm font-semibold text-green-900 group-hover:text-green-700 transition">
+                                    <i class="fas fa-bell text-green-600 mr-1"></i> Remind me before meeting
+                                </span>
+                                <p class="text-xs text-green-700 mt-1">Get a calling task 5 minutes before the meeting time</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Meeting Notes -->
+                    <div class="form-group">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-sticky-note text-green-600 mr-1"></i> Meeting Notes (Optional)
+                        </label>
+                        <textarea name="meeting_notes" id="quickMeetingNotes" rows="3" placeholder="Add any additional notes or agenda..." 
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition resize-none"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer with buttons -->
+            <div class="bg-gray-50 px-6 py-3 border-t border-gray-200 flex gap-3 shrink-0">
+                <button type="button" onclick="closeQuickMeetingModal()" 
+                    class="flex-1 h-12 bg-white border-2 border-green-700 rounded-lg text-green-800 hover:bg-green-50 font-semibold transition-all shadow-sm flex items-center justify-center">
+                    <i class="fas fa-times mr-2"></i>Cancel
+                </button>
+                <button type="submit" 
+                    class="flex-1 h-12 bg-gradient-to-r from-green-700 to-green-600 text-white rounded-lg hover:from-green-800 hover:to-green-700 font-semibold transition-all shadow-md hover:shadow-lg flex items-center justify-center">
+                    <i class="fas fa-calendar-check mr-2"></i>Schedule Meeting
+                </button>
+            </div>
+        </form>
+
+        <p id="quickMeetingError" style="color: #ef4444; min-height: 18px; padding: 0 24px 16px;"></p>
+    </div>
+</div>
 
 <!-- Complete Meeting Modal -->
 <div id="completeMeetingModal" class="modal">
@@ -795,38 +1753,148 @@
 
 <!-- Convert to Site Visit Modal -->
 <div id="convertToSiteVisitModal" class="modal">
-    <div class="modal-content" style="max-width: 500px;">
-        <div style="text-align: center; margin-bottom: 24px;">
-            <div style="width: 64px; height: 64px; margin: 0 auto 16px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                <i class="fas fa-exchange-alt" style="font-size: 28px; color: white;"></i>
+    <div class="modal-content" style="max-width: 600px; padding: 0; overflow: hidden;">
+        <!-- Header with gradient (blue theme for site visit) -->
+        <div class="bg-gradient-to-r from-blue-800 to-blue-600 px-6 py-5 rounded-t-2xl w-full">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-exchange-alt text-white text-lg"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Convert to Site Visit</h3>
+                </div>
+                <button onclick="closeConvertToSiteVisitModal()" class="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
             </div>
-            <h3 style="font-size: 22px; font-weight: 600; margin-bottom: 12px; color: #063A1C;">Convert to Site Visit</h3>
-            <p style="color: #6b7280; font-size: 15px; line-height: 1.6;">
-                Are you sure you want to convert this meeting to a Site Visit?<br>
-                <strong style="color: #374151;">All meeting data will be copied to the site visit.</strong>
-            </p>
         </div>
 
-        <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                <i class="fas fa-info-circle" style="color: #3b82f6; font-size: 18px;"></i>
-                <span style="color: #374151; font-size: 14px; font-weight: 500;">What will happen:</span>
-            </div>
-            <ul style="margin: 0; padding-left: 32px; color: #6b7280; font-size: 14px; line-height: 1.8;">
-                <li>Meeting details will be copied to a new Site Visit</li>
-                <li>The meeting will remain in your meetings list</li>
-                <li>You can track the site visit separately</li>
-            </ul>
-        </div>
+        <!-- Form Body -->
+        <form id="convertToSiteVisitForm" onsubmit="convertToSiteVisit(event)" class="flex flex-col flex-1 min-h-0">
+            <div class="px-6 py-5 overflow-y-auto flex-1" style="max-height: 70vh;">
+                <div class="space-y-4">
+                    <!-- Project Selection -->
+                    <div class="form-group">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-building text-blue-600 mr-1"></i> Project <span style="color: #ef4444;">*</span>
+                        </label>
+                        <!-- Tag Container -->
+                        <div id="convertProjectTagsContainer" class="flex flex-wrap gap-2 p-2 border-2 border-gray-200 rounded-xl min-h-[42px] bg-white mb-2">
+                            <!-- Tags will be dynamically added here -->
+                        </div>
+                        <!-- Text Input -->
+                        <input type="text" 
+                               id="convertProjectInput" 
+                               placeholder="Type project name and press Enter"
+                               class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                        <input type="hidden" name="project" id="convertProjectHidden" required>
+                        <small class="text-gray-500">Type project name and press Enter</small>
+                    </div>
 
-        <div style="display: flex; gap: 10px; justify-content: flex-end;">
-            <button type="button" class="btn btn-secondary" onclick="closeConvertToSiteVisitModal()" style="min-width: 100px;">
-                Cancel
-            </button>
-            <button type="button" class="btn btn-primary" onclick="convertToSiteVisit()" style="min-width: 100px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
-                <i class="fas fa-check mr-2"></i>Convert
-            </button>
+                    <!-- Visit With Checkboxes -->
+                    <div class="form-group">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-users text-blue-600 mr-1"></i> Visit With
+                        </label>
+                        <div class="flex gap-4">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="visit_type" value="with_family" id="visitTypeWithFamily"
+                                    class="mr-2 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="text-sm text-gray-700">With Family</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="visit_type" value="without_family" id="visitTypeWithoutFamily"
+                                    class="mr-2 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="text-sm text-gray-700">Without Family</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Visit Sequence -->
+                    <div class="form-group">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-list-ol text-blue-600 mr-1"></i> Visit Sequence
+                        </label>
+                        <select id="convertVisitSequence" name="visit_sequence" 
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition">
+                            <option value="">Select Visit Sequence</option>
+                            <option value="fresh_visit">Fresh Visit</option>
+                            <option value="2nd_visit">2nd Visit</option>
+                            <option value="3rd_visit">3rd Visit</option>
+                        </select>
+                        <small class="text-gray-500">Select the visit sequence</small>
+                    </div>
+
+                    <!-- Reminder Buttons -->
+                    <div class="form-group bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border-2 border-blue-100">
+                        <label class="block text-sm font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-bell text-blue-600 mr-1"></i> Reminder
+                        </label>
+                        <div class="flex gap-3">
+                            <button type="button" id="enableReminderBtn" onclick="toggleReminder(true)"
+                                class="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 font-semibold transition-all shadow-md hover:shadow-lg flex items-center justify-center">
+                                <i class="fas fa-bell mr-2"></i>Enable Reminder
+                            </button>
+                            <button type="button" id="disableReminderBtn" onclick="toggleReminder(false)"
+                                class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-semibold transition-all flex items-center justify-center">
+                                <i class="fas fa-bell-slash mr-2"></i>Disable Reminder
+                            </button>
+                        </div>
+                        <input type="hidden" id="reminderEnabled" name="reminder_enabled" value="false">
+                        <input type="hidden" id="reminderMinutes" name="reminder_minutes" value="10">
+                        <small class="text-gray-500 mt-2 block">Get a calling task 10 minutes before the site visit</small>
+                    </div>
+
+                    <!-- Telecaller Selection -->
+                    <div class="form-group">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-user-tie text-blue-600 mr-1"></i> Telecaller (Optional)
+                        </label>
+                        <select id="convertTelecallerSelect" name="telecaller_id" 
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition">
+                            <option value="">Select Telecaller (Optional)</option>
+                        </select>
+                        <small class="text-gray-500">Create a calling task for selected telecaller 30 minutes before site visit</small>
+                    </div>
+
+                    <!-- Scheduled Date & Time -->
+                    <div class="form-group">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-clock text-blue-600 mr-1"></i> Scheduled Date & Time <span style="color: #ef4444;">*</span>
+                        </label>
+                        <input type="datetime-local" id="convertScheduledAt" name="scheduled_at" required 
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                        <small class="text-gray-500">Select date and time for the site visit</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer with buttons -->
+            <div class="bg-gray-50 px-6 py-3 border-t border-gray-200 flex gap-3 shrink-0">
+                <button type="button" onclick="closeConvertToSiteVisitModal()" 
+                    class="flex-1 h-12 bg-white border-2 border-blue-700 rounded-lg text-blue-800 hover:bg-blue-50 font-semibold transition-all shadow-sm flex items-center justify-center">
+                    <i class="fas fa-times mr-2"></i>Cancel
+                </button>
+                <button type="submit" 
+                    class="flex-1 h-12 bg-gradient-to-r from-blue-700 to-blue-600 text-white rounded-lg hover:from-blue-800 hover:to-blue-700 font-semibold transition-all shadow-md hover:shadow-lg flex items-center justify-center">
+                    <i class="fas fa-exchange-alt mr-2"></i>Convert
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div id="meetingSuccessModal" class="modal">
+    <div class="modal-content" style="max-width: 400px; text-align: center; padding: 40px 30px;">
+        <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+            <i class="fas fa-check" style="font-size: 40px; color: white; font-weight: bold;"></i>
         </div>
+        <h3 style="font-size: 20px; font-weight: 600; color: #333; margin-bottom: 12px;">Success!</h3>
+        <p id="meetingSuccessMessage" style="font-size: 16px; color: #666; margin-bottom: 30px; line-height: 1.5;"></p>
+        <button onclick="closeMeetingSuccessModal()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 12px 32px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); transition: all 0.2s;" onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 16px rgba(16, 185, 129, 0.4)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 12px rgba(16, 185, 129, 0.3)';">
+            <i class="fas fa-check mr-2"></i>OK
+        </button>
     </div>
 </div>
 
@@ -882,6 +1950,27 @@
     background: linear-gradient(135deg, #15803d 0%, #166534 100%);
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+/* Project Tags Styling */
+.site-visit-project-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background-color: #3b82f6;
+    color: white;
+    border-radius: 9999px;
+    font-size: 14px;
+    font-weight: 500;
+}
+.site-visit-project-tag-remove {
+    cursor: pointer;
+    margin-left: 4px;
+    opacity: 0.8;
+    font-size: 12px;
+}
+.site-visit-project-tag-remove:hover {
+    opacity: 1;
 }
 </style>
 @endpush

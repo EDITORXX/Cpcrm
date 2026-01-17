@@ -7,9 +7,12 @@ use App\Models\Lead;
 use App\Models\SiteVisit;
 use App\Models\FollowUp;
 use App\Models\User;
+use App\Models\Incentive;
+use App\Models\Target;
 use App\Services\TargetService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
@@ -35,12 +38,17 @@ class DashboardController extends Controller
         if ($user->isTelecaller()) {
             $targetProgress = $this->targetService->getTargetProgress($user->id);
             $data['targets'] = $targetProgress;
+            $data['incentives'] = $this->getTelecallerIncentives($user);
+            $data['incentive_potential'] = $this->getTelecallerIncentivePotential($user);
         }
 
         // Add team target progress for managers
-        if ($user->isSalesManager()) {
+        if ($user->isSalesManager() || $user->isAssistantSalesManager()) {
             $teamProgress = $this->targetService->getTeamTargetsProgress($user->id);
             $data['team_targets'] = $teamProgress;
+            $data['manager_targets'] = $this->getManagerTargetsVsAchievements($user);
+            $data['incentives'] = $this->getManagerIncentives($user);
+            $data['incentive_potential'] = $this->getManagerIncentivePotential($user);
         }
 
         // Add Sales Head specific data
@@ -57,6 +65,231 @@ class DashboardController extends Controller
         return response()->json($data);
     }
 
+    /**
+     * Get Manager/Sales Executive incentives (closer incentives)
+     */
+    private function getManagerIncentives(User $user)
+    {
+        $incentives = Incentive::where('user_id', $user->id)
+            ->where('type', 'closer')
+            ->with(['siteVisit.lead', 'salesHeadVerifiedBy', 'crmVerifiedBy'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $pending = $incentives->where('status', 'pending_sales_head')
+            ->concat($incentives->where('status', 'pending_crm'))
+            ->values();
+        
+        $verified = $incentives->where('status', 'verified')->values();
+        $rejected = $incentives->where('status', 'rejected')->values();
+
+        $totalEarned = $verified->sum('amount');
+        $pendingAmount = $pending->sum('amount');
+
+        return [
+            'pending' => $pending->map(function ($inc) {
+                return [
+                    'id' => $inc->id,
+                    'amount' => $inc->amount,
+                    'status' => $inc->status,
+                    'site_visit' => $inc->siteVisit ? [
+                        'id' => $inc->siteVisit->id,
+                        'customer_name' => $inc->siteVisit->customer_name ?? ($inc->siteVisit->lead->name ?? 'N/A'),
+                    ] : null,
+                    'created_at' => $inc->created_at ? $inc->created_at->toIso8601String() : null,
+                ];
+            }),
+            'verified' => $verified->map(function ($inc) {
+                return [
+                    'id' => $inc->id,
+                    'amount' => $inc->amount,
+                    'status' => $inc->status,
+                    'site_visit' => $inc->siteVisit ? [
+                        'id' => $inc->siteVisit->id,
+                        'customer_name' => $inc->siteVisit->customer_name ?? ($inc->siteVisit->lead->name ?? 'N/A'),
+                    ] : null,
+                    'sales_head_verified_at' => $inc->sales_head_verified_at ? $inc->sales_head_verified_at->toIso8601String() : null,
+                    'crm_verified_at' => $inc->crm_verified_at ? $inc->crm_verified_at->toIso8601String() : null,
+                    'created_at' => $inc->created_at ? $inc->created_at->toIso8601String() : null,
+                ];
+            }),
+            'rejected' => $rejected->map(function ($inc) {
+                return [
+                    'id' => $inc->id,
+                    'amount' => $inc->amount,
+                    'status' => $inc->status,
+                    'rejection_reason' => $inc->rejection_reason,
+                    'site_visit' => $inc->siteVisit ? [
+                        'id' => $inc->siteVisit->id,
+                        'customer_name' => $inc->siteVisit->customer_name ?? ($inc->siteVisit->lead->name ?? 'N/A'),
+                    ] : null,
+                    'created_at' => $inc->created_at ? $inc->created_at->toIso8601String() : null,
+                ];
+            }),
+            'total_earned' => $totalEarned,
+            'pending_amount' => $pendingAmount,
+        ];
+    }
+
+    /**
+     * Get Telecaller incentives (site visit incentives)
+     */
+    private function getTelecallerIncentives(User $user)
+    {
+        $incentives = Incentive::where('user_id', $user->id)
+            ->where('type', 'site_visit')
+            ->with(['siteVisit.lead', 'salesHeadVerifiedBy', 'crmVerifiedBy'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $pending = $incentives->where('status', 'pending_sales_head')
+            ->concat($incentives->where('status', 'pending_crm'))
+            ->values();
+        
+        $verified = $incentives->where('status', 'verified')->values();
+        $rejected = $incentives->where('status', 'rejected')->values();
+
+        $totalEarned = $verified->sum('amount');
+        $pendingAmount = $pending->sum('amount');
+
+        return [
+            'pending' => $pending->map(function ($inc) {
+                return [
+                    'id' => $inc->id,
+                    'amount' => $inc->amount,
+                    'status' => $inc->status,
+                    'site_visit' => $inc->siteVisit ? [
+                        'id' => $inc->siteVisit->id,
+                        'customer_name' => $inc->siteVisit->customer_name ?? ($inc->siteVisit->lead->name ?? 'N/A'),
+                    ] : null,
+                    'created_at' => $inc->created_at ? $inc->created_at->toIso8601String() : null,
+                ];
+            }),
+            'verified' => $verified->map(function ($inc) {
+                return [
+                    'id' => $inc->id,
+                    'amount' => $inc->amount,
+                    'status' => $inc->status,
+                    'site_visit' => $inc->siteVisit ? [
+                        'id' => $inc->siteVisit->id,
+                        'customer_name' => $inc->siteVisit->customer_name ?? ($inc->siteVisit->lead->name ?? 'N/A'),
+                    ] : null,
+                    'sales_head_verified_at' => $inc->sales_head_verified_at ? $inc->sales_head_verified_at->toIso8601String() : null,
+                    'crm_verified_at' => $inc->crm_verified_at ? $inc->crm_verified_at->toIso8601String() : null,
+                    'created_at' => $inc->created_at ? $inc->created_at->toIso8601String() : null,
+                ];
+            }),
+            'rejected' => $rejected->map(function ($inc) {
+                return [
+                    'id' => $inc->id,
+                    'amount' => $inc->amount,
+                    'status' => $inc->status,
+                    'rejection_reason' => $inc->rejection_reason,
+                    'site_visit' => $inc->siteVisit ? [
+                        'id' => $inc->siteVisit->id,
+                        'customer_name' => $inc->siteVisit->customer_name ?? ($inc->siteVisit->lead->name ?? 'N/A'),
+                    ] : null,
+                    'created_at' => $inc->created_at ? $inc->created_at->toIso8601String() : null,
+                ];
+            }),
+            'total_earned' => $totalEarned,
+            'pending_amount' => $pendingAmount,
+        ];
+    }
+
+    /**
+     * Get Manager/Sales Executive incentive potential (target_closers × incentive_per_closer)
+     */
+    private function getManagerIncentivePotential(User $user)
+    {
+        $currentMonth = Carbon::now()->startOfMonth();
+        
+        $target = Target::where('user_id', $user->id)
+            ->whereYear('target_month', $currentMonth->year)
+            ->whereMonth('target_month', $currentMonth->month)
+            ->first();
+
+        if (!$target || !$target->incentive_per_closer || $target->incentive_per_closer <= 0) {
+            return [
+                'potential' => 0,
+                'target_closers' => $target->target_closers ?? 0,
+                'incentive_per_closer' => 0,
+            ];
+        }
+
+        $targetClosers = $target->target_closers ?? 0;
+        $incentivePerCloser = $target->incentive_per_closer;
+        $potential = $targetClosers * $incentivePerCloser;
+
+        return [
+            'potential' => $potential,
+            'target_closers' => $targetClosers,
+            'incentive_per_closer' => $incentivePerCloser,
+        ];
+    }
+
+    /**
+     * Get Telecaller incentive potential (target_visits × incentive_per_visit)
+     */
+    private function getTelecallerIncentivePotential(User $user)
+    {
+        $currentMonth = Carbon::now()->startOfMonth();
+        
+        $target = Target::where('user_id', $user->id)
+            ->whereYear('target_month', $currentMonth->year)
+            ->whereMonth('target_month', $currentMonth->month)
+            ->first();
+
+        if (!$target || !$target->incentive_per_visit || $target->incentive_per_visit <= 0) {
+            return [
+                'potential' => 0,
+                'target_visits' => $target->target_visits ?? 0,
+                'incentive_per_visit' => 0,
+            ];
+        }
+
+        $targetVisits = $target->target_visits ?? 0;
+        $incentivePerVisit = $target->incentive_per_visit;
+        $potential = $targetVisits * $incentivePerVisit;
+
+        return [
+            'potential' => $potential,
+            'target_visits' => $targetVisits,
+            'incentive_per_visit' => $incentivePerVisit,
+        ];
+    }
+
+    /**
+     * Get Manager's own target vs achievements
+     */
+    private function getManagerTargetsVsAchievements(User $user)
+    {
+        $currentMonth = Carbon::now()->startOfMonth();
+        
+        $target = Target::where('user_id', $user->id)
+            ->whereYear('target_month', $currentMonth->year)
+            ->whereMonth('target_month', $currentMonth->month)
+            ->first();
+
+        if (!$target) {
+            return [
+                'meetings' => ['target' => 0, 'achieved' => 0, 'percentage' => 0],
+                'visits' => ['target' => 0, 'achieved' => 0, 'percentage' => 0],
+                'closers' => ['target' => 0, 'achieved' => 0, 'percentage' => 0],
+            ];
+        }
+
+        $meetingsProgress = $target->getAchievementProgress('meetings');
+        $visitsProgress = $target->getAchievementProgress('visits');
+        $closersProgress = $target->getAchievementProgress('closers');
+
+        return [
+            'meetings' => $meetingsProgress,
+            'visits' => $visitsProgress,
+            'closers' => $closersProgress,
+        ];
+    }
+
     private function getStats($user)
     {
         $leadQuery = Lead::query();
@@ -64,7 +297,7 @@ class DashboardController extends Controller
         $followUpQuery = FollowUp::query();
 
         // Apply role-based filtering
-        if ($user->isSalesExecutive() || $user->isTelecaller()) {
+        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             $leadIds = Lead::whereHas('activeAssignments', function ($q) use ($user) {
                 $q->where('assigned_to', $user->id);
             })->pluck('id');
@@ -120,7 +353,7 @@ class DashboardController extends Controller
     {
         $query = Lead::with(['creator', 'activeAssignments.assignedTo']);
 
-        if ($user->isSalesExecutive() || $user->isTelecaller()) {
+        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             $query->whereHas('activeAssignments', function ($q) use ($user) {
                 $q->where('assigned_to', $user->id);
             });
@@ -149,7 +382,7 @@ class DashboardController extends Controller
             ->where('status', 'scheduled')
             ->where('scheduled_at', '>=', now());
 
-        if ($user->isSalesExecutive() || $user->isTelecaller()) {
+        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             $query->where('created_by', $user->id);
         } elseif ($user->isSalesHead()) {
             $allTeamMemberIds = $user->getAllTeamMemberIds();
@@ -172,7 +405,7 @@ class DashboardController extends Controller
             ->where('status', 'scheduled')
             ->where('scheduled_at', '>=', now());
 
-        if ($user->isSalesExecutive() || $user->isTelecaller()) {
+        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             $query->where('assigned_to', $user->id);
         } elseif ($user->isSalesHead()) {
             $allTeamMemberIds = $user->getAllTeamMemberIds();

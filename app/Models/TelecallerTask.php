@@ -12,6 +12,7 @@ class TelecallerTask extends Model
 
     protected $fillable = [
         'lead_id',
+        'meeting_id',
         'assigned_to',
         'task_type',
         'status',
@@ -46,14 +47,19 @@ class TelecallerTask extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function meeting(): BelongsTo
+    {
+        return $this->belongsTo(Meeting::class);
+    }
+
     /**
-     * Scope to get overdue tasks (more than 15 minutes old)
+     * Scope to get overdue tasks (more than 10 minutes old)
      */
     public function scopeOverdue($query)
     {
-        $fifteenMinutesAgo = now()->subMinutes(15);
+        $tenMinutesAgo = now()->subMinutes(10);
         return $query->where('status', '!=', 'completed')
-            ->where('scheduled_at', '<', $fifteenMinutesAgo);
+            ->where('scheduled_at', '<', $tenMinutesAgo);
     }
 
     /**

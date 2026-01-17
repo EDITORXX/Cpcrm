@@ -21,9 +21,13 @@ class TelecallerController extends Controller
         $dateRange = $request->get('date_range', 'today');
         $startDate = $request->get('start_date');
         $endDate = $request->get('end_date');
+        $targetMonth = $request->get('target_month', now()->format('Y-m')); // Default to current month
+        $targetFilter = $request->get('target_filter', 'today'); // Default to today
         
         $data = $service->getDashboardData($userId, $dateRange, $startDate, $endDate);
-        return view('telecaller.sections.dashboard', compact('data', 'dateRange', 'startDate', 'endDate'));
+        $cardStats = $service->getDashboardCardStats($userId, $dateRange, $startDate, $endDate, $targetMonth, $targetFilter);
+        
+        return view('telecaller.sections.dashboard', compact('data', 'cardStats', 'dateRange', 'startDate', 'endDate', 'targetMonth', 'targetFilter'));
     }
 
     /**

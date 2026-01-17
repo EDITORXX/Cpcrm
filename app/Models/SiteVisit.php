@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SiteVisit extends Model
 {
@@ -48,6 +49,8 @@ class SiteVisit extends Model
         'tentative_period',
         'lead_type',
         'photos',
+        'visited_projects',
+        'tentative_closing_time',
         'completion_proof_photos',
         'closer_request_proof_photos',
         'is_dead',
@@ -58,8 +61,27 @@ class SiteVisit extends Model
         'rescheduled_at',
         'rescheduled_by',
         'reschedule_reason',
+        // Visit type and reminder fields
+        'visit_type',
+        'visit_sequence',
+        'reminder_enabled',
+        'reminder_minutes',
+        'reminder_task_id',
         'reschedule_count',
         'is_rescheduled',
+        'incentive_amount',
+        // KYC fields for closing
+        'nominee_name',
+        'second_customer_name',
+        'customer_dob',
+        'pan_card',
+        'aadhaar_card_no',
+        'kyc_documents',
+        // Closing verification fields
+        'closing_verification_status',
+        'closing_verified_by',
+        'closing_verified_at',
+        'closing_rejection_reason',
     ];
 
     protected $casts = [
@@ -74,6 +96,9 @@ class SiteVisit extends Model
         'photos' => 'array',
         'completion_proof_photos' => 'array',
         'closer_request_proof_photos' => 'array',
+        'kyc_documents' => 'array',
+        'customer_dob' => 'date',
+        'closing_verified_at' => 'datetime',
         'is_dead' => 'boolean',
         'rescheduled_at' => 'datetime',
         'is_rescheduled' => 'boolean',
@@ -104,9 +129,19 @@ class SiteVisit extends Model
         return $this->belongsTo(User::class, 'closer_verified_by');
     }
 
+    public function closingVerifiedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'closing_verified_by');
+    }
+
     public function rescheduledBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'rescheduled_by');
+    }
+
+    public function incentives(): HasMany
+    {
+        return $this->hasMany(Incentive::class);
     }
 
     /**
@@ -247,6 +282,55 @@ class SiteVisit extends Model
     }
 
     /**
+     * Check if closing is verified by CRM
+     */
+    public function isClosingVerified(): bool
+    {
+        return $this->closing_verification_status === 'verified';
+    }
+
+    /**
+     * Verify closing (CRM only)
+     */
+    public function verifyClosing(int $userId, ?string $notes = null): void
+    {
+        if ($this->closing_verification_status !== 'pending') {
+            throw new \Exception('Closing must be pending before verification.');
+        }
+
+        $this->closing_verification_status = 'verified';
+        $this->closing_verified_at = now();
+        $this->closing_verified_by = $userId;
+        
+        // After closing verification, set closer_status to verified so incentive can be requested
+        $this->closer_status = 'verified';
+        $this->closer_verified_at = now();
+        $this->closer_verified_by = $userId;
+        
+        if ($notes) {
+            $this->visit_notes = ($this->visit_notes ? $this->visit_notes . "\n" : '') . "Closing Verification: " . $notes;
+        }
+        
+        $this->save();
+    }
+
+    /**
+     * Reject closing (CRM only)
+     */
+    public function rejectClosing(int $userId, string $reason): void
+    {
+        if ($this->closing_verification_status !== 'pending') {
+            throw new \Exception('Closing must be pending before rejection.');
+        }
+
+        $this->closing_verification_status = 'rejected';
+        $this->closing_verified_at = now();
+        $this->closing_verified_by = $userId;
+        $this->closing_rejection_reason = $reason;
+        $this->save();
+    }
+
+    /**
      * Mark site visit as dead
      */
     public function markAsDead(int $userId, string $reason): void
@@ -281,6 +365,14 @@ class SiteVisit extends Model
             }
             return asset('storage/' . $photo);
         }, $this->photos);
+    }
+
+    /**
+     * Get the reminder task for this site visit
+     */
+    public function reminderTask(): BelongsTo
+    {
+        return $this->belongsTo(Task::class, 'reminder_task_id');
     }
 }
 

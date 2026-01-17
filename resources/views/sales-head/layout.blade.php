@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Sales Head - Base CRM')</title>
+    <title>@yield('title', 'Associate Director - Base CRM')</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="api-token" content="{{ session('api_token') ?? (auth()->check() ? auth()->user()->createToken('web-token')->plainTextToken : '') }}">
     <meta name="user-id" content="{{ auth()->check() ? auth()->user()->id : '' }}">
@@ -32,6 +32,33 @@
             color: #666;
             transition: all 0.3s;
         }
+        
+        /* Icon-only sidebar (all views) */
+        #sidebar {
+            width: 64px !important;
+        }
+        
+        #sidebar nav {
+            padding: 0 12px !important;
+        }
+        
+        #sidebar h2,
+        #sidebar p {
+            display: none !important;
+        }
+        
+        #sidebar .sidebar-link {
+            justify-content: center;
+            padding: 12px !important;
+            font-size: 0 !important;
+        }
+        
+        #sidebar .sidebar-link i {
+            margin-right: 0 !important;
+            font-size: 18px;
+            width: 20px;
+            text-align: center;
+        }
         .sidebar-link:hover {
             background: #F7F6F3 !important;
             color: #205A44 !important;
@@ -49,10 +76,10 @@
 </head>
 <body>
     <!-- Sidebar -->
-    <aside class="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-sm z-30" style="overflow-y: auto;">
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-sm z-30" style="overflow-y: auto;">
         <div style="padding: 20px; margin-bottom: 30px;">
             <h2 style="font-size: 24px; font-weight: 700; color: #063A1C; margin-bottom: 10px;">Base CRM</h2>
-            <p style="font-size: 12px; color: #B3B5B4;">Sales Head</p>
+            <p style="font-size: 12px; color: #B3B5B4;">Associate Director</p>
         </div>
         <nav style="padding: 0 20px;">
             <a href="{{ route('sales-head.dashboard') }}" class="sidebar-link {{ request()->routeIs('sales-head.dashboard') ? 'active' : '' }}">
@@ -79,12 +106,12 @@
     </aside>
 
     <!-- Main Content -->
-    <div style="margin-left: 256px; min-height: 100vh;">
+    <div style="margin-left: 64px; min-height: 100vh;">
         <div class="container">
             <!-- Header -->
             <div class="header">
                 <div>
-                    <h1 style="font-size: 28px; font-weight: 700; color: #063A1C;">@yield('page-title', 'Sales Head Dashboard')</h1>
+                    <h1 style="font-size: 28px; font-weight: 700; color: #063A1C;">@yield('page-title', 'Associate Director Dashboard')</h1>
                 </div>
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <!-- Date/Time Clock -->

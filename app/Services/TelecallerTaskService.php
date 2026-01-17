@@ -24,7 +24,7 @@ class TelecallerTaskService
             'assigned_to' => $telecaller->id,
             'task_type' => 'calling',
             'status' => 'pending',
-            'scheduled_at' => now()->subMinutes(15), // Set to 15 minutes ago - becomes overdue immediately
+            'scheduled_at' => now()->addMinutes(10), // Set to 10 minutes from now - becomes overdue after 10 min
             'created_by' => $createdBy,
         ]);
 

@@ -7,19 +7,92 @@
 <style>
     #leadsGrid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 1.5rem;
     }
     
+    /* Lead card container - ensure proper sizing */
+    .bg-white.rounded-lg.shadow-md {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        overflow: visible;
+        box-sizing: border-box;
+    }
+    
+    /* Professional Verified Badge Styling - Compact */
+    .verified-badge {
+        position: relative;
+        z-index: 10;
+        white-space: nowrap;
+        letter-spacing: 0.01em;
+        text-transform: uppercase;
+        font-weight: 500;
+        box-shadow: 0 1px 2px rgba(16, 185, 129, 0.15);
+        transition: all 0.2s ease;
+        line-height: 1.2;
+    }
+    
+    .verified-badge:hover {
+        transform: translateY(-0.5px);
+        box-shadow: 0 2px 3px rgba(16, 185, 129, 0.2);
+    }
+    
+    .verified-badge i {
+        filter: drop-shadow(0 0.5px 0.5px rgba(0, 0, 0, 0.1));
+    }
+    
+    /* Button container in cards */
+    .bg-white.rounded-lg.shadow-md .flex.gap-2 {
+        width: 100%;
+        box-sizing: border-box;
+        overflow: visible;
+        margin-top: 1rem;
+    }
+    
+    /* Buttons in lead cards */
+    .bg-white.rounded-lg.shadow-md .flex.gap-2 a,
+    .bg-white.rounded-lg.shadow-md .flex.gap-2 button {
+        flex: 1 1 0;
+        min-width: 0;
+        max-width: calc(50% - 4px);
+        padding: 10px 8px;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        box-sizing: border-box;
+    }
+
     @media (max-width: 1024px) {
         #leadsGrid {
             grid-template-columns: repeat(2, 1fr);
         }
     }
+
+    /* Filters layout - desktop: one line, mobile: stacked */
+    .flex.gap-2 {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .flex.gap-2 input,
+    .flex.gap-2 select {
+        flex: 1;
+        min-width: 0;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
     
     @media (max-width: 768px) {
         #leadsGrid {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(2, 1fr);
             gap: 1rem;
         }
         
@@ -32,14 +105,47 @@
         
         .flex.gap-2 {
             width: 100%;
-            flex-direction: column;
-            gap: 8px;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            gap: 4px;
         }
         
         .flex.gap-2 input,
         .flex.gap-2 select {
-            width: 100%;
-            padding: 10px;
+            padding: 8px 6px;
+            min-width: 0;
+            font-size: 12px;
+            box-sizing: border-box;
+        }
+        
+        .flex.gap-2 {
+            overflow: hidden;
+        }
+        
+        .flex.gap-2 input {
+            width: 25%;
+            flex: 0 0 25%;
+            max-width: 25%;
+        }
+        
+        .flex.gap-2 select:nth-of-type(1) {
+            width: 25%;
+            flex: 0 0 25%;
+            max-width: 25%;
+        }
+        
+        .flex.gap-2 select:nth-of-type(2) {
+            width: 25%;
+            flex: 0 0 25%;
+            max-width: 25%;
+        }
+        
+        .flex.gap-2 button {
+            width: 25%;
+            flex: 0 0 25%;
+            max-width: 25%;
+            padding: 8px 6px;
+            font-size: 12px;
         }
         
         /* Modal responsive */
@@ -59,11 +165,46 @@
             padding: 16px !important;
         }
         
+        /* Ensure buttons don't overflow in cards */
+        .bg-white.rounded-lg.shadow .flex.gap-2 {
+            width: 100%;
+            box-sizing: border-box;
+            overflow: visible;
+        }
+        
+        .bg-white.rounded-lg.shadow .flex.gap-2 a,
+        .bg-white.rounded-lg.shadow .flex.gap-2 button {
+            flex: 1 1 0;
+            min-width: 0;
+            max-width: 50%;
+            padding: 8px 6px;
+            font-size: 11px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Verified badge responsive - even smaller on mobile */
+        .verified-badge {
+            font-size: 9px;
+            padding: 4px 8px;
+        }
+        
+        .verified-badge i {
+            font-size: 8px;
+            margin-right: 3px;
+        }
+        
         /* Pagination responsive */
         #pagination {
             flex-direction: column;
             gap: 12px;
             align-items: center;
+        }
+        
+        /* Hide empty state on mobile */
+        .empty-state-mobile {
+            display: none !important;
         }
     }
 </style>
@@ -72,18 +213,19 @@
 @section('content')
 <div class="bg-white rounded-lg shadow p-6 mb-6">
     <div class="flex items-center justify-between mb-6" style="flex-wrap: wrap; gap: 12px;">
-        <h2 class="text-xl font-bold text-gray-900">Team Leads</h2>
-        <div class="flex gap-2" style="flex-wrap: wrap;">
+        <div class="flex gap-2" style="flex-wrap: nowrap; align-items: center; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden;">
             <input 
                 type="text" 
                 id="searchInput"
                 placeholder="Search leads..." 
                 class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                style="flex: 1; min-width: 0; max-width: 25%; box-sizing: border-box;"
                 onkeyup="handleSearch()"
             >
             <select 
                 id="statusFilter"
                 class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                style="flex: 1; min-width: 0; max-width: 25%; box-sizing: border-box;"
                 onchange="loadLeads()"
             >
                 <option value="">All Status</option>
@@ -101,6 +243,18 @@
                 <option value="dead">Dead</option>
                 <option value="on_hold">On Hold</option>
             </select>
+            <select 
+                id="userFilter"
+                class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                style="flex: 1; min-width: 0; max-width: 25%; box-sizing: border-box;"
+                onchange="loadLeads()"
+            >
+                <option value="">All Users</option>
+                <!-- Options will be populated dynamically -->
+            </select>
+            <button type="button" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 bg-green-600 text-white font-medium hover:bg-green-700" style="flex: 1; min-width: 0; max-width: 25%; box-sizing: border-box; text-align: center; white-space: nowrap;" onclick="openAddLeadModal()">
+                <i class="fas fa-plus mr-1"></i>Lead
+            </button>
         </div>
     </div>
 
@@ -111,7 +265,7 @@
     </div>
 
     <!-- Empty State -->
-    <div id="emptyState" class="text-center py-12" style="display: none;">
+    <div id="emptyState" class="text-center py-12 empty-state-mobile" style="display: none;">
         <i class="fas fa-user-friends text-gray-300 text-6xl mb-4"></i>
         <h3 class="text-xl font-semibold text-gray-700 mb-2">No Leads Found</h3>
         <p class="text-gray-500">No leads match your current filters.</p>
@@ -226,6 +380,52 @@
         </div>
     </div>
 </div>
+
+<!-- Add Lead Modal -->
+<div id="addLeadModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">Add New Lead</h3>
+            <form id="addLeadForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Name <span class="text-red-500">*</span></label>
+                    <input 
+                        type="text" 
+                        id="addLeadName" 
+                        required
+                        placeholder="Enter lead name"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Phone <span class="text-red-500">*</span></label>
+                    <input 
+                        type="tel" 
+                        id="addLeadPhone" 
+                        required
+                        placeholder="Enter phone number"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                </div>
+                <div id="addLeadError" class="text-red-500 text-sm" style="display: none;"></div>
+            </form>
+            <div class="mt-6 flex gap-2">
+                <button 
+                    onclick="closeAddLeadModal()" 
+                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                >
+                    Cancel
+                </button>
+                <button 
+                    onclick="submitAddLead()" 
+                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                >
+                    Add Lead
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -240,6 +440,7 @@
     let allLeads = [];
     let currentLeadId = null;
     let teamMembers = [];
+    let currentUser = null;
 
     // Get auth headers with Bearer token
     function getAuthHeaders() {
@@ -248,6 +449,63 @@
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${API_TOKEN}`,
         };
+    }
+
+    // Load team members for filter
+    async function loadTeamMembers() {
+        try {
+            console.log('Loading team members...');
+            const response = await fetch(`${API_BASE_URL}/sales-manager/profile`, {
+                headers: getAuthHeaders(),
+                credentials: 'same-origin',
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Team members data:', data);
+                currentUser = data.user;
+                teamMembers = data.team_members || [];
+                
+                // Populate user filter dropdown
+                const userFilter = document.getElementById('userFilter');
+                if (userFilter) {
+                    // Clear existing options
+                    userFilter.innerHTML = '<option value="">All Users</option>';
+                    
+                    // Add current user (manager)
+                    if (currentUser && currentUser.id) {
+                        const option = document.createElement('option');
+                        option.value = currentUser.id;
+                        option.textContent = `${currentUser.name} (Me)`;
+                        userFilter.appendChild(option);
+                        console.log('Added current user:', currentUser.name);
+                    }
+                    
+                    // Add team members
+                    if (teamMembers && teamMembers.length > 0) {
+                        teamMembers.forEach(member => {
+                            if (member && member.id && member.name) {
+                                const option = document.createElement('option');
+                                option.value = member.id;
+                                option.textContent = member.name;
+                                userFilter.appendChild(option);
+                                console.log('Added team member:', member.name);
+                            }
+                        });
+                    } else {
+                        console.warn('No team members found in response');
+                    }
+                } else {
+                    console.error('User filter dropdown not found');
+                }
+            } else {
+                console.error('Failed to load team members. Status:', response.status);
+                const errorText = await response.text();
+                console.error('Error response:', errorText);
+            }
+        } catch (error) {
+            console.error('Error loading team members:', error);
+        }
     }
 
     // Load leads
@@ -264,6 +522,7 @@
         try {
             const status = document.getElementById('statusFilter').value;
             const search = document.getElementById('searchInput').value;
+            const assignedTo = document.getElementById('userFilter')?.value || '';
             
             const params = new URLSearchParams({
                 page: page,
@@ -276,6 +535,10 @@
             
             if (search) {
                 params.append('search', search);
+            }
+            
+            if (assignedTo) {
+                params.append('assigned_to', assignedTo);
             }
 
             const response = await fetch(`${API_BASE_URL}/leads?${params}`, {
@@ -328,12 +591,13 @@
         });
 
         card.innerHTML = `
-            <div class="flex items-start justify-between mb-4">
-                <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-1">${lead.name || 'N/A'}</h3>
-                    <p class="text-sm text-gray-500">Assigned to: ${assignedTo}</p>
+            <div class="flex items-start justify-between mb-4" style="gap: 12px;">
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-1 truncate">${lead.name || 'N/A'}</h3>
                 </div>
-                ${statusBadge}
+                <div class="flex-shrink-0">
+                    ${statusBadge}
+                </div>
             </div>
             
             <div class="space-y-2">
@@ -365,20 +629,22 @@
                 </div>
             </div>
 
-            <div class="flex gap-2 mt-4">
+            <div class="flex gap-2 mt-4" style="width: 100%; box-sizing: border-box;">
                 <a 
                     href="/leads/${lead.id}" 
-                    class="flex-1 flex items-center justify-center px-3 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-all duration-200 font-medium text-xs shadow-md"
+                    class="flex-1 flex items-center justify-center px-2 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-all duration-200 font-medium text-xs shadow-md min-w-0 overflow-hidden"
+                    style="flex: 1 1 0; min-width: 0; max-width: 50%;"
                 >
-                    <i class="fas fa-eye mr-1.5"></i>
-                    <span>View Detail</span>
+                    <i class="fas fa-eye mr-1.5 flex-shrink-0"></i>
+                    <span class="truncate">View Detail</span>
                 </a>
                 <button 
                     onclick="viewShortDetails(${lead.id})" 
-                    class="flex-1 flex items-center justify-center px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-medium text-xs shadow-md"
+                    class="flex-1 flex items-center justify-center px-2 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-medium text-xs shadow-md min-w-0 overflow-hidden"
+                    style="flex: 1 1 0; min-width: 0; max-width: 50%;"
                 >
-                    <i class="fas fa-info-circle mr-1.5"></i>
-                    <span>Short Detail</span>
+                    <i class="fas fa-info-circle mr-1.5 flex-shrink-0"></i>
+                    <span class="truncate">Short Detail</span>
                 </button>
             </div>
         </div>
@@ -497,7 +763,7 @@
             'new': '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">New</span>',
             'contacted': '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Contacted</span>',
             'connected': '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Connected</span>',
-            'verified_prospect': '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">Verified Prospect</span>',
+            'verified_prospect': '<span class="verified-badge inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-sm border border-emerald-400/30"><i class="fas fa-check-circle mr-1 text-[9px]"></i>Verified</span>',
             'meeting_scheduled': '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">Meeting Scheduled</span>',
             'meeting_completed': '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-cyan-100 text-cyan-800">Meeting Completed</span>',
             'visit_scheduled': '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-violet-100 text-violet-800">Visit Scheduled</span>',
@@ -565,21 +831,6 @@
         }
     }
 
-    // Load team members
-    async function loadTeamMembers() {
-        try {
-            const response = await fetch(`${SALES_MANAGER_API_URL}/profile`, {
-                headers: getAuthHeaders(),
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                teamMembers = data.team_members || [];
-            }
-        } catch (error) {
-            console.error('Error loading team members:', error);
-        }
-    }
 
     // Open Edit Lead Modal
     async function openEditLeadModal(leadId) {
@@ -1147,6 +1398,83 @@
         }, 500);
     }
 
+    // Open Add Lead Modal
+    function openAddLeadModal() {
+        const modal = document.getElementById('addLeadModal');
+        const form = document.getElementById('addLeadForm');
+        const errorDiv = document.getElementById('addLeadError');
+        
+        // Reset form
+        form.reset();
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+        
+        modal.classList.remove('hidden');
+    }
+
+    // Close Add Lead Modal
+    function closeAddLeadModal() {
+        const modal = document.getElementById('addLeadModal');
+        const form = document.getElementById('addLeadForm');
+        const errorDiv = document.getElementById('addLeadError');
+        
+        modal.classList.add('hidden');
+        form.reset();
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+    }
+
+    // Submit Add Lead
+    async function submitAddLead() {
+        const form = document.getElementById('addLeadForm');
+        const errorDiv = document.getElementById('addLeadError');
+        const nameInput = document.getElementById('addLeadName');
+        const phoneInput = document.getElementById('addLeadPhone');
+        
+        // Reset error
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+        
+        // Validate form
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        const leadData = {
+            name: nameInput.value.trim(),
+            phone: phoneInput.value.trim(),
+        };
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/leads`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(leadData),
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                if (typeof showNotification === 'function') {
+                    showNotification('Lead added successfully!', 'success', 3000);
+                } else {
+                    alert('Lead added successfully!');
+                }
+                closeAddLeadModal();
+                loadLeads(1); // Reload leads list
+            } else {
+                const errorMsg = data.message || (data.errors ? JSON.stringify(data.errors) : 'Failed to add lead');
+                errorDiv.textContent = typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg);
+                errorDiv.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Error adding lead:', error);
+            errorDiv.textContent = 'Failed to add lead. Please try again.';
+            errorDiv.style.display = 'block';
+        }
+    }
+
     // View short details modal
     async function viewShortDetails(leadId) {
         const modal = document.getElementById('shortDetailsModal');
@@ -1236,6 +1564,19 @@
                             <p class="mt-1 text-sm text-gray-900">${lead.notes}</p>
                         </div>
                     ` : ''}
+                    ${lead.form_fields && Object.keys(lead.form_fields).length > 0 ? `
+                        <div class="pt-4 border-t">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Form Data</h4>
+                            <div class="grid grid-cols-2 gap-4">
+                                ${Object.entries(lead.form_fields).map(([key, value]) => `
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-500">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</label>
+                                        <p class="mt-1 text-sm text-gray-900">${value || 'N/A'}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
                     <div class="pt-4 border-t">
                         <a href="/leads/${leadId}" class="block w-full text-center px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 text-sm font-medium">
                             View Full Details
@@ -1275,8 +1616,9 @@
 
     // Load leads on page load
     document.addEventListener('DOMContentLoaded', function() {
-        loadLeads();
-        loadTeamMembers();
+        loadTeamMembers().then(() => {
+            loadLeads();
+        });
     });
 </script>
 @endpush

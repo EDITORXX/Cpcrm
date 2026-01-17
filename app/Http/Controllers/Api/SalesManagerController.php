@@ -166,30 +166,30 @@ class SalesManagerController extends Controller
         
         // Get pending tasks count for this sales manager
         // Use same logic as getTasks when status filter is "pending" or "all"
-        // Include both pending tasks and overdue tasks (scheduled more than 15 minutes ago)
-        $fifteenMinutesAgo = now()->subMinutes(15);
+        // Include both pending tasks and overdue tasks (scheduled more than 10 minutes ago)
+        $tenMinutesAgo = now()->subMinutes(10);
         $tenMinutesFromNow = now()->addMinutes(10);
-        
+
         $pendingTasksQuery = Task::where('assigned_to', $user->id)
             ->where('type', 'phone_call')
             ->whereIn('status', ['pending', 'in_progress'])
-            ->where(function($q) use ($fifteenMinutesAgo, $tenMinutesFromNow) {
+            ->where(function($q) use ($tenMinutesAgo, $tenMinutesFromNow) {
                 // Include:
-                // 1. Overdue tasks (scheduled more than 15 minutes ago)
+                // 1. Overdue tasks (scheduled more than 10 minutes ago)
                 // 2. Normal pending tasks (not CNP, not overdue)
                 // 3. CNP tasks scheduled within 10 minutes
-                $q->where(function($overdueQ) use ($fifteenMinutesAgo) {
-                    // Overdue tasks: scheduled_at < 15 minutes ago
-                    $overdueQ->where('scheduled_at', '<', $fifteenMinutesAgo);
+                $q->where(function($overdueQ) use ($tenMinutesAgo) {
+                    // Overdue tasks: scheduled_at < 10 minutes ago
+                    $overdueQ->where('scheduled_at', '<', $tenMinutesAgo);
                 })
-                ->orWhere(function($normalQ) use ($fifteenMinutesAgo) {
+                ->orWhere(function($normalQ) use ($tenMinutesAgo) {
                     // Normal pending tasks (not CNP, not overdue)
                     $normalQ->where('notes', 'not like', '%CNP retry task created%')
                             ->where('title', 'not like', '%CNP rescheduled%')
                             ->where('description', 'not like', '%previous call not picked%')
-                            ->where('scheduled_at', '>=', $fifteenMinutesAgo); // Not overdue (within last 15 min or future)
+                            ->where('scheduled_at', '>=', $tenMinutesAgo); // Not overdue (within last 10 min or future)
                 })
-                ->orWhere(function($cnpQ) use ($tenMinutesFromNow, $fifteenMinutesAgo) {
+                ->orWhere(function($cnpQ) use ($tenMinutesFromNow, $tenMinutesAgo) {
                     // CNP tasks scheduled within 10 minutes (and not overdue)
                     $cnpQ->where(function($cnpMarkers) {
                         $cnpMarkers->where('notes', 'like', '%CNP retry task created%')
@@ -197,7 +197,7 @@ class SalesManagerController extends Controller
                                    ->orWhere('description', 'like', '%previous call not picked%');
                     })
                     ->where('scheduled_at', '<=', $tenMinutesFromNow)
-                    ->where('scheduled_at', '>=', $fifteenMinutesAgo); // Not overdue
+                    ->where('scheduled_at', '>=', $tenMinutesAgo); // Not overdue
                 });
             });
         
@@ -221,13 +221,13 @@ class SalesManagerController extends Controller
         
         $pendingTasksCount = $deduplicatedPendingTasks->count();
         
-        // Get overdue tasks count (scheduled more than 15 minutes ago)
+        // Get overdue tasks count (scheduled more than 10 minutes ago)
         $overdueTasksCount = Task::where('assigned_to', $user->id)
             ->where('type', 'phone_call')
             ->whereIn('status', ['pending', 'in_progress'])
-            ->where('scheduled_at', '<', $fifteenMinutesAgo)
+            ->where('scheduled_at', '<', $tenMinutesAgo)
             ->count();
-        
+
         // Log for debugging
         \Log::info('Sales Manager pending tasks count', [
             'user_id' => $user->id,
@@ -235,7 +235,7 @@ class SalesManagerController extends Controller
             'overdue_tasks_count' => $overdueTasksCount,
             'tasks_before_dedup' => $allPendingTasks->count(),
             'tasks_after_dedup' => $pendingTasksCount,
-            'fifteen_minutes_ago' => $fifteenMinutesAgo->format('Y-m-d H:i:s'),
+            'ten_minutes_ago' => $tenMinutesAgo->format('Y-m-d H:i:s'),
         ]);
         
         // Get team stats
@@ -632,8 +632,7 @@ class SalesManagerController extends Controller
         // Get base query for counts (before search filter)
         $baseQuery = clone $query;
         
-        // Filter by verification status - only if not "all"
-        // When status is "all" or not provided, show ALL prospects regardless of verification_status
+        // Filter by verification status
         if ($request->has('verification_status') && $request->verification_status !== 'all' && $request->verification_status !== '') {
             $status = $request->verification_status;
             // Map frontend values to database values
@@ -647,8 +646,10 @@ class SalesManagerController extends Controller
                 // For any other status, use exact match
                 $query->where('verification_status', $status);
             }
+        } else {
+            // When status is "all" or not provided, exclude rejected prospects
+            $query->where('verification_status', '!=', 'rejected');
         }
-        // If status is "all" or not provided, don't filter by verification_status - show all
         
         // Search filter
         if ($request->has('search') && $request->search) {
@@ -657,6 +658,16 @@ class SalesManagerController extends Controller
                 $q->where('customer_name', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%")
                   ->orWhere('preferred_location', 'like', "%{$search}%");
+            });
+        }
+        
+        // Filter by assigned user (telecaller_id or manager_id)
+        if ($request->has('assigned_to') && $request->assigned_to) {
+            $assignedToId = $request->assigned_to;
+            $query->where(function($q) use ($assignedToId) {
+                $q->where('telecaller_id', $assignedToId)
+                  ->orWhere('manager_id', $assignedToId)
+                  ->orWhere('assigned_manager', $assignedToId);
             });
         }
         
@@ -681,8 +692,9 @@ class SalesManagerController extends Controller
         // Calculate counts for status filters (without search filter)
         // Note: Database uses 'pending' but frontend expects 'pending_verification'
         // Database uses 'approved' but frontend expects 'verified'
+        // "all" count excludes rejected prospects
         $counts = [
-            'all' => (clone $baseQuery)->count(),
+            'all' => (clone $baseQuery)->where('verification_status', '!=', 'rejected')->count(),
             'pending_verification' => (clone $baseQuery)->whereIn('verification_status', ['pending', 'pending_verification'])->count(),
             'verified' => (clone $baseQuery)->whereIn('verification_status', ['verified', 'approved'])->count(),
             'rejected' => (clone $baseQuery)->where('verification_status', 'rejected')->count(),
@@ -765,6 +777,7 @@ class SalesManagerController extends Controller
                 'user_email' => $user->email,
                 'user_name' => $user->name,
                 'status_filter' => $request->input('status', 'all'),
+                'category_filter' => $request->input('category', 'all'),
             ]);
             
             // Query Tasks assigned to this user (using Task model for manager verification tasks)
@@ -780,6 +793,10 @@ class SalesManagerController extends Controller
                 'total_tasks' => $totalTasksBeforeFilter,
             ]);
 
+            // Get date filter first to check if it's applied
+            $dateFilter = $request->input('date_filter');
+            $hasDateFilter = $dateFilter && $dateFilter !== 'all';
+
             // Filter by status - only if explicitly provided and not 'all'
             $statusFilter = $request->input('status');
             if ($statusFilter && $statusFilter !== 'all' && $statusFilter !== '') {
@@ -790,9 +807,9 @@ class SalesManagerController extends Controller
                 
                 if ($statusFilter === 'rescheduled') {
                     // Rescheduled: Show CNP tasks scheduled more than 10 minutes in the future
-                    // Exclude overdue tasks (more than 15 minutes old)
+                    // Exclude overdue tasks (more than 10 minutes old)
                     $tenMinutesFromNow = now()->addMinutes(10);
-                    $fifteenMinutesAgo = now()->subMinutes(15);
+                    $tenMinutesAgo = now()->subMinutes(10);
                     
                     // Identify CNP tasks by markers in notes/title/description
                     $query->where(function($q) {
@@ -802,40 +819,73 @@ class SalesManagerController extends Controller
                     })
                     ->where('status', 'pending') // Only pending CNP tasks
                     ->where('scheduled_at', '>', $tenMinutesFromNow) // More than 10 minutes in future
-                    ->where('scheduled_at', '>', $fifteenMinutesAgo); // Must be within last 15 minutes or future (not overdue)
+                    ->where('scheduled_at', '>', $tenMinutesAgo); // Must be within last 10 minutes or future (not overdue)
                 } elseif ($statusFilter === 'pending') {
                     // Pending: Show normal pending tasks + CNP tasks scheduled within 10 minutes
-                    // Exclude overdue tasks (more than 15 minutes old) and rescheduled CNP tasks
-                    $tenMinutesFromNow = now()->addMinutes(10);
-                    $fifteenMinutesAgo = now()->subMinutes(15);
+                    // Exclude overdue tasks (more than 10 minutes old) and rescheduled CNP tasks
+                    $query->where('status', 'pending');
                     
-                    $query->where('status', 'pending')
-                        ->where('scheduled_at', '>=', $fifteenMinutesAgo) // Not overdue (within last 15 minutes or future)
-                        ->where(function($q) use ($tenMinutesFromNow) {
-                            // Normal pending tasks (not CNP)
-                            $q->where(function($notCnpQ) {
-                                $notCnpQ->where('notes', 'not like', '%CNP retry task created%')
-                                        ->where('title', 'not like', '%CNP rescheduled%')
-                                        ->where('description', 'not like', '%previous call not picked%');
-                            })
-                            // OR CNP tasks scheduled within 10 minutes (auto-moved to pending)
-                            ->orWhere(function($cnpQ) use ($tenMinutesFromNow) {
-                                $cnpQ->where(function($cnpMarkers) {
-                                    $cnpMarkers->where('notes', 'like', '%CNP retry task created%')
-                                               ->orWhere('title', 'like', '%CNP rescheduled%')
-                                               ->orWhere('description', 'like', '%previous call not picked%');
+                    if ($hasDateFilter) {
+                        // When date filter is applied, show all pending tasks for that date range
+                        // Don't apply the 10-minute restriction - let date filter handle the range
+                        // Date filter will be applied below
+                    } else {
+                        // No date filter: Use existing logic (10-minute window for CNP tasks)
+                        $tenMinutesFromNow = now()->addMinutes(10);
+                        $tenMinutesAgo = now()->subMinutes(10);
+                        
+                        $query->where('scheduled_at', '>=', $tenMinutesAgo) // Not overdue (within last 10 minutes or future)
+                            ->where(function($q) use ($tenMinutesFromNow) {
+                                // Normal pending tasks (not CNP)
+                                $q->where(function($notCnpQ) {
+                                    $notCnpQ->where('notes', 'not like', '%CNP retry task created%')
+                                            ->where('title', 'not like', '%CNP rescheduled%')
+                                            ->where('description', 'not like', '%previous call not picked%');
                                 })
-                                ->where('scheduled_at', '<=', $tenMinutesFromNow);
+                                // OR CNP tasks scheduled within 10 minutes (auto-moved to pending)
+                                ->orWhere(function($cnpQ) use ($tenMinutesFromNow) {
+                                    $cnpQ->where(function($cnpMarkers) {
+                                        $cnpMarkers->where('notes', 'like', '%CNP retry task created%')
+                                                   ->orWhere('title', 'like', '%CNP rescheduled%')
+                                                   ->orWhere('description', 'like', '%previous call not picked%');
+                                    })
+                                    ->where('scheduled_at', '<=', $tenMinutesFromNow);
+                                });
                             });
-                        });
+                    }
                 } elseif ($statusFilter === 'overdue') {
-                    // Overdue: Tasks scheduled more than 15 minutes ago with pending/in_progress status
-                    $fifteenMinutesAgo = now()->subMinutes(15);
+                    // Overdue: Tasks scheduled more than 10 minutes ago with pending/in_progress status
+                    $tenMinutesAgo = now()->subMinutes(10);
                     $query->whereIn('status', ['pending', 'in_progress'])
-                          ->where('scheduled_at', '<', $fifteenMinutesAgo);
+                          ->where('scheduled_at', '<', $tenMinutesAgo);
                 } else {
                     // Other status filters (completed, in_progress, etc.) - use standard filter
                     $query->where('status', $statusFilter);
+                }
+            }
+
+            // Date filter - works in combination with status filter
+            // For pending tasks with date filter, show all pending tasks for that date range
+            if ($dateFilter && $dateFilter !== 'all') {
+                if ($dateFilter === 'today') {
+                    $query->whereDate('scheduled_at', Carbon::today());
+                } elseif ($dateFilter === 'tomorrow') {
+                    $query->whereDate('scheduled_at', Carbon::tomorrow());
+                } elseif ($dateFilter === 'this_week') {
+                    $query->whereBetween('scheduled_at', [
+                        Carbon::now()->startOfWeek(),
+                        Carbon::now()->endOfWeek()
+                    ]);
+                } elseif ($dateFilter === 'this_month') {
+                    $query->whereBetween('scheduled_at', [
+                        Carbon::now()->startOfMonth(),
+                        Carbon::now()->endOfMonth()
+                    ]);
+                } elseif ($dateFilter === 'custom' && $request->has('custom_date')) {
+                    $customDate = $request->input('custom_date');
+                    if ($customDate) {
+                        $query->whereDate('scheduled_at', $customDate);
+                    }
                 }
             }
 
@@ -902,6 +952,9 @@ class SalesManagerController extends Controller
                 'phone_call_tasks' => $phoneCallTasks,
             ]);
 
+            $categoryFilter = $request->input('category');
+            $normalizedCategoryFilter = $categoryFilter ? strtolower(trim($categoryFilter)) : null;
+
             // Transform tasks to array format for JSON response (using deduplicated tasks)
             $tasksArray = [];
             foreach ($deduplicatedTasks as $task) {
@@ -936,11 +989,36 @@ class SalesManagerController extends Controller
                     }
                 }
                 
+                $taskText = strtolower(trim(
+                    ($task->title ?? '') . ' ' .
+                    ($task->description ?? '') . ' ' .
+                    ($task->notes ?? '')
+                ));
+                $isCloserTask = str_contains($taskText, 'closer');
+                $isSiteVisitTask = str_contains($taskText, 'site visit') || str_contains($taskText, 'site-visit');
+                $isMeetingTask = str_contains($taskText, 'meeting id') ||
+                                 str_contains($taskText, 'pre-meeting') ||
+                                 (str_contains($taskText, 'meeting') && !$isSiteVisitTask);
+                $isProspectTask = $hasProspect ||
+                                  str_contains($taskText, 'prospect verification') ||
+                                  str_contains($taskText, 'prospect');
+                $taskCategory = 'other';
+                if ($isCloserTask) {
+                    $taskCategory = 'closer';
+                } elseif ($isSiteVisitTask) {
+                    $taskCategory = 'site_visit';
+                } elseif ($isMeetingTask) {
+                    $taskCategory = 'meeting';
+                } elseif ($isProspectTask) {
+                    $taskCategory = 'prospect';
+                }
+
                 $taskData = [
                     'id' => $task->id,
                     'lead_id' => $task->lead_id,
                     'assigned_to' => $task->assigned_to,
                     'type' => $task->type,
+                    'category' => $taskCategory,
                     'title' => $task->title,
                     'description' => $task->description,
                     'status' => $task->status,
@@ -968,6 +1046,12 @@ class SalesManagerController extends Controller
                 ];
                 
                 $tasksArray[] = $taskData;
+            }
+
+            if ($normalizedCategoryFilter && $normalizedCategoryFilter !== 'all') {
+                $tasksArray = array_values(array_filter($tasksArray, function ($task) use ($normalizedCategoryFilter) {
+                    return isset($task['category']) && $task['category'] === $normalizedCategoryFilter;
+                }));
             }
 
             // Log response structure for debugging
@@ -1025,7 +1109,7 @@ class SalesManagerController extends Controller
             ], 403);
         }
 
-        $task->load(['lead.prospects', 'assignedTo', 'creator']);
+        $task->load(['lead.prospects', 'lead.formFieldValues', 'assignedTo', 'creator']);
         $task->is_overdue = $task->isOverdue();
         $task->scheduled_at_formatted = $task->scheduled_at ? $task->scheduled_at->format('Y-m-d H:i:s') : null;
 
@@ -1036,6 +1120,9 @@ class SalesManagerController extends Controller
                 $task->lead->lead_status = $prospect->lead_status ?? null;
                 $task->prospect = $prospect;
             }
+            
+            // Add form fields to lead
+            $task->lead->form_fields = $task->lead->getFormFieldsArray();
         }
 
         return response()->json([
@@ -1076,7 +1163,13 @@ class SalesManagerController extends Controller
             'lead_status' => 'required|in:hot,warm,cold,junk',
             'manager_remark' => 'nullable|string',
             'interested_projects' => 'required_if:action,verify|array|min:1',
-            'interested_projects.*' => 'exists:interested_project_names,id',
+            'interested_projects.*' => function ($attribute, $value, $fail) {
+                // Allow both integer IDs and objects with name and is_custom
+                if (is_int($value) || (is_array($value) && isset($value['name']) && isset($value['is_custom']))) {
+                    return;
+                }
+                $fail('The ' . $attribute . ' must be either a project ID or a custom project object.');
+            },
         ]);
 
         DB::beginTransaction();
@@ -1133,9 +1226,35 @@ class SalesManagerController extends Controller
                     $prospect = Prospect::create($prospectData);
                 }
                 
-                // Sync interested projects
+                // Sync interested projects (handle both IDs and custom project names)
                 if ($prospect && $request->has('interested_projects')) {
-                    $prospect->interestedProjects()->sync($request->input('interested_projects'));
+                    $interestedProjects = $request->input('interested_projects');
+                    $projectIds = [];
+                    
+                    foreach ($interestedProjects as $project) {
+                        if (is_int($project) || is_numeric($project)) {
+                            // It's an ID
+                            $projectIds[] = (int)$project;
+                        } elseif (is_array($project) && isset($project['name']) && isset($project['is_custom']) && $project['is_custom']) {
+                            // It's a custom project - create or find it in the database
+                            $projectName = trim($project['name']);
+                            if ($projectName) {
+                                $projectModel = \App\Models\InterestedProjectName::firstOrCreate(
+                                    ['name' => $projectName],
+                                    [
+                                        'slug' => \Illuminate\Support\Str::slug($projectName),
+                                        'is_active' => true,
+                                        'created_by' => $user->id,
+                                    ]
+                                );
+                                $projectIds[] = $projectModel->id;
+                            }
+                        }
+                    }
+                    
+                    if (!empty($projectIds)) {
+                        $prospect->interestedProjects()->sync($projectIds);
+                    }
                 }
             } else { // reject
                 $prospectData['verification_status'] = 'rejected';
@@ -1213,33 +1332,130 @@ class SalesManagerController extends Controller
             // Load form field values
             $lead->load('formFieldValues');
             
-            // Get existing field values
+            // Get existing field values from LeadFormFieldValue table (primary source)
             $existingValues = $lead->getFormFieldsArray();
             
+            // If prospect exists, merge values from Prospect model
+            // This ensures telecaller's filled values are pre-populated even if LeadFormFieldValue is empty
+            if ($prospect) {
+                // Map Prospect purpose back to form format
+                // Prospect stores: 'end_user' or 'investment'
+                // Form needs: 'End Use', 'Short Term Investment', 'Long Term Investment', 'Rental Income', 'Investment + End Use', 'N.A'
+                $prospectPurpose = $prospect->purpose;
+                $mappedPurpose = null;
+                
+                // Only map if purpose is not already set in LeadFormFieldValue
+                if (!isset($existingValues['purpose']) && $prospectPurpose) {
+                    if ($prospectPurpose === 'end_user') {
+                        $mappedPurpose = 'End Use';
+                    } elseif ($prospectPurpose === 'investment') {
+                        // For investment, we can't determine the specific type from Prospect model
+                        // Use 'Short Term Investment' as default fallback
+                        // The actual value should ideally be in LeadFormFieldValue
+                        $mappedPurpose = 'Short Term Investment';
+                    }
+                    
+                    if ($mappedPurpose) {
+                        $existingValues['purpose'] = $mappedPurpose;
+                    }
+                }
+                
+                // Merge Prospect values into existingValues (only if not already set in LeadFormFieldValue)
+                // This ensures LeadFormFieldValue takes priority
+                if (!isset($existingValues['preferred_location']) && $prospect->preferred_location) {
+                    $existingValues['preferred_location'] = $prospect->preferred_location;
+                }
+                
+                if (!isset($existingValues['possession']) && $prospect->possession) {
+                    $existingValues['possession'] = $prospect->possession;
+                }
+                
+                if (!isset($existingValues['budget']) && $prospect->budget) {
+                    $existingValues['budget'] = $prospect->budget;
+                }
+                
+                // Note: category and type are NOT stored in Prospect model, only in LeadFormFieldValue
+                // So they should already be in existingValues if telecaller filled them
+            }
+            
             // Get ALL active fields for manager (manager can see all fields)
+            // First try with visibleToRole scope
             $visibleFields = LeadFormField::active()
-                ->visibleToRole('sales_manager') // This returns all active fields for manager
+                ->visibleToRole('sales_manager')
                 ->orderBy('display_order')
-                ->get()
-                ->map(function($field) {
-                    return [
-                        'key' => $field->field_key,
-                        'label' => $field->field_label,
-                        'type' => $field->field_type,
-                        'required' => $field->is_required,
-                        'options' => $field->options ?? [],
-                        'dependent_field' => $field->dependent_field,
-                        'dependent_conditions' => $field->dependent_conditions,
-                        'placeholder' => $field->placeholder,
-                        'help_text' => $field->help_text,
-                        'display_order' => $field->display_order,
+                ->get();
+            
+            // If no fields found, try getting all active fields regardless of level
+            // This is a fallback in case the scope is too restrictive
+            if ($visibleFields->isEmpty()) {
+                \Log::warning('No fields found with visibleToRole scope, trying all active fields', [
+                    'task_id' => $task->id,
+                    'lead_id' => $lead->id,
+                ]);
+                $visibleFields = LeadFormField::active()
+                    ->orderBy('display_order')
+                    ->get();
+            }
+            
+            // If still empty, return default fields based on FormDetectionService
+            if ($visibleFields->isEmpty()) {
+                \Log::warning('No LeadFormField records found, using default fields from FormDetectionService', [
+                    'task_id' => $task->id,
+                    'lead_id' => $lead->id,
+                ]);
+                
+                // Get default fields from FormDetectionService
+                $formDetectionService = app(\App\Services\FormDetectionService::class);
+                $defaultFields = $formDetectionService->getFieldDefinitions('prospect', 'prospect-details');
+                
+                // Filter out Basic Information fields (name, phone, email) as they're already in the form
+                // Only include fields that should be in Lead Requirements section
+                $defaultFields = array_filter($defaultFields, function($field) {
+                    $basicInfoFields = ['customer_name', 'name', 'phone', 'email'];
+                    return !in_array($field['field_key'], $basicInfoFields);
+                });
+                
+                // Convert to the expected format
+                $visibleFields = collect($defaultFields)->map(function($field) {
+                    return (object)[
+                        'field_key' => $field['field_key'],
+                        'field_label' => $field['label'],
+                        'field_type' => $field['field_type'],
+                        'is_required' => $field['required'] ?? false,
+                        'options' => $field['options'] ?? [],
+                        'dependent_field' => $field['dependent_field'] ?? null,
+                        'dependent_conditions' => $field['dependent_conditions'] ?? null,
+                        'placeholder' => $field['placeholder'] ?? '',
+                        'help_text' => $field['help_text'] ?? '',
+                        'display_order' => $field['order'] ?? 0,
                     ];
                 });
+            }
+            
+            $mappedFields = $visibleFields->map(function($field) {
+                return [
+                    'key' => $field->field_key,
+                    'field_key' => $field->field_key,
+                    'label' => $field->field_label,
+                    'field_label' => $field->field_label,
+                    'type' => $field->field_type,
+                    'field_type' => $field->field_type,
+                    'required' => $field->is_required,
+                    'is_required' => $field->is_required,
+                    'options' => is_array($field->options) ? $field->options : (is_string($field->options) ? json_decode($field->options, true) ?? [] : []),
+                    'dependent_field' => $field->dependent_field,
+                    'dependent_conditions' => $field->dependent_conditions,
+                    'placeholder' => $field->placeholder,
+                    'help_text' => $field->help_text,
+                    'display_order' => $field->display_order,
+                ];
+            });
             
             \Log::info('Manager lead requirement form retrieved', [
                 'task_id' => $task->id,
                 'lead_id' => $lead->id,
-                'fields_count' => $visibleFields->count(),
+                'fields_count' => $mappedFields->count(),
+                'field_keys' => $mappedFields->pluck('key')->toArray(),
                 'prospect_id' => $prospect?->id,
                 'has_prospect' => $hasProspect,
             ]);
@@ -1255,7 +1471,7 @@ class SalesManagerController extends Controller
                 'prospect_status' => $prospect?->verification_status,
                 'has_prospect' => $hasProspect, // Flag to determine if this is a prospect or direct lead
                 'form_values' => $existingValues,
-                'form_fields' => $visibleFields,
+                'form_fields' => $mappedFields->values()->all(), // Use mappedFields and ensure it's an array
             ]);
         } catch (\Exception $e) {
             \Log::error('Get Lead Requirement Form Error', [
@@ -1313,8 +1529,14 @@ class SalesManagerController extends Controller
                 'lead_quality' => 'required|integer|between:1,5',
                 'follow_up_required' => 'nullable|boolean',
                 'follow_up_date' => 'nullable|required_if:follow_up_required,1|date',
-                'interested_projects' => 'required|array|min:1',
-                'interested_projects.*' => 'exists:interested_project_names,id', // This table exists based on InterestedProjectName model
+            'interested_projects' => 'required|array|min:1',
+            'interested_projects.*' => function ($attribute, $value, $fail) {
+                // Allow both integer IDs and objects with name and is_custom
+                if (is_int($value) || (is_array($value) && isset($value['name']) && isset($value['is_custom']))) {
+                    return;
+                }
+                $fail('The ' . $attribute . ' must be either a project ID or a custom project object.');
+            },
             ];
             
             // Get all fields for manager (for dynamic validation)
@@ -1417,6 +1639,7 @@ class SalesManagerController extends Controller
                 // Handle follow_up_required checkbox value (can be '1', '0', true, false, or 'true', 'false')
                 $followUpRequiredValue = $request->input('follow_up_required', '0');
                 $isFollowUpRequired = in_array($followUpRequiredValue, ['1', 'true', true, 1], true);
+                $isFollowUp = $isFollowUpRequired; // Alias for consistency with other parts of the code
                 
                 // Update prospect - different logic for Follow Up Required vs normal verification
                 if ($isFollowUpRequired) {
@@ -1475,6 +1698,42 @@ class SalesManagerController extends Controller
                         'follow_up_date' => $followUpDate->format('Y-m-d H:i'),
                         'lead_quality' => $leadQuality,
                     ]);
+                    
+                    // Check if telecaller task should also be created
+                    $createTelecallerTaskValue = $request->input('create_telecaller_task', false);
+                    $createTelecallerTask = in_array($createTelecallerTaskValue, ['1', 'true', true, 1], true);
+                    
+                    if ($createTelecallerTask) {
+                        // Get telecaller from prospect
+                        $telecallerId = $prospect->telecaller_id ?? $prospect->created_by;
+                        
+                        if ($telecallerId) {
+                            $telecaller = User::find($telecallerId);
+                            
+                            if ($telecaller) {
+                                // Create TelecallerTask for telecaller
+                                $telecallerTaskService = app(\App\Services\TelecallerTaskService::class);
+                                $telecallerTask = $telecallerTaskService->createCallingTask(
+                                    $lead,
+                                    $telecaller,
+                                    $user->id // Created by manager
+                                );
+                                
+                                // Update scheduled_at to match follow-up date
+                                $telecallerTask->update([
+                                    'scheduled_at' => $followUpDate,
+                                    'notes' => "Follow-up calling task created by manager. Scheduled for {$followUpDate->format('Y-m-d H:i')}."
+                                ]);
+                                
+                                \Log::info('Follow-up telecaller task created', [
+                                    'telecaller_task_id' => $telecallerTask->id,
+                                    'telecaller_id' => $telecallerId,
+                                    'lead_id' => $lead->id,
+                                    'follow_up_date' => $followUpDate->format('Y-m-d H:i'),
+                                ]);
+                            }
+                        }
+                    }
                 } else {
                     // For normal verification (no follow-up): Verify prospect normally
                     $prospect->update([
@@ -1494,9 +1753,131 @@ class SalesManagerController extends Controller
                     ]);
                 }
                 
-                // Sync interested projects
+                // Sync interested projects (handle both IDs and custom project names)
                 if ($request->has('interested_projects')) {
-                    $prospect->interestedProjects()->sync($request->input('interested_projects'));
+                    $interestedProjects = $request->input('interested_projects');
+                    $projectIds = [];
+                    
+                    foreach ($interestedProjects as $project) {
+                        if (is_int($project) || is_numeric($project)) {
+                            // It's an ID
+                            $projectIds[] = (int)$project;
+                        } elseif (is_array($project) && isset($project['name']) && isset($project['is_custom']) && $project['is_custom']) {
+                            // It's a custom project - create or find it in the database
+                            $projectName = trim($project['name']);
+                            if ($projectName) {
+                                $projectModel = \App\Models\InterestedProjectName::firstOrCreate(
+                                    ['name' => $projectName],
+                                    [
+                                        'slug' => \Illuminate\Support\Str::slug($projectName),
+                                        'is_active' => true,
+                                        'created_by' => $user->id,
+                                    ]
+                                );
+                                $projectIds[] = $projectModel->id;
+                            }
+                        }
+                    }
+                    
+                    if (!empty($projectIds)) {
+                        $prospect->interestedProjects()->sync($projectIds);
+                    }
+                }
+                
+                // After verification, ensure lead is created/updated and status is set correctly
+                if (!$isFollowUpRequired) {
+                    // Ensure prospect status is saved as verified (double-check)
+                    if ($prospect->verification_status !== 'verified') {
+                        $prospect->verification_status = 'verified';
+                        $prospect->verified_at = now();
+                        $prospect->verified_by = $user->id;
+                        $prospect->save();
+                    }
+                    
+                    // Refresh prospect to get latest data
+                    $prospect->refresh();
+                    
+                    // If prospect doesn't have a lead_id, create lead from prospect
+                    if (!$prospect->lead_id) {
+                        // Map prospect fields to lead fields
+                        $leadData = [
+                            'name' => $prospect->customer_name,
+                            'phone' => $prospect->phone,
+                            'email' => null,
+                            'budget' => $prospect->budget,
+                            'preferred_location' => $prospect->preferred_location,
+                            'preferred_size' => $prospect->size,
+                            'use_end_use' => $prospect->purpose === 'end_user' ? 'End User' : ($prospect->purpose === 'investment' ? '2nd Investments' : null),
+                            'possession_status' => $prospect->possession,
+                            'source' => 'call',
+                            'status' => 'verified_prospect',
+                            'created_by' => $user->id,
+                        ];
+                        
+                        // Combine remarks in notes
+                        $notes = [];
+                        if ($prospect->remark) {
+                            $notes[] = "Telecaller Remark: " . $prospect->remark;
+                        }
+                        if ($prospect->manager_remark) {
+                            $notes[] = "Manager Remark: " . $prospect->manager_remark;
+                        }
+                        if (!empty($notes)) {
+                            $leadData['notes'] = implode("\n\n", $notes);
+                        }
+                        
+                        // Add requirements if available
+                        if ($prospect->notes) {
+                            $leadData['requirements'] = $prospect->notes;
+                        }
+                        
+                        $lead = Lead::create($leadData);
+                        $prospect->lead_id = $lead->id;
+                        $prospect->save();
+                        
+                        // Assign lead to the manager who verified
+                        $assignedTo = $prospect->manager_id ?? ($prospect->telecaller ? $prospect->telecaller->manager_id : null) ?? $user->id;
+                        
+                        // Deactivate existing assignments for this lead
+                        LeadAssignment::where('lead_id', $lead->id)->update([
+                            'is_active' => false,
+                            'unassigned_at' => now()
+                        ]);
+                        
+                        // Create new assignment
+                        LeadAssignment::create([
+                            'lead_id' => $lead->id,
+                            'assigned_to' => $assignedTo,
+                            'assigned_by' => $user->id,
+                            'assignment_type' => 'primary',
+                            'assigned_at' => now(),
+                            'is_active' => true,
+                        ]);
+                        
+                        // Fire LeadAssigned event
+                        event(new \App\Events\LeadAssigned($lead, $assignedTo, $user->id));
+                        
+                        // Lead status is already set to 'verified_prospect' in creation
+                    } else {
+                        // If lead already exists, update its status to verified_prospect
+                        $lead = Lead::find($prospect->lead_id);
+                        if ($lead) {
+                            // Enable auto-update if disabled, then update status
+                            if (!$lead->canAutoUpdate()) {
+                                $lead->enableAutoUpdate();
+                            }
+                            $lead->updateStatusIfAllowed('verified_prospect');
+                            
+                            // If updateStatusIfAllowed failed (shouldn't happen now), force update
+                            if ($lead->status !== 'verified_prospect') {
+                                $lead->status = 'verified_prospect';
+                                $lead->save();
+                            }
+                        }
+                    }
+                    
+                    // Final save to ensure all changes are persisted
+                    $prospect->save();
                 }
                 
                 // Mark current verification task as completed
@@ -1560,7 +1941,21 @@ class SalesManagerController extends Controller
                     // This will be handled by existing event listeners if needed
                 }
                 
+                // Final verification: Ensure prospect status is 'verified' before committing
+                if (!$isFollowUpRequired) {
+                    $prospect->refresh();
+                    if ($prospect->verification_status !== 'verified') {
+                        $prospect->verification_status = 'verified';
+                        $prospect->verified_at = now();
+                        $prospect->verified_by = $user->id;
+                        $prospect->save();
+                    }
+                }
+                
                 DB::commit();
+                
+                // Get lead ID for logging
+                $leadId = $prospect->lead_id ?? null;
                 
                 $logMessage = $isFollowUp 
                     ? 'Follow-up task created for prospect from manager task'
@@ -1569,16 +1964,20 @@ class SalesManagerController extends Controller
                 \Log::info($logMessage, [
                     'task_id' => $task->id,
                     'prospect_id' => $prospect->id,
-                    'lead_id' => $lead->id,
+                    'lead_id' => $leadId,
                     'manager_id' => $user->id,
                     'lead_status' => $leadStatus,
                     'is_follow_up' => $isFollowUp,
                     'follow_up_date' => $isFollowUp ? $validated['follow_up_date'] ?? null : null,
+                    'prospect_verification_status' => $prospect->verification_status,
                 ]);
                 
                 $responseMessage = $isFollowUp 
                     ? 'Follow-up task created successfully. Prospect will be called on the selected date.'
                     : 'Prospect verified successfully';
+                
+                // Refresh prospect one more time to get latest data
+                $prospect->refresh();
                 
                 return response()->json([
                     'success' => true,
@@ -1904,6 +2303,52 @@ class SalesManagerController extends Controller
     }
 
     /**
+     * Complete a task
+     */
+    public function completeTask(Request $request, Task $task)
+    {
+        try {
+            $user = $request->user();
+            
+            // Verify task is assigned to current user
+            if ($task->assigned_to !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Unauthorized access to task',
+                ], 403);
+            }
+            
+            // Check if task is already completed
+            if ($task->status === 'completed') {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Task already completed',
+                    'data' => $task,
+                ]);
+            }
+            
+            // Mark task as completed
+            $task->markAsCompleted();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Task completed successfully',
+                'data' => $task->fresh(),
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error completing task: ' . $e->getMessage(), [
+                'task_id' => $task->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to complete task: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Remove all overdue tasks for the manager
      * Marks all overdue tasks as completed
      */
@@ -1912,12 +2357,12 @@ class SalesManagerController extends Controller
         try {
             $user = $request->user();
             
-            // Get all overdue tasks assigned to this manager (more than 15 minutes old)
-            $fifteenMinutesAgo = now()->subMinutes(15);
+            // Get all overdue tasks assigned to this manager (more than 10 minutes old)
+            $tenMinutesAgo = now()->subMinutes(10);
             $overdueTasks = Task::where('assigned_to', $user->id)
                 ->where('type', 'phone_call')
                 ->whereIn('status', ['pending', 'in_progress'])
-                ->where('scheduled_at', '<', $fifteenMinutesAgo)
+                ->where('scheduled_at', '<', $tenMinutesAgo)
                 ->get();
             
             $count = 0;
@@ -1958,7 +2403,7 @@ class SalesManagerController extends Controller
 
         $validator = Validator::make($request->all(), [
             'lead_id' => 'required|exists:leads,id',
-            'scheduled_at' => 'required|date|after:now',
+            'scheduled_at' => 'required|date',
             'notes' => 'nullable|string|max:1000',
         ]);
 
@@ -1969,11 +2414,27 @@ class SalesManagerController extends Controller
                 'errors' => $validator->errors(),
             ], 422);
         }
+        
+        // Check if scheduled_at is in the future (with 1 minute buffer for timezone issues)
+        $scheduledAt = Carbon::parse($request->scheduled_at);
+        if ($scheduledAt->isPast() && $scheduledAt->diffInMinutes(now()) < -1) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Scheduled time must be in the future',
+                'errors' => ['scheduled_at' => ['The scheduled time must be in the future']],
+            ], 422);
+        }
 
         try {
             $lead = Lead::findOrFail($request->lead_id);
-            $scheduledAt = Carbon::parse($request->scheduled_at);
             $notes = $request->notes ?? null;
+            
+            Log::info('Schedule Call Task Request', [
+                'user_id' => $user->id,
+                'lead_id' => $request->lead_id,
+                'scheduled_at' => $scheduledAt->toDateTimeString(),
+                'user_role' => $user->role->slug ?? 'unknown',
+            ]);
 
             // Check if user has permission to access this lead
             if (!$this->canAccessLead($user, $lead)) {
@@ -1987,38 +2448,37 @@ class SalesManagerController extends Controller
             // If lead is assigned to someone, assign task to them, otherwise assign to current user
             $assignedTo = $lead->activeAssignments->first()?->assigned_to ?? $user->id;
 
-            // Create task based on user role
-            if ($user->isTelecaller()) {
+            // Create task based on assigned user's role (not current user's role)
+            $assignedUser = User::with('role')->find($assignedTo);
+            
+            if ($assignedUser && $assignedUser->isTelecaller()) {
                 // For telecallers, create TelecallerTask
-                $assignedUser = User::find($assignedTo);
-                if ($assignedUser && $assignedUser->isTelecaller()) {
-                    $telecallerTaskService = app(\App\Services\TelecallerTaskService::class);
-                    $task = $telecallerTaskService->createCallingTask($lead, $assignedUser, $user->id);
-                    
-                    // Update scheduled_at if provided
-                    if ($scheduledAt) {
-                        $task->update(['scheduled_at' => $scheduledAt]);
-                    }
-                    
-                    // Add notes if provided
-                    if ($notes) {
-                        $task->update(['notes' => $notes]);
-                    }
-
-                    Log::info('Call task scheduled (TelecallerTask)', [
-                        'task_id' => $task->id,
-                        'lead_id' => $lead->id,
-                        'assigned_to' => $assignedTo,
-                        'scheduled_at' => $scheduledAt,
-                        'created_by' => $user->id,
-                    ]);
-
-                    return response()->json([
-                        'success' => true,
-                        'message' => 'Call task scheduled successfully',
-                        'data' => $task->load(['lead', 'assignedTo']),
-                    ], 201);
+                $telecallerTaskService = app(\App\Services\TelecallerTaskService::class);
+                $task = $telecallerTaskService->createCallingTask($lead, $assignedUser, $user->id);
+                
+                // Update scheduled_at if provided
+                if ($scheduledAt) {
+                    $task->update(['scheduled_at' => $scheduledAt]);
                 }
+                
+                // Add notes if provided
+                if ($notes) {
+                    $task->update(['notes' => $notes]);
+                }
+
+                Log::info('Call task scheduled (TelecallerTask)', [
+                    'task_id' => $task->id,
+                    'lead_id' => $lead->id,
+                    'assigned_to' => $assignedTo,
+                    'scheduled_at' => $scheduledAt,
+                    'created_by' => $user->id,
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Call task scheduled successfully',
+                    'data' => $task->load(['lead', 'assignedTo']),
+                ], 201);
             }
 
             // For sales managers, sales executives, and others, create Task
@@ -2095,8 +2555,8 @@ class SalesManagerController extends Controller
             }
         }
 
-        // Telecaller and Sales Executive can see assigned leads or leads from their prospects
-        if ($user->isTelecaller() || $user->isSalesExecutive()) {
+        // Sales Executive and Assistant Sales Manager can see assigned leads or leads from their prospects
+        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             return $lead->activeAssignments()->where('assigned_to', $user->id)->exists() ||
                    $lead->prospects()->where('telecaller_id', $user->id)->exists();
         }

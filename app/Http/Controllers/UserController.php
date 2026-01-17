@@ -43,6 +43,13 @@ class UserController extends Controller
             }
         }
 
+        // Hide admin users from CRM view
+        if ($currentUser->isCrm() && !$currentUser->isAdmin()) {
+            $query->whereHas('role', function($q) {
+                $q->where('slug', '!=', Role::ADMIN);
+            });
+        }
+
         if ($request->has('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -73,9 +80,17 @@ class UserController extends Controller
         }
 
         $roles = Role::where('is_active', true)->get();
+        
+        // Filter roles for CRM users - only allow Sales Executive, Assistant Sales Manager, Sales Manager
+        if ($currentUser->isCrm() && !$currentUser->isAdmin()) {
+            $roles = $roles->filter(function($role) {
+                return in_array($role->slug, [Role::SALES_EXECUTIVE, Role::ASSISTANT_SALES_MANAGER, Role::SALES_MANAGER]);
+            });
+        }
+        
         $managers = User::where('is_active', true)
             ->whereHas('role', function($q) {
-                $q->whereIn('slug', [Role::ADMIN, Role::CRM, Role::SALES_MANAGER, Role::SALES_EXECUTIVE]);
+                $q->whereIn('slug', [Role::ADMIN, Role::CRM, Role::SALES_MANAGER, Role::ASSISTANT_SALES_MANAGER]);
             })
             ->with('role')
             ->get();
@@ -104,6 +119,16 @@ class UserController extends Controller
             'manager_id' => 'nullable|exists:users,id',
             'is_active' => 'boolean',
         ]);
+
+        // Validate role_id - CRM users cannot create Admin or CRM users
+        if ($currentUser->isCrm() && !$currentUser->isAdmin()) {
+            $role = Role::find($validated['role_id']);
+            if ($role && in_array($role->slug, [Role::ADMIN, Role::CRM])) {
+                return redirect()->back()
+                    ->withErrors(['role_id' => 'CRM users cannot create Admin or CRM users.'])
+                    ->withInput();
+            }
+        }
 
         $validated['password'] = Hash::make($validated['password']);
         $validated['is_active'] = $request->has('is_active') ? true : false;
@@ -136,10 +161,18 @@ class UserController extends Controller
         }
 
         $roles = Role::where('is_active', true)->get();
+        
+        // Filter roles for CRM users - only allow Sales Executive, Assistant Sales Manager, Sales Manager
+        if ($currentUser->isCrm() && !$currentUser->isAdmin()) {
+            $roles = $roles->filter(function($role) {
+                return in_array($role->slug, [Role::SALES_EXECUTIVE, Role::ASSISTANT_SALES_MANAGER, Role::SALES_MANAGER]);
+            });
+        }
+        
         $managers = User::where('is_active', true)
             ->where('id', '!=', $user->id)
             ->whereHas('role', function($q) {
-                $q->whereIn('slug', [Role::ADMIN, Role::CRM, Role::SALES_MANAGER, Role::SALES_EXECUTIVE]);
+                $q->whereIn('slug', [Role::ADMIN, Role::CRM, Role::SALES_MANAGER, Role::ASSISTANT_SALES_MANAGER]);
             })
             ->with('role')
             ->get();
@@ -206,6 +239,18 @@ class UserController extends Controller
             if (!$currentUser->canManageUsers()) {
                 unset($validated['role_id']);
             } else {
+                // CRM users cannot assign Admin or CRM roles
+                if ($currentUser->isCrm() && !$currentUser->isAdmin()) {
+                    $role = Role::find($validated['role_id']);
+                    if ($role && in_array($role->slug, [Role::ADMIN, Role::CRM])) {
+                        if ($request->expectsJson() || $request->is('api/*') || $request->ajax()) {
+                            return response()->json(['message' => 'CRM users cannot assign Admin or CRM roles'], 403);
+                        }
+                        return redirect()->back()
+                            ->withErrors(['role_id' => 'CRM users cannot assign Admin or CRM roles.'])
+                            ->withInput();
+                    }
+                }
                 // Log role change for audit
                 if ($user->role_id != $validated['role_id']) {
                     $oldRole = $user->role->name ?? 'Unknown';
@@ -248,8 +293,9 @@ class UserController extends Controller
     {
         $currentUser = request()->user();
         
-        if (!$currentUser->canManageUsers()) {
-            abort(403, 'Unauthorized action.');
+        // Only Admin can delete users
+        if (!$currentUser->isAdmin()) {
+            abort(403, 'Only administrators can delete users.');
         }
 
         if ($currentUser->id === $user->id) {

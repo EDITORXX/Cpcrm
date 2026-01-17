@@ -253,6 +253,43 @@
             color: #666;
             transition: all 0.3s;
         }
+        
+        /* Icon-only sidebar (all roles) */
+        #sidebar {
+            width: 64px !important;
+        }
+        
+        #sidebar nav {
+            padding: 0 12px !important;
+        }
+        
+        #sidebar h2,
+        #sidebar p {
+            display: none !important;
+        }
+        
+        #sidebar .sidebar-link {
+            justify-content: center;
+            padding: 12px !important;
+            font-size: 0 !important;
+        }
+        
+        #sidebar .sidebar-link i {
+            margin-right: 0 !important;
+            font-size: 18px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        #leadsMenuIcon,
+        #projectsMenuIcon {
+            display: none !important;
+        }
+        
+        #leadsSubMenu,
+        #projectsSubMenu {
+            padding-left: 0 !important;
+        }
         .sidebar-link:hover {
             background: #F7F6F3 !important;
             color: var(--primary-color) !important;
@@ -298,7 +335,7 @@
         }
         /* When sidebar is visible, position button on right side of header */
         .sidebar-toggle {
-            left: 236px; /* 256px (sidebar width) - 20px (padding) */
+            left: 52px; /* 64px (sidebar width) - 12px (padding) */
         }
         /* When sidebar is hidden, position button on left */
         body.sidebar-hidden .sidebar-toggle {
@@ -339,7 +376,7 @@
                     @elseif(auth()->user()->isTelecaller())
                         Telecaller
                     @else
-                        {{ auth()->user()->role->name ?? 'User' }}
+                        {{ auth()->user()->getDisplayRoleName() ?? 'User' }}
                     @endif
                 </p>
             </div>
@@ -354,6 +391,10 @@
                 <a href="{{ route('users.index') }}" class="sidebar-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
                     <i class="fas fa-users" style="margin-right: 10px; width: 20px;"></i>
                     All Users
+                </a>
+                <a href="{{ route('admin.targets.index') }}" class="sidebar-link {{ request()->routeIs('admin.targets.*') ? 'active' : '' }}">
+                    <i class="fas fa-bullseye" style="margin-right: 10px; width: 20px;"></i>
+                    Target Setting
                 </a>
                 <div class="sidebar-link {{ request()->routeIs('leads.*') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'active' : '' }}" style="cursor: pointer;" onclick="toggleLeadsMenu()">
                     <i class="fas fa-user-friends" style="margin-right: 10px; width: 20px;"></i>
@@ -447,6 +488,12 @@
                 <a href="{{ route('users.index') }}" class="sidebar-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
                     <i class="fas fa-users" style="margin-right: 10px; width: 20px;"></i>
                     Users
+                </a>
+                @endif
+                @if(auth()->user()->isAdmin() || auth()->user()->isCrm())
+                <a href="{{ route('admin.targets.index') }}" class="sidebar-link {{ request()->routeIs('admin.targets.*') ? 'active' : '' }}">
+                    <i class="fas fa-bullseye" style="margin-right: 10px; width: 20px;"></i>
+                    Target Setting
                 </a>
                 @endif
                 @if(auth()->user()->isAdmin() || auth()->user()->isCrm() || auth()->user()->isSalesManager() || auth()->user()->isSalesHead())
@@ -549,7 +596,7 @@
         </aside>
         
         <!-- Main Content -->
-        <div id="mainContent" style="margin-left: 256px; flex: 1; overflow-y: auto; height: 100vh; background: #F7F6F3; transition: margin-left 0.3s ease-in-out;">
+        <div id="mainContent" style="margin-left: 64px; flex: 1; overflow-y: auto; height: 100vh; background: #F7F6F3; transition: margin-left 0.3s ease-in-out;">
             <div class="container" style="padding: 20px; max-width: 100%; width: 100%;">
                 <!-- Header -->
                 <div class="header">
@@ -633,7 +680,7 @@
                 sidebar.classList.remove('sidebar-hidden');
                 body.classList.remove('sidebar-hidden');
                 if (mainContent) {
-                    mainContent.style.marginLeft = '256px';
+                    mainContent.style.marginLeft = '64px';
                 }
                 toggleIcon.classList.remove('fa-chevron-right');
                 toggleIcon.classList.add('fa-chevron-left');

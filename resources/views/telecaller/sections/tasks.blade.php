@@ -41,49 +41,373 @@
         color: white;
         border-color: #205A44;
     }
+    .filter-btn-type {
+        padding: 10px 20px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        background: white;
+        color: #063A1C;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+    .filter-btn-type:hover {
+        border-color: #10b981;
+        color: #10b981;
+    }
+    .filter-btn-type.active {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border-color: #10b981;
+    }
     .tasks-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 20px;
         margin-top: 20px;
+    }
+    
+    /* Form buttons - Always in one line */
+    .form-buttons-container {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+    }
+    
+    .form-cancel-btn,
+    .form-submit-btn {
+        flex-shrink: 0 !important;
+    }
+    
+    /* List View Styles */
+    .tasks-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 20px;
+    }
+    
+    .tasks-list .task-card {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        padding: 10px 12px;
+        min-height: 50px;
         width: 100%;
         box-sizing: border-box;
+        gap: 8px;
     }
-    @media (max-width: 1200px) {
-        .tasks-grid {
-            grid-template-columns: repeat(3, 1fr);
-        }
+    
+    /* Hide all other elements in list view - only show name and button */
+    .tasks-list .task-card .task-avatar,
+    .tasks-list .task-card .task-content,
+    .tasks-list .task-card .task-info,
+    .tasks-list .task-card .task-footer,
+    .tasks-list .task-card .task-header {
+        display: none !important;
     }
-    @media (max-width: 1024px) {
-        .tasks-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-        }
+    
+    .tasks-list .task-name-list {
+        flex: 0 0 50%;
+        width: 50%;
+        font-size: 14px;
+        font-weight: 600;
+        color: #063A1C;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: block;
+        box-sizing: border-box;
+        padding-right: 8px;
+    }
+    
+    .tasks-list .btn-call-task {
+        flex: 0 0 50%;
+        width: 50%;
+        padding: 10px 12px;
+        font-size: 13px;
+        text-align: center;
+        box-sizing: border-box;
+    }
+    
+    .tasks-list .task-completed-text {
+        flex: 0 0 50%;
+        width: 50%;
+        color: #999;
+        font-size: 13px;
+        text-align: center;
+        box-sizing: border-box;
+    }
+    
+    /* Toggle Button Styles */
+    .view-toggle-btn:hover {
+        background: #f0f9f4 !important;
+        border-color: #063A1C !important;
+    }
+    
+    .view-toggle-btn:active {
+        background: #e0f2e8 !important;
     }
     @media (max-width: 768px) {
         .tasks-grid {
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-        }
-        .tasks-container {
-            padding: 16px !important;
-            margin: 0 !important;
-        }
-    }
-    @media (max-width: 480px) {
-        .tasks-grid {
-            grid-template-columns: 1fr;
             gap: 10px;
         }
+        
+        .task-card {
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            padding: 12px !important;
+            border-radius: 10px !important;
+        }
+        
+        /* Improve card appearance - less dense */
+        .task-card.overdue {
+            border-width: 2px !important;
+            border-color: #fca5a5 !important;
+            background: #fff5f5 !important;
+        }
+        
+        /* Task header - more compact */
+        .task-header {
+            margin-bottom: 10px !important;
+            padding-bottom: 10px !important;
+        }
+        
+        .task-avatar {
+            width: 40px !important;
+            height: 40px !important;
+            font-size: 16px !important;
+            margin-right: 8px !important;
+        }
+        
+        /* List view - ensure only name and button show on mobile */
+        .tasks-list .task-card .task-avatar,
+        .tasks-list .task-card .task-content,
+        .tasks-list .task-card .task-info,
+        .tasks-list .task-card .task-footer,
+        .tasks-list .task-card .task-header {
+            display: none !important;
+        }
+        
+        .tasks-list .task-name-list {
+            flex: 0 0 50% !important;
+            width: 50% !important;
+        }
+        
+        .tasks-list .btn-call-task,
+        .tasks-list .task-completed-text {
+            flex: 0 0 50% !important;
+            width: 50% !important;
+        }
+        
+        /* Form buttons - Always in one line, 50%-50% in phone view */
+        .form-buttons-container {
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            justify-content: space-between !important;
+            gap: 8px !important;
+            width: 100% !important;
+        }
+        
+        .form-cancel-btn,
+        .form-submit-btn {
+            flex: 0 0 50% !important;
+            width: 50% !important;
+            max-width: 50% !important;
+            padding: 12px 16px !important;
+            font-size: 13px !important;
+            min-height: 44px !important;
+            box-sizing: border-box !important;
+            flex-shrink: 0 !important;
+        }
+        
+        .form-submit-btn i {
+            margin-right: 6px !important;
+            font-size: 12px !important;
+        }
+        
+        .task-name {
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            line-height: 1.3 !important;
+        }
+        
+        /* Badges - smaller and cleaner */
+        .overdue-badge {
+            padding: 4px 8px !important;
+            font-size: 9px !important;
+            margin-bottom: 4px !important;
+            display: inline-block !important;
+        }
+        
+        .status-badge {
+            padding: 3px 8px !important;
+            font-size: 9px !important;
+            margin-top: 4px !important;
+        }
+        
+        /* Task info - more compact */
+        .task-info {
+            margin-bottom: 10px !important;
+        }
+        
+        .task-info-row {
+            font-size: 11px !important;
+            margin-bottom: 6px !important;
+            gap: 6px !important;
+        }
+        
+        .task-info-row i {
+            width: 12px !important;
+            font-size: 11px !important;
+        }
+        
+        /* Action buttons - larger and more touch-friendly */
+        .task-actions {
+            margin-top: 10px !important;
+            padding-top: 10px !important;
+            gap: 6px !important;
+            flex-direction: column !important;
+        }
+        
+        .task-action-btn {
+            width: 100% !important;
+            padding: 10px 8px !important;
+            font-size: 11px !important;
+            border-radius: 6px !important;
+            min-height: 36px !important;
+        }
+        
+        .task-action-btn i {
+            font-size: 12px !important;
+        }
+        
         .tasks-container {
             padding: 12px !important;
+            margin-bottom: 100px !important; /* Extra space for footer */
         }
         .filter-bar {
-            gap: 8px !important;
+            flex-direction: row;
+            gap: 8px;
+            align-items: center;
         }
+        
+        /* Hide desktop buttons on mobile */
+        .filter-buttons-desktop {
+            display: none !important;
+        }
+        
+        /* Show dropdowns on mobile - 50% each (2 filters) + toggle icon */
+        .filter-dropdowns-mobile {
+            display: flex !important;
+            flex: 1;
+            gap: 8px;
+            min-width: 0;
+            width: 100%;
+        }
+        
+        .task-filter-select {
+            flex: 1;
+            width: 50% !important;
+        }
+        
+        .view-toggle-icon-btn {
+            flex-shrink: 0;
+        }
+        
+        .view-toggle-icon-btn:hover {
+            background: #f0f9f4 !important;
+            border-color: #063A1C !important;
+        }
+        
+        .view-toggle-icon-btn:active {
+            background: #e0f2e8 !important;
+        }
+
+        .task-filter-select,
+        .date-filter-select {
+            flex: 1;
+            width: 33.33%;
+            padding: 10px 16px;
+            border: 2px solid #205A44;
+            border-radius: 8px;
+            background: white;
+            color: #063A1C;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23063A1C' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 40px;
+        }
+        
+        .task-filter-select:focus,
+        .date-filter-select:focus {
+            outline: none;
+            border-color: #063A1C;
+            box-shadow: 0 0 0 3px rgba(6, 58, 28, 0.1);
+        }
+        
+        /* Custom date picker on mobile */
+        #customDatePicker {
+            width: 100%;
+            margin-top: 8px;
+        }
+        
         .filter-btn {
-            padding: 8px 16px !important;
-            font-size: 13px !important;
+            display: none;
+        }
+    }
+    
+    /* Desktop: Show buttons, hide mobile dropdowns */
+    @media (min-width: 769px) {
+        .filter-buttons-desktop {
+            display: flex !important;
+        }
+        .filter-dropdowns-mobile {
+            display: none !important;
+        }
+        
+        /* Desktop date filter styles */
+        .date-filter-desktop {
+            display: block;
+        }
+        
+        .date-filter-select {
+            padding: 10px 16px;
+            border: 2px solid #205A44;
+            border-radius: 8px;
+            background: white;
+            color: #063A1C;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23063A1C' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 40px;
+            min-width: 150px;
+        }
+        
+        .date-filter-select:focus {
+            outline: none;
+            border-color: #063A1C;
+            box-shadow: 0 0 0 3px rgba(6, 58, 28, 0.1);
+        }
+        
+        #customDatePicker {
+            margin-left: 8px;
+            padding: 8px 12px;
+            border: 2px solid #205A44;
+            border-radius: 8px;
+            font-size: 14px;
         }
     }
     .task-card {
@@ -97,6 +421,43 @@
         border-color: #205A44;
         box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
         transform: translateY(-2px);
+    }
+    .task-card.overdue {
+        border-color: #ef4444;
+        border-width: 3px;
+        background: #fef2f2;
+    }
+    .task-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 2px solid #f0f0f0;
+    }
+    .task-action-btn {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+    .task-action-btn i {
+        font-size: 14px;
+    }
+    .btn-call {
+        background: linear-gradient(135deg, #205A44 0%, #063A1C 100%);
+        color: white;
+    }
+    .btn-call:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(32, 90, 68, 0.3);
     }
     .task-header {
         display: flex;
@@ -252,7 +613,18 @@
         .modal-content {
             width: 95%;
             padding: 20px;
+            padding-bottom: 100px !important; /* Extra space for footer */
             margin: 20px auto;
+            margin-bottom: 100px !important; /* Prevent footer overlap */
+            max-height: calc(100vh - 150px) !important; /* Account for footer */
+            overflow-y: auto;
+        }
+        
+        /* Add spacing to form buttons on mobile */
+        .modal-content button[type="submit"],
+        .modal-content .btn,
+        .modal-footer {
+            margin-bottom: 80px !important; /* Space above footer */
         }
     }
     .modal-header {
@@ -628,6 +1000,11 @@
     
     /* Responsive View Switcher */
     @media (max-width: 768px) {
+        /* Hide View Switcher on mobile */
+        .view-switcher-container {
+            display: none !important;
+        }
+        
         .view-switcher {
             width: 100%;
         }
@@ -641,6 +1018,12 @@
         }
         .filter-bar {
             width: 100%;
+        }
+        
+        /* Hide Kanban and Calendar views on mobile - only show List view */
+        #kanban-view-container,
+        #calendar-view-container {
+            display: none !important;
         }
     }
     
@@ -657,15 +1040,48 @@
     <div class="tasks-container">
         <!-- Filter and View Switcher Header -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-            <div class="filter-bar" style="flex: 1; min-width: 200px;">
-                <button class="filter-btn active" onclick="filterTasks('pending')">Pending</button>
-                <button class="filter-btn" onclick="filterTasks('completed')">Completed</button>
-                <button class="filter-btn" onclick="filterTasks('rescheduled')">Rescheduled</button>
-                <button class="filter-btn" onclick="filterTasks('all')">All</button>
+            <!-- Desktop: Button Filters -->
+            <div class="filter-buttons-desktop" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <span style="font-size: 14px; color: #063A1C; font-weight: 500; margin-right: 4px;">Status:</span>
+                    <button class="filter-btn active" onclick="filterTasks('pending', event)">Pending</button>
+                    <button class="filter-btn" onclick="filterTasks('completed', event)">Completed</button>
+                    <button class="filter-btn" onclick="filterTasks('rescheduled', event)">Rescheduled</button>
+                    <button class="filter-btn" onclick="filterTasks('all', event)">All</button>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center; margin-left: 12px;">
+                    <span style="font-size: 14px; color: #063A1C; font-weight: 500; margin-right: 4px;">Type:</span>
+                    <button class="filter-btn-type active" onclick="filterTaskType('all', event)">All</button>
+                    <button class="filter-btn-type" onclick="filterTaskType('calling', event)">Calling</button>
+                    <button class="filter-btn-type" onclick="filterTaskType('pre_meeting_reminder', event)">Meeting</button>
+                    <button class="filter-btn-type" onclick="filterTaskType('follow_up', event)">Follow Up</button>
+                    <button class="filter-btn-type" onclick="filterTaskType('cnp_retry', event)">CNP Retry</button>
+                    <button class="filter-btn-type" onclick="filterTaskType('call_again', event)">Call Again</button>
+                </div>
             </div>
             
-            <!-- View Switcher -->
-            <div style="display: flex; align-items: center; gap: 10px;">
+            <!-- Mobile: Dropdown Filters (50% each - 2 filters) + Toggle Icon -->
+            <div class="filter-dropdowns-mobile" style="display: none; flex: 1; gap: 8px; width: 100%; align-items: center;">
+                <select id="taskStatusFilterDropdown" class="task-filter-select" style="flex: 1; width: 50%;">
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                    <option value="rescheduled">Rescheduled</option>
+                    <option value="all">All</option>
+                </select>
+                <select id="taskTypeFilterDropdown" class="task-filter-select" style="flex: 1; width: 50%;">
+                    <option value="calling">Calling</option>
+                    <option value="pre_meeting_reminder">Meeting</option>
+                    <option value="follow_up">Follow Up</option>
+                    <option value="cnp_retry">CNP Retry</option>
+                    <option value="call_again">Call Again</option>
+                </select>
+                <button id="listViewToggle" onclick="toggleListView()" class="view-toggle-icon-btn" style="width: 48px; height: 48px; padding: 0; border: 2px solid #205A44; border-radius: 8px; background: white; color: #063A1C; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; flex-shrink: 0;">
+                    <i class="fas fa-th" id="toggleIcon"></i>
+                </button>
+            </div>
+            
+            <!-- View Switcher (Hidden on mobile) -->
+            <div class="view-switcher-container" style="display: flex; align-items: center; gap: 10px;">
                 <span style="font-size: 14px; color: #063A1C; font-weight: 500;">View:</span>
                 <div class="view-switcher" style="display: inline-flex; border: 2px solid #e0e0e0; border-radius: 8px; overflow: hidden; background: white;">
                     <button class="view-btn" id="view-list" onclick="switchView('list')" style="padding: 8px 16px; border: none; background: #205A44; color: white; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.3s;">
@@ -1023,8 +1439,10 @@
     let currentTaskId = null;
     let currentLeadData = null;
     let currentStatus = 'pending';
+    let currentTaskType = null; // Track current task type filter (null = all types)
     let currentTasksArray = []; // Store tasks array globally for button clicks
     let calendarInstance = null; // FullCalendar instance
+    let isListView = localStorage.getItem('telecaller_task_list_view') === 'true'; // Track list/grid view
 
     // Helper function to show notifications (fallback to alert if custom notification not available)
     function showAlert(message, type = 'success', duration = 2500) {
@@ -1168,63 +1586,84 @@
         }
     }
 
-    async function loadTasks(status = 'pending') {
+    async function loadTasks(status = 'pending', taskType = null) {
         currentStatus = status;
+        currentTaskType = taskType || null;
         const contentDiv = document.getElementById('tasksContent');
         if (!contentDiv) {
             console.error('tasksContent element not found');
             return;
         }
-        contentDiv.className = 'tasks-grid';
+        // Apply correct view class (list or grid)
+        applyListView();
         contentDiv.innerHTML = '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Loading tasks...</p></div>';
 
-        const endpoint = `/tasks?status=${status}&per_page=50`;
+        let endpoint = `/tasks?status=${status}&per_page=50`;
+        // Add task_type filter if provided
+        if (taskType && taskType !== 'all' && taskType !== null) {
+            endpoint += `&task_type=${taskType}`;
+        }
         console.log('Loading tasks from:', API_BASE_URL + endpoint);
         console.log('Token exists:', !!getToken());
         
-        const result = await apiCall(endpoint);
-        console.log('API Result:', result);
+        try {
+            const result = await apiCall(endpoint);
+            console.log('API Result:', result);
 
-        if (!result) {
-            contentDiv.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <h3>Error Loading Tasks</h3>
-                    <p>No response from server. Please check your connection.</p>
-                    <button onclick="loadTasks('${status}')" style="margin-top: 16px; padding: 10px 20px; background: #205A44; color: white; border: none; border-radius: 8px; cursor: pointer;">Retry</button>
-                </div>
-            `;
-            return;
-        }
+            if (!result) {
+                contentDiv.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>Error Loading Tasks</h3>
+                        <p>No response from server. Please check your connection.</p>
+                        <button onclick="loadTasks('${status}')" style="margin-top: 16px; padding: 10px 20px; background: #205A44; color: white; border: none; border-radius: 8px; cursor: pointer;">Retry</button>
+                    </div>
+                `;
+                return;
+            }
 
-        if (!result.success) {
-            contentDiv.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <h3>Error Loading Tasks</h3>
-                    <p>${result.message || 'Failed to load tasks'}</p>
-                    <button onclick="loadTasks('${status}')" style="margin-top: 16px; padding: 10px 20px; background: #205A44; color: white; border: none; border-radius: 8px; cursor: pointer;">Retry</button>
-                </div>
-            `;
-            return;
-        }
+            if (!result.success) {
+                const errorMessage = result.message || result.error || 'Failed to load tasks. Please try again.';
+                console.error('API returned error:', errorMessage, result);
+                contentDiv.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>Error Loading Tasks</h3>
+                        <p>${errorMessage}</p>
+                        <p style="font-size: 12px; color: #999; margin-top: 8px;">Check browser console (F12) for details.</p>
+                        <button onclick="loadTasks('${status}')" style="margin-top: 16px; padding: 10px 20px; background: #205A44; color: white; border: none; border-radius: 8px; cursor: pointer;">Retry</button>
+                    </div>
+                `;
+                return;
+            }
 
-        const tasks = result.data || [];
-        currentTasksArray = tasks; // Store tasks for later use in button clicks
+            // Handle both direct data array and paginated response
+            let tasks = [];
+            if (Array.isArray(result.data)) {
+                tasks = result.data;
+            } else if (result.data && Array.isArray(result.data.data)) {
+                // Paginated response with nested data
+                tasks = result.data.data;
+            } else if (result.data && typeof result.data === 'object') {
+                // Try to extract array from data object
+                tasks = result.data.tasks || result.data.items || [];
+            }
 
-        if (tasks.length === 0) {
-            contentDiv.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-tasks"></i>
-                    <h3>No Tasks Found</h3>
-                    <p>You don't have any ${status === 'all' ? '' : status} tasks at the moment.</p>
-                </div>
-            `;
-            return;
-        }
+            currentTasksArray = tasks; // Store tasks for later use in button clicks
 
-        let cardsHTML = '';
-        tasks.forEach(task => {
+            if (tasks.length === 0) {
+                contentDiv.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-tasks"></i>
+                        <h3>No Tasks Found</h3>
+                        <p>You don't have any ${status === 'all' ? '' : status} tasks at the moment.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let cardsHTML = '';
+            tasks.forEach(task => {
             const scheduledDate = task.scheduled_at ? formatDate(task.scheduled_at) : '-';
             const statusClass = `status-${task.status}`;
             const initial = task.lead_name ? task.lead_name.charAt(0).toUpperCase() : 'T';
@@ -1232,62 +1671,107 @@
             // Check if task is overdue
             const isOverdue = task.scheduled_at && new Date(task.scheduled_at) < new Date() && task.status !== 'completed';
             const overdueClass = isOverdue ? 'overdue' : '';
+            
+            // Check if task is related to a meeting or visit
+            const isMeetingTask = task.task_type === 'pre_meeting_reminder' || task.meeting_id;
+            const isVisitTask = task.notes && (
+                task.notes.toLowerCase().includes('site visit') || 
+                task.notes.toLowerCase().includes('visit scheduled') ||
+                task.notes.toLowerCase().includes('10 min before site visit')
+            );
 
-            cardsHTML += `
-                <div id="task-card-${task.id}" class="task-card ${overdueClass}">
-                    <div class="task-header">
-                        <div class="task-avatar">${initial}</div>
-                        <h3 class="task-name">${task.lead_name || '-'}</h3>
-                    </div>
-                    <div class="task-info">
-                        <div class="task-info-row">
-                            <i class="fas fa-phone"></i>
-                            <span>${task.lead_phone || '-'}</span>
-                        </div>
-                        <div class="task-info-row">
-                            <i class="fas fa-calendar"></i>
-                            <span>Scheduled: ${scheduledDate}</span>
-                        </div>
-                        ${isOverdue ? '<span class="overdue-badge">OVERDUE</span>' : ''}
-                        <span class="status-badge ${statusClass}">${formatStatus(task.status)}</span>
-                    </div>
-                    <div class="task-footer">
+            // Render different HTML for list view vs grid view
+            if (isListView) {
+                // Simplified list view: Only name and call button (50%-50%)
+                cardsHTML += `
+                    <div id="task-card-${task.id}" class="task-card ${overdueClass}">
+                        <span class="task-name-list">${task.lead_name || 'Unknown'}</span>
                         ${task.status === 'pending' || task.status === 'rescheduled' ? `
                             <button class="btn-call-task" 
                                     data-task-id="${task.id}" 
                                     data-phone="${task.lead_phone || ''}">
-                                <i class="fas fa-phone"></i>
-                                Call
+                                <i class="fas fa-phone"></i> Call
                             </button>
-                            ${task.task_type === 'cnp_retry' ? '<p style="text-align: center; color: #f59e0b; font-size: 12px; margin-top: 8px;">CNP Retry Call</p>' : ''}
-                        ` : '<p style="text-align: center; color: #999; font-size: 14px;">Task Completed</p>'}
+                        ` : '<span class="task-completed-text">Completed</span>'}
                     </div>
+                `;
+            } else {
+                // Full grid view card
+                cardsHTML += `
+                    <div id="task-card-${task.id}" class="task-card ${overdueClass}">
+                        <div class="task-avatar">${initial}</div>
+                        <div class="task-content">
+                            <div class="task-header">
+                                <h3 class="task-name">${task.lead_name || '-'}</h3>
+                            </div>
+                            <div class="task-info">
+                                <div class="task-info-row">
+                                    <i class="fas fa-phone"></i>
+                                    <span>${task.lead_phone || '-'}</span>
+                                </div>
+                                <div class="task-info-row">
+                                    <i class="fas fa-calendar"></i>
+                                    <span>Scheduled: ${scheduledDate}</span>
+                                </div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
+                                    ${isOverdue ? '<span class="overdue-badge">OVERDUE</span>' : ''}
+                                    ${task.status === 'pending' && isMeetingTask ? '<span class="meeting-tag" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px;">M</span>' : ''}
+                                    ${task.status === 'pending' && isVisitTask ? '<span class="visit-tag" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px;">V</span>' : ''}
+                                    <span class="status-badge ${statusClass}">${formatStatus(task.status)}</span>
+                                </div>
+                            </div>
+                            <div class="task-footer">
+                                ${task.status === 'pending' || task.status === 'rescheduled' ? `
+                                    <button class="btn-call-task" 
+                                            data-task-id="${task.id}" 
+                                            data-phone="${task.lead_phone || ''}">
+                                        <i class="fas fa-phone"></i>
+                                        Call
+                                    </button>
+                                    ${task.task_type === 'cnp_retry' ? '<p style="text-align: center; color: #f59e0b; font-size: 12px; margin-top: 8px;">CNP Retry Call</p>' : ''}
+                                ` : '<p style="text-align: center; color: #999; font-size: 14px;">Task Completed</p>'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            });
+
+            contentDiv.innerHTML = cardsHTML;
+            
+            // Add event listeners for call buttons using event delegation
+            contentDiv.querySelectorAll('.btn-call-task').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const taskId = parseInt(this.getAttribute('data-task-id'));
+                    const phoneNumber = this.getAttribute('data-phone') || '';
+                    
+                    // Find task data from stored array
+                    const taskData = currentTasksArray.find(t => t.id === taskId) || {
+                        id: taskId,
+                        lead_phone: phoneNumber,
+                        lead_name: 'Lead',
+                        task_type: 'calling',
+                        status: 'pending'
+                    };
+                    
+                    initiateCall(taskId, phoneNumber, taskData);
+                });
+            });
+        } catch (error) {
+            console.error('Error in loadTasks:', error);
+            const errorMessage = error.message || 'An unexpected error occurred while loading tasks.';
+            contentDiv.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Error Loading Tasks</h3>
+                    <p>${errorMessage}</p>
+                    <p style="font-size: 12px; color: #999; margin-top: 8px;">Check browser console (F12) for details.</p>
+                    <button onclick="loadTasks('${status}')" style="margin-top: 16px; padding: 10px 20px; background: #205A44; color: white; border: none; border-radius: 8px; cursor: pointer;">Retry</button>
                 </div>
             `;
-        });
-
-        contentDiv.innerHTML = cardsHTML;
-        
-        // Add event listeners for call buttons using event delegation
-        contentDiv.querySelectorAll('.btn-call-task').forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                const taskId = parseInt(this.getAttribute('data-task-id'));
-                const phoneNumber = this.getAttribute('data-phone') || '';
-                
-                // Find task data from stored array
-                const taskData = currentTasksArray.find(t => t.id === taskId) || {
-                    id: taskId,
-                    lead_phone: phoneNumber,
-                    lead_name: 'Lead',
-                    task_type: 'calling',
-                    status: 'pending'
-                };
-                
-                initiateCall(taskId, phoneNumber, taskData);
-            });
-        });
+        }
     }
 
     function formatDate(dateString) {
@@ -1306,14 +1790,53 @@
         return statusMap[status] || status;
     }
 
-    function filterTasks(status) {
+    function filterTasks(status, event = null) {
         currentStatus = status;
-        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-        event.target.classList.add('active');
+        
+        // Update desktop filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (event && event.target === btn) {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Update mobile dropdown
+        const filterDropdown = document.getElementById('taskStatusFilterDropdown');
+        if (filterDropdown) {
+            filterDropdown.value = status;
+        }
+        
+        // Reload current view (on mobile, always show list view)
+        if (window.innerWidth <= 768 || currentView === 'list') {
+            loadTasks(status, currentTaskType || null);
+        } else if (currentView === 'kanban') {
+            loadKanbanView();
+        } else if (currentView === 'calendar') {
+            loadCalendarView();
+        }
+    }
+
+    function filterTaskType(taskType, event = null) {
+        currentTaskType = taskType;
+        
+        // Update desktop filter buttons
+        document.querySelectorAll('.filter-btn-type').forEach(btn => {
+            btn.classList.remove('active');
+            if (event && event.target === btn) {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Update mobile dropdown
+        const typeFilterDropdown = document.getElementById('taskTypeFilterDropdown');
+        if (typeFilterDropdown) {
+            typeFilterDropdown.value = taskType;
+        }
         
         // Reload current view
-        if (currentView === 'list') {
-            loadTasks(status);
+        if (window.innerWidth <= 768 || currentView === 'list') {
+            loadTasks(currentStatus, taskType || null);
         } else if (currentView === 'kanban') {
             loadKanbanView();
         } else if (currentView === 'calendar') {
@@ -1324,15 +1847,28 @@
     function initiateCall(taskId, phoneNumber, taskData) {
         currentTaskId = taskId;
         currentLeadData = taskData;
-        
+
         // Open phone dialer
         if (phoneNumber && phoneNumber !== '-') {
             window.location.href = `tel:${phoneNumber}`;
         }
-        
-        // Show post-call popup
-        document.getElementById('postCallTitle').textContent = `Call Outcome - ${taskData.lead_name || 'Lead'}`;
-        document.getElementById('postCallModal').classList.add('active');
+
+        // Check if this is a pre-meeting reminder task
+        if (taskData.task_type === 'pre_meeting_reminder' && taskData.meeting_id) {
+            // Show meeting-specific post-call popup
+            if (typeof showPostCallPopup === 'function') {
+                showPostCallPopup(taskData.meeting_id, taskData);
+            } else {
+                console.error('Meeting post-call popup not available');
+                // Fallback to regular post-call modal
+                document.getElementById('postCallTitle').textContent = `Call Outcome - ${taskData.lead_name || 'Lead'}`;
+                document.getElementById('postCallModal').classList.add('active');
+            }
+        } else {
+            // Show regular post-call popup for normal calling tasks
+            document.getElementById('postCallTitle').textContent = `Call Outcome - ${taskData.lead_name || 'Lead'}`;
+            document.getElementById('postCallModal').classList.add('active');
+        }
     }
 
     function closePostCallModal() {
@@ -1432,13 +1968,13 @@
                     taskCard.remove();
                     // Reload tasks after card removal to ensure consistency
                     if (currentStatus === 'pending' || currentStatus === 'rescheduled') {
-                        loadTasks(currentStatus);
+                        loadTasks(currentStatus, currentTaskType);
                     }
                 }, 300);
             } else {
                 // Fallback if card not found by ID
                 if (currentStatus === 'pending' || currentStatus === 'rescheduled') {
-                    loadTasks(currentStatus);
+                    loadTasks(currentStatus, currentTaskType);
                 }
             }
             
@@ -1696,21 +2232,21 @@
                         taskCard.remove();
                         // Reload tasks after card removal to ensure consistency
                         if (taskStatus === 'completed' && (currentStatus === 'pending' || currentStatus === 'rescheduled')) {
-                            loadTasks(currentStatus);
+                            loadTasks(currentStatus, currentTaskType);
                         } else if (taskStatus === 'rescheduled' && currentStatus === 'pending') {
-                            loadTasks(currentStatus);
+                            loadTasks(currentStatus, currentTaskType);
                         } else if (taskStatus === 'pending' && currentStatus === 'rescheduled') {
-                            loadTasks(currentStatus);
+                            loadTasks(currentStatus, currentTaskType);
                         }
                     }, 300);
                 } else {
                     // Fallback if card not found by ID
                     if (taskStatus === 'completed' && (currentStatus === 'pending' || currentStatus === 'rescheduled')) {
-                        loadTasks(currentStatus);
+                        loadTasks(currentStatus, currentTaskType);
                     } else if (taskStatus === 'rescheduled' && currentStatus === 'pending') {
-                        loadTasks(currentStatus);
+                        loadTasks(currentStatus, currentTaskType);
                     } else if (taskStatus === 'pending' && currentStatus === 'rescheduled') {
-                        loadTasks(currentStatus);
+                        loadTasks(currentStatus, currentTaskType);
                     }
                 }
                 
@@ -1798,13 +2334,13 @@
                     // Reload tasks after card removal to ensure consistency
                     // If task is rescheduled and we're on pending view, reload to remove it
                     if (taskStatus === 'rescheduled' && currentStatus === 'pending') {
-                        loadTasks(currentStatus);
+                        loadTasks(currentStatus, currentTaskType);
                     }
                 }, 300);
             } else {
                 // Fallback if card not found by ID
                 if (taskStatus === 'rescheduled' && currentStatus === 'pending') {
-                    loadTasks(currentStatus);
+                    loadTasks(currentStatus, currentTaskType);
                 }
             }
             
@@ -1847,13 +2383,13 @@
                     taskCard.remove();
                     // Reload tasks after card removal to ensure consistency
                     if (currentStatus === 'pending' || currentStatus === 'rescheduled') {
-                        loadTasks(currentStatus);
+                        loadTasks(currentStatus, currentTaskType);
                     }
                 }, 300);
             } else {
                 // Fallback if card not found by ID
                 if (currentStatus === 'pending' || currentStatus === 'rescheduled') {
-                    loadTasks(currentStatus);
+                    loadTasks(currentStatus, currentTaskType);
                 }
             }
             
@@ -2102,7 +2638,7 @@
             if (result && result.success) {
                 showAlert('Prospect created successfully! Sent for manager verification.', 'success', 3000);
                 closeProspectModal();
-                loadTasks(currentStatus);
+                loadTasks(currentStatus, currentTaskType);
             } else {
                 const errorMsg = result?.message || result?.errors || 'Failed to create prospect';
                 console.error('Prospect creation failed:', result);
@@ -2125,6 +2661,11 @@
     let currentView = localStorage.getItem('telecaller_task_view') || 'list';
     
     function switchView(view) {
+        // Force list view on mobile
+        if (window.innerWidth <= 768) {
+            view = 'list';
+        }
+        
         currentView = view;
         localStorage.setItem('telecaller_task_view', view);
         
@@ -2161,6 +2702,31 @@
         }
     }
     
+    // Toggle between list and grid view (mobile only)
+    function toggleListView() {
+        isListView = !isListView;
+        localStorage.setItem('telecaller_task_list_view', isListView);
+        applyListView();
+    }
+    
+    // Apply list or grid view class
+    function applyListView() {
+        const contentDiv = document.getElementById('tasksContent');
+        if (!contentDiv) return;
+        
+        const toggleIcon = document.getElementById('toggleIcon');
+        
+        if (isListView) {
+            contentDiv.classList.remove('tasks-grid');
+            contentDiv.classList.add('tasks-list');
+            if (toggleIcon) toggleIcon.className = 'fas fa-th';
+        } else {
+            contentDiv.classList.remove('tasks-list');
+            contentDiv.classList.add('tasks-grid');
+            if (toggleIcon) toggleIcon.className = 'fas fa-list';
+        }
+    }
+    
     function loadKanbanView() {
         const kanbanBoard = document.getElementById('kanbanBoard');
         if (!kanbanBoard) return;
@@ -2168,7 +2734,11 @@
         kanbanBoard.innerHTML = '<div style="text-align: center; padding: 40px; color: #B3B5B4;"><i class="fas fa-spinner fa-spin" style="font-size: 32px; margin-bottom: 12px;"></i><p>Loading Kanban board...</p></div>';
         
         // Load tasks and organize by status
-        apiCall(`/tasks?status=${currentStatus}&per_page=100`).then(result => {
+        let endpoint = `/tasks?status=${currentStatus}&per_page=100`;
+        if (currentTaskType && currentTaskType !== null) {
+            endpoint += `&task_type=${currentTaskType}`;
+        }
+        apiCall(endpoint).then(result => {
             if (result && result.success) {
                 const tasks = result.data || [];
                 renderKanbanBoard(tasks);
@@ -2221,7 +2791,13 @@
         const initial = task.lead_name ? task.lead_name.charAt(0).toUpperCase() : 'T';
         const isOverdue = task.scheduled_at && new Date(task.scheduled_at) < new Date() && task.status !== 'completed';
         const overdueClass = isOverdue ? 'overdue' : '';
-        
+        const isMeetingTask = task.task_type === 'pre_meeting_reminder' || task.meeting_id;
+        const isVisitTask = task.notes && (
+            task.notes.toLowerCase().includes('site visit') || 
+            task.notes.toLowerCase().includes('visit scheduled') ||
+            task.notes.toLowerCase().includes('10 min before site visit')
+        );
+
         return `
             <div class="kanban-task-card ${overdueClass}">
                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
@@ -2233,9 +2809,13 @@
                         <p style="margin: 4px 0 0 0; font-size: 12px; color: #666;">${task.lead_phone || '-'}</p>
                     </div>
                 </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;">
+                    ${isOverdue ? '<span style="background: #fee2e2; color: #dc2626; padding: 3px 8px; border-radius: 8px; font-size: 10px; font-weight: 600;">OVERDUE</span>' : ''}
+                    ${task.status === 'pending' && isMeetingTask ? '<span class="meeting-tag" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px;">M</span>' : ''}
+                    ${task.status === 'pending' && isVisitTask ? '<span class="visit-tag" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px;">V</span>' : ''}
+                </div>
                 <div style="font-size: 12px; color: #666; margin-bottom: 12px;">
                     <i class="fas fa-calendar" style="margin-right: 5px;"></i>${scheduledDate}
-                    ${isOverdue ? '<span style="display: block; margin-top: 4px; color: #ef4444; font-weight: 600;">OVERDUE</span>' : ''}
                 </div>
                 ${task.status === 'pending' || task.status === 'rescheduled' ? `
                     <button class="btn-call-task" data-task-id="${task.id}" data-phone="${task.lead_phone || ''}" style="width: 100%; padding: 10px; background: linear-gradient(135deg, #205A44 0%, #063A1C 100%); color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">
@@ -2253,7 +2833,11 @@
         calendarContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #B3B5B4;"><i class="fas fa-spinner fa-spin" style="font-size: 32px; margin-bottom: 12px;"></i><p>Loading calendar...</p></div>';
         
         // Load tasks and render FullCalendar
-        apiCall(`/tasks?status=${currentStatus}&per_page=100`).then(result => {
+        let endpoint = `/tasks?status=${currentStatus}&per_page=100`;
+        if (currentTaskType && currentTaskType !== null) {
+            endpoint += `&task_type=${currentTaskType}`;
+        }
+        apiCall(endpoint).then(result => {
             if (result && result.success) {
                 const tasks = result.data || [];
                 renderFullCalendar(tasks);
@@ -2393,12 +2977,54 @@
         console.log('API_BASE_URL:', API_BASE_URL);
         console.log('Token:', getToken() ? 'Exists' : 'Missing');
         
-        // Set initial view
-        switchView(currentView);
+        // Set initial view (but force list view on mobile)
+        if (window.innerWidth <= 768) {
+            currentView = 'list';
+            switchView('list');
+            // Initialize list/grid view toggle
+            applyListView();
+        } else {
+            switchView(currentView);
+        }
+        
+        // Set up mobile dropdown filters
+        const statusFilterDropdown = document.getElementById('taskStatusFilterDropdown');
+        if (statusFilterDropdown) {
+            statusFilterDropdown.addEventListener('change', function(e) {
+                const status = this.value;
+                filterTasks(status, e);
+            });
+            statusFilterDropdown.value = currentStatus;
+        }
+
+        const typeFilterDropdown = document.getElementById('taskTypeFilterDropdown');
+        if (typeFilterDropdown) {
+            typeFilterDropdown.addEventListener('change', function(e) {
+                const taskType = this.value;
+                filterTaskType(taskType, e);
+            });
+            // Set default to 'calling' if currentTaskType is 'all' or null
+            if (currentTaskType === 'all' || !currentTaskType) {
+                currentTaskType = 'calling';
+            }
+            typeFilterDropdown.value = currentTaskType;
+        }
+        
+        // Set default task type for mobile (first option: 'calling')
+        if (window.innerWidth <= 768 && (!currentTaskType || currentTaskType === 'all')) {
+            currentTaskType = 'calling';
+            const typeFilterDropdown = document.getElementById('taskTypeFilterDropdown');
+            if (typeFilterDropdown) {
+                typeFilterDropdown.value = 'calling';
+            }
+        }
+        
+        // Initialize toggle button state
+        applyListView();
         
         const contentDiv = document.getElementById('tasksContent');
         if (contentDiv) {
-            loadTasks('pending');
+            loadTasks(currentStatus || 'pending', currentTaskType || null);
         } else {
             console.error('tasksContent element not found, retrying...');
             setTimeout(initializeTasks, 200);
@@ -2507,15 +3133,30 @@
             return;
         }
         
-        // Use form fields from API response, fallback to hardcoded if not available
-        const formFields = data.form_fields || [
-            { key: 'category', label: 'Category', type: 'select', required: true, options: ['Residential', 'Commercial', 'Both', 'N.A'] },
-            { key: 'preferred_location', label: 'Preferred Location', type: 'select', required: true, options: ['Inside City', 'Sitapur Road', 'Hardoi Road', 'Faizabad Road', 'Sultanpur Road', 'Shaheed Path', 'Raebareily Road', 'Kanpur Road', 'Outer Ring Road', 'Bijnor Road', 'Deva Road', 'Sushant Golf City', 'Vrindavan Yojana', 'N.A'] },
-            { key: 'type', label: 'Type', type: 'select', required: true, options: ['Plots & Villas', 'Apartments', 'Retail Shops', 'Office Space', 'Studio', 'Farmhouse', 'Agricultural', 'Others', 'N.A'], dependent_field: 'category', dependent_conditions: null },
-            { key: 'purpose', label: 'Purpose', type: 'select', required: true, options: ['End Use', 'Short Term Investment', 'Long Term Investment', 'Rental Income', 'Investment + End Use', 'N.A'] },
-            { key: 'possession', label: 'Possession', type: 'select', required: true, options: ['Under Construction', 'Ready To Move', 'Pre Launch', 'Both', 'N.A'] },
-            { key: 'budget', label: 'Budget', type: 'select', required: true, options: ['Below 50 Lacs', '50-75 Lacs', '75 Lacs-1 Cr', 'Above 1 Cr', 'Above 2 Cr', 'N.A'] },
-        ];
+        // Debug logging
+        console.log('Form data received:', data);
+        console.log('Form fields:', data.form_fields);
+        console.log('Form fields type:', typeof data.form_fields);
+        console.log('Form fields is array:', Array.isArray(data.form_fields));
+        console.log('Form fields length:', data.form_fields?.length);
+        
+        // Properly check if form_fields exists and is non-empty array
+        let formFields = [];
+        if (data.form_fields && Array.isArray(data.form_fields) && data.form_fields.length > 0) {
+            formFields = data.form_fields;
+            console.log('Using API form fields:', formFields.length);
+        } else {
+            // Fallback to hardcoded fields
+            console.warn('API form_fields empty or missing, using fallback fields');
+            formFields = [
+                { key: 'category', label: 'Category', type: 'select', required: true, options: ['Residential', 'Commercial', 'Both', 'N.A'] },
+                { key: 'preferred_location', label: 'Preferred Location', type: 'select', required: true, options: ['Inside City', 'Sitapur Road', 'Hardoi Road', 'Faizabad Road', 'Sultanpur Road', 'Shaheed Path', 'Raebareily Road', 'Kanpur Road', 'Outer Ring Road', 'Bijnor Road', 'Deva Road', 'Sushant Golf City', 'Vrindavan Yojana', 'N.A'] },
+                { key: 'type', label: 'Type', type: 'select', required: true, options: ['Plots & Villas', 'Apartments', 'Retail Shops', 'Office Space', 'Studio', 'Farmhouse', 'Agricultural', 'Others', 'N.A'], dependent_field: 'category', dependent_conditions: null },
+                { key: 'purpose', label: 'Purpose', type: 'select', required: true, options: ['End Use', 'Short Term Investment', 'Long Term Investment', 'Rental Income', 'Investment + End Use', 'N.A'] },
+                { key: 'possession', label: 'Possession', type: 'select', required: true, options: ['Under Construction', 'Ready To Move', 'Pre Launch', 'Both', 'N.A'] },
+                { key: 'budget', label: 'Budget', type: 'select', required: true, options: ['Below 50 Lacs', '50-75 Lacs', '75 Lacs-1 Cr', 'Above 1 Cr', 'Above 2 Cr', 'N.A'] },
+            ];
+        }
         
         let formHTML = `
             <form id="leadRequirementForm" onsubmit="submitLeadRequirementForm(event); return false;">
@@ -2604,14 +3245,17 @@
                     </div>
                 </div>
                 
-                <div style="display: flex; justify-content: flex-end; gap: 12px; padding-top: 20px; border-top: 1px solid #e0e0e0; margin-top: 24px;">
+                <div class="form-buttons-container" style="display: flex; flex-direction: row; justify-content: flex-end; align-items: center; gap: 12px; padding-top: 20px; border-top: 1px solid #e0e0e0; margin-top: 24px; width: 100%;">
                     <button type="button" 
                             onclick="closeLeadRequirementFormModal()" 
-                            style="padding: 10px 20px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer; font-size: 14px; font-weight: 500;">
+                            class="form-cancel-btn"
+                            style="padding: 12px 24px; border: 1px solid #ddd; border-radius: 8px; background: white; color: #333; cursor: pointer; font-size: 14px; font-weight: 600; min-height: 44px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0;">
                         Cancel
                     </button>
                     <button type="submit" 
-                            style="padding: 10px 20px; background: #205A44; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                            class="form-submit-btn"
+                            style="padding: 12px 24px; background: linear-gradient(135deg, #205A44 0%, #063A1C 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; min-height: 44px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 2px 4px rgba(32, 90, 68, 0.2); flex-shrink: 0;">
+                        <i class="fas fa-check-circle" style="margin-right: 8px;"></i>
                         Send for Verification
                     </button>
                 </div>
@@ -2743,14 +3387,14 @@
                         taskCard.remove();
                         // Reload tasks after card removal to ensure consistency
                         if (currentStatus === 'pending' || currentStatus === 'rescheduled') {
-                            loadTasks(currentStatus);
+                            loadTasks(currentStatus, currentTaskType);
                         }
                     }, 300);
                 } else {
                     // Fallback if card not found by ID
                     if (currentStatus === 'pending' || currentStatus === 'rescheduled') {
                         setTimeout(() => {
-                            loadTasks(currentStatus);
+                            loadTasks(currentStatus, currentTaskType);
                         }, 300);
                     }
                 }

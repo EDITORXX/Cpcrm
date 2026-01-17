@@ -96,12 +96,18 @@ class User extends Authenticatable
 
     public function isCrm(): bool
     {
-        return $this->role->slug === Role::CRM;
+        if (!$this->relationLoaded('role')) {
+            $this->load('role');
+        }
+        return $this->role && $this->role->slug === Role::CRM;
     }
 
     public function isSalesManager(): bool
     {
-        return $this->role->slug === Role::SALES_MANAGER;
+        if (!$this->relationLoaded('role')) {
+            $this->load('role');
+        }
+        return $this->role && $this->role->slug === Role::SALES_MANAGER;
     }
 
     /**
@@ -135,7 +141,7 @@ class User extends Authenticatable
         
         // Recursively get nested team members
         foreach ($directMembers as $member) {
-            if ($member->isSalesManager() || $member->isSalesExecutive()) {
+            if ($member->isSalesManager() || $member->isAssistantSalesManager() || $member->isSeniorManager()) {
                 $nestedMembers = $member->getAllTeamMembers();
                 $allMembers = $allMembers->merge($nestedMembers);
             }
@@ -189,14 +195,86 @@ class User extends Authenticatable
         return false;
     }
 
+    /**
+     * Check if user is Sales Executive (previously Telecaller)
+     */
     public function isSalesExecutive(): bool
     {
-        return $this->role->slug === Role::SALES_EXECUTIVE;
+        if (!$this->relationLoaded('role')) {
+            $this->load('role');
+        }
+        return $this->role && $this->role->slug === Role::SALES_EXECUTIVE;
     }
 
+    /**
+     * Check if user is Assistant Sales Manager (previously Sales Executive)
+     */
+    public function isAssistantSalesManager(): bool
+    {
+        if (!$this->relationLoaded('role')) {
+            $this->load('role');
+        }
+        return $this->role && $this->role->slug === Role::ASSISTANT_SALES_MANAGER;
+    }
+
+    /**
+     * Check if user is Senior Manager
+     */
+    public function isSeniorManager(): bool
+    {
+        if (!$this->relationLoaded('role')) {
+            $this->load('role');
+        }
+        return $this->role && $this->role->slug === Role::SENIOR_MANAGER;
+    }
+
+    /**
+     * Check if user is HR Manager
+     */
+    public function isHrManager(): bool
+    {
+        if (!$this->relationLoaded('role')) {
+            $this->load('role');
+        }
+        return $this->role && $this->role->slug === Role::HR_MANAGER;
+    }
+
+    /**
+     * Check if user is Finance Manager
+     */
+    public function isFinanceManager(): bool
+    {
+        if (!$this->relationLoaded('role')) {
+            $this->load('role');
+        }
+        return $this->role && $this->role->slug === Role::FINANCE_MANAGER;
+    }
+
+    /**
+     * Deprecated: Use isSalesExecutive() instead
+     * Kept for backward compatibility during migration
+     */
     public function isTelecaller(): bool
     {
-        return $this->role->slug === Role::TELECALLER;
+        return $this->isSalesExecutive();
+    }
+
+    /**
+     * Get display role name for the user
+     * Returns "Associate Director" for Sales Head, otherwise returns role name
+     */
+    public function getDisplayRoleName(): string
+    {
+        if (!$this->relationLoaded('role')) {
+            $this->load('role');
+        }
+        
+        // Sales Head (Sales Manager with no manager) displays as "Associate Director"
+        if ($this->isSalesHead()) {
+            return 'Associate Director';
+        }
+        
+        return $this->role ? $this->role->name : 'Unknown';
     }
 
     public function canManageUsers(): bool

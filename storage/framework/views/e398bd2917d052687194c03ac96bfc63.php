@@ -21,9 +21,14 @@
         <div id="chatbotContent" class="chatbot-content">
             <div class="chatbot-welcome">
                 <p>👋 Hello! I'm your CRM assistant. I'll notify you about:</p>
+                <?php
+                    $chatbotUser = auth()->user();
+                ?>
                 <ul>
                     <li>📋 New leads assigned to you</li>
-                    <li>✅ Pending verifications</li>
+                    <?php if(!$chatbotUser || !method_exists($chatbotUser, 'isTelecaller') || !$chatbotUser->isTelecaller()): ?>
+                        <li>✅ Pending verifications</li>
+                    <?php endif; ?>
                     <li>📅 Upcoming follow-ups</li>
                     <li>📢 Important announcements</li>
                 </ul>
@@ -37,6 +42,9 @@
             <a href="<?php echo e(url('/dashboard')); ?>" class="chatbot-view-all">
                 View Dashboard
             </a>
+            <button type="button" class="chatbot-clear-all" onclick="window.chatbotAssistant?.cleanAllNotifications?.()">
+                Clean All Notifications
+            </button>
         </div>
     </div>
 </div>
@@ -294,12 +302,43 @@
     background: #e5e7eb;
 }
 
-@media (max-width: 480px) {
+.chatbot-clear-all {
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.chatbot-clear-all:hover {
+    background: #f3f4f6;
+    color: #111827;
+    border-color: #d1d5db;
+}
+
+@media (max-width: 767px) {
+    .chatbot-widget {
+        bottom: 70px !important; /* Above mobile footer nav (60px height + 10px gap) */
+        right: 12px !important;
+    }
+    
+    .chatbot-toggle {
+        width: 56px;
+        height: 56px;
+        font-size: 20px;
+    }
+    
     .chatbot-window {
         width: calc(100vw - 20px);
         right: 10px;
-        bottom: 10px;
-        height: calc(100vh - 80px);
+        bottom: 80px;
+        height: calc(100vh - 100px);
     }
 }
 </style>

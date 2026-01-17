@@ -15,7 +15,11 @@ use App\Models\TelecallerTask;
 use App\Models\Prospect;
 use App\Models\LeadFormField;
 use App\Models\AppNotification;
+use App\Models\SiteVisit;
+use App\Models\Incentive;
 use App\Services\TelecallerTaskService;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -55,10 +59,10 @@ class TelecallerController extends Controller
             ]);
         }
 
-        // Check if user is telecaller
-        if (!$user->isTelecaller()) {
+        // Check if user is sales executive
+        if (!$user->isSalesExecutive()) {
             throw ValidationException::withMessages([
-                'email' => ['This account is not authorized for telecaller access.'],
+                'email' => ['This account is not authorized for sales executive access.'],
             ]);
         }
 
@@ -540,6 +544,30 @@ class TelecallerController extends Controller
     }
 
     /**
+     * Get telecallers list for dropdown
+     */
+    public function getTelecallers(Request $request)
+    {
+        $telecallers = User::whereHas('role', function($q) {
+                $q->where('slug', 'telecaller');
+            })
+            ->where('is_active', true)
+            ->with('role')
+            ->get()
+            ->map(function($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'role' => $user->role->name ?? 'Telecaller',
+                ];
+            });
+
+        return response()->json([
+            'telecallers' => $telecallers,
+        ]);
+    }
+
+    /**
      * Get tasks with filters (pending, completed, rescheduled, all)
      */
     public function getTasks(Request $request)
@@ -578,7 +606,12 @@ class TelecallerController extends Controller
 
             // Filter by task type
             if ($taskType) {
-                $query->where('task_type', $taskType);
+                if ($taskType === 'call_again') {
+                    // Call Again tasks are stored with outcome='rescheduled'
+                    $query->where('outcome', 'rescheduled');
+                } else {
+                    $query->where('task_type', $taskType);
+                }
             }
 
             $perPage = $request->get('per_page', 50);
@@ -608,6 +641,7 @@ class TelecallerController extends Controller
                     'manager_name' => $manager->name ?? 'Not Assigned',
                     'manager_id' => $manager->id ?? null,
                     'task_type' => $task->task_type,
+                    'meeting_id' => $task->meeting_id ?? null,
                     'status' => $task->status,
                     'scheduled_at' => $task->scheduled_at ? $task->scheduled_at->format('Y-m-d H:i:s') : null,
                     'completed_at' => $task->completed_at ? $task->completed_at->format('Y-m-d H:i:s') : null,
@@ -1120,6 +1154,9 @@ class TelecallerController extends Controller
                 $q->where('assigned_to', $telecallerId)
                   ->where('is_active', true);
             })
+            ->whereHas('prospects', function($q) {
+                $q->where('verification_status', 'verified');
+            })
             ->with(['assignments' => function($q) use ($telecallerId) {
                 $q->where('assigned_to', $telecallerId)
                   ->where('is_active', true);
@@ -1168,6 +1205,7 @@ class TelecallerController extends Controller
                     'next_followup_at' => $lead->next_followup_at ? $lead->next_followup_at->format('Y-m-d H:i:s') : null,
                     'created_at' => $lead->created_at ? $lead->created_at->format('Y-m-d H:i:s') : null,
                     'assigned_at' => $assignment && $assignment->assigned_at ? $assignment->assigned_at->format('Y-m-d H:i:s') : ($lead->created_at ? $lead->created_at->format('Y-m-d H:i:s') : null),
+                    'assigned_to_name' => $assignment && $assignment->assignedTo ? $assignment->assignedTo->name : 'Not Assigned',
                 ];
             });
 
@@ -1776,12 +1814,15 @@ class TelecallerController extends Controller
                         'help_text' => $field->help_text,
                         'display_order' => $field->display_order,
                     ];
-                });
+                })
+                ->values() // Ensure indexed array
+                ->all(); // Convert to plain array
             
             \Log::info('Lead form data retrieved successfully', [
                 'lead_id' => $lead->id,
-                'fields_count' => $visibleFields->count(),
-                'form_values_count' => count($existingValues)
+                'fields_count' => count($visibleFields),
+                'form_values_count' => count($existingValues),
+                'fields' => $visibleFields
             ]);
             
             return response()->json([
@@ -1792,7 +1833,7 @@ class TelecallerController extends Controller
                 'lead_email' => $lead->email,
                 'task_id' => $telecallerTask->id,
                 'form_values' => $existingValues,
-                'form_fields' => $visibleFields,
+                'form_fields' => $visibleFields, // Now guaranteed to be array
             ]);
         } catch (\Exception $e) {
             \Log::error('Get Lead Form Error', [
@@ -2100,6 +2141,169 @@ class TelecallerController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to submit form: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get site visits eligible for incentive (Telecaller's prospect's site visits)
+     */
+    public function getEligibleSiteVisitsForIncentive(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user->isTelecaller()) {
+            return response()->json(['message' => 'Forbidden. Only Sales Executives can access this.'], 403);
+        }
+
+        try {
+            // Get all prospects created by this telecaller
+            $prospectIds = Prospect::where('telecaller_id', $user->id)
+                ->pluck('lead_id')
+                ->filter()
+                ->unique()
+                ->toArray();
+
+            if (empty($prospectIds)) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [],
+                ]);
+            }
+
+            // Get site visits for these leads that are verified and don't have incentive yet
+            $siteVisits = SiteVisit::whereIn('lead_id', $prospectIds)
+                ->where('verification_status', 'verified')
+                ->where('status', 'completed')
+                ->with(['lead', 'creator'])
+                ->get()
+                ->filter(function ($siteVisit) use ($user) {
+                    // Check if incentive already requested
+                    $existingIncentive = Incentive::where('site_visit_id', $siteVisit->id)
+                        ->where('type', 'site_visit')
+                        ->where('user_id', $user->id)
+                        ->first();
+                    
+                    return !$existingIncentive;
+                })
+                ->map(function ($siteVisit) {
+                    return [
+                        'id' => $siteVisit->id,
+                        'customer_name' => $siteVisit->customer_name ?? ($siteVisit->lead->name ?? 'N/A'),
+                        'phone' => $siteVisit->phone ?? ($siteVisit->lead->phone ?? 'N/A'),
+                        'completed_at' => $siteVisit->completed_at ? $siteVisit->completed_at->toIso8601String() : null,
+                        'verified_at' => $siteVisit->verified_at ? $siteVisit->verified_at->toIso8601String() : null,
+                        'project' => $siteVisit->project ?? 'N/A',
+                        'budget_range' => $siteVisit->budget_range ?? 'N/A',
+                        'lead' => $siteVisit->lead ? [
+                            'id' => $siteVisit->lead->id,
+                            'name' => $siteVisit->lead->name,
+                        ] : null,
+                    ];
+                })
+                ->values();
+
+            return response()->json([
+                'success' => true,
+                'data' => $siteVisits,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting eligible site visits for incentive: ' . $e->getMessage(), [
+                'user_id' => $user->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get eligible site visits.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Request site visit incentive (Telecaller)
+     */
+    public function requestSiteVisitIncentive(Request $request, SiteVisit $siteVisit)
+    {
+        $user = $request->user();
+
+        if (!$user->isTelecaller()) {
+            return response()->json(['message' => 'Forbidden. Only Sales Executives can request site visit incentives.'], 403);
+        }
+
+        // Check if site visit is verified
+        if ($siteVisit->verification_status !== 'verified') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Site visit must be verified before requesting incentive.',
+            ], 422);
+        }
+
+        // Check if this is Telecaller's prospect's site visit
+        $prospect = Prospect::where('lead_id', $siteVisit->lead_id)
+            ->where('telecaller_id', $user->id)
+            ->latest('created_at')
+            ->first();
+
+        if (!$prospect) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This site visit is not eligible for incentive. Only your prospect\'s site visits are eligible.',
+            ], 403);
+        }
+
+        // Check if incentive already requested
+        $existingIncentive = Incentive::where('site_visit_id', $siteVisit->id)
+            ->where('type', 'site_visit')
+            ->where('user_id', $user->id)
+            ->first();
+
+        if ($existingIncentive) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Incentive already requested for this site visit.',
+            ], 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'amount' => 'required|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            // Create incentive record
+            $incentive = Incentive::create([
+                'site_visit_id' => $siteVisit->id,
+                'user_id' => $user->id,
+                'type' => 'site_visit',
+                'amount' => $request->input('amount'),
+                'status' => 'pending_sales_head',
+            ]);
+
+            // Update site visit incentive_amount
+            $siteVisit->incentive_amount = $request->input('amount');
+            $siteVisit->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Site visit incentive requested successfully. Awaiting verification.',
+                'data' => $incentive->fresh(['siteVisit.lead', 'user']),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error requesting site visit incentive: ' . $e->getMessage(), [
+                'site_visit_id' => $siteVisit->id,
+                'user_id' => $user->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to request incentive.',
             ], 500);
         }
     }

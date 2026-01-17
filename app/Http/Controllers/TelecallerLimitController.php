@@ -22,9 +22,9 @@ class TelecallerLimitController extends Controller
      */
     public function index()
     {
-        $telecallerRoleId = Role::where('slug', Role::TELECALLER)->value('id');
-        
-        $telecallers = User::where('role_id', $telecallerRoleId)
+        $salesExecutiveRoleId = Role::where('slug', Role::SALES_EXECUTIVE)->value('id');
+
+        $telecallers = User::where('role_id', $salesExecutiveRoleId)
             ->where('is_active', true)
             ->with(['telecallerDailyLimit', 'telecallerProfile'])
             ->get()
@@ -64,10 +64,10 @@ class TelecallerLimitController extends Controller
 
         $user = User::findOrFail($request->user_id);
         
-        if (!$user->isTelecaller()) {
+        if (!$user->isSalesExecutive()) {
             return response()->json([
                 'success' => false,
-                'message' => 'User is not a telecaller.'
+                'message' => 'User is not a sales executive.'
             ], 422);
         }
 

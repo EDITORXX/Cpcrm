@@ -70,14 +70,14 @@ class LeadFormField extends Model
             return $query->active();
         }
         
-        // Telecaller sees only telecaller fields
-        if ($roleSlug === 'telecaller') {
-            return $query->active()->where('field_level', 'telecaller');
+        // Sales Executive (previously Telecaller) sees only sales_executive fields
+        if ($roleSlug === 'sales_executive') {
+            return $query->active()->where('field_level', 'sales_executive');
         }
         
-        // Sales Executive sees telecaller fields + sales_executive fields
-        if ($roleSlug === 'sales_executive') {
-            return $query->active()->whereIn('field_level', ['telecaller', 'sales_executive']);
+        // Assistant Sales Manager (previously Sales Executive) sees sales_executive fields + assistant_sales_manager fields
+        if ($roleSlug === 'assistant_sales_manager') {
+            return $query->active()->whereIn('field_level', ['sales_executive', 'assistant_sales_manager']);
         }
         
         return $query->whereRaw('1 = 0'); // No fields for unknown roles
