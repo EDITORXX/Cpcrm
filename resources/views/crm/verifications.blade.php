@@ -2241,7 +2241,18 @@
                 </div>
             `;
 
-            showDetailsModalContent(detailsHtml);
+            // Show modal with details
+            const modal = document.getElementById('detailsModal');
+            const title = document.getElementById('detailsModalTitle');
+            const content = document.getElementById('detailsModalContent');
+            const verifyBtn = document.getElementById('detailsModalVerifyBtn');
+            const rejectBtn = document.getElementById('detailsModalRejectBtn');
+
+            title.textContent = 'Closing Verification Details';
+            content.innerHTML = '<div style="padding: 20px;">' + detailsHtml + '</div>';
+            verifyBtn.style.display = 'none';
+            rejectBtn.style.display = 'none';
+            modal.classList.add('show');
         } catch (error) {
             console.error('Error loading closing verification details:', error);
             alert('Failed to load details');
