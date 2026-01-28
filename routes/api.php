@@ -152,7 +152,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/telecallers', [TelecallerController::class, 'getTelecallers']);
 
     // Users (Admin only)
-    Route::apiResource('users', UserController::class)->middleware('permission:manage_users');
+    Route::apiResource('users', UserController::class)->middleware('permission:manage_users')->names([
+        'index' => 'api.users.index',
+        'show' => 'api.users.show',
+        'store' => 'api.users.store',
+        'update' => 'api.users.update',
+        'destroy' => 'api.users.destroy',
+    ]);
 
     // Telecaller routes
     Route::prefix('telecaller')->middleware('role:telecaller')->group(function () {

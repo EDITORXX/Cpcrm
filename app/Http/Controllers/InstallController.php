@@ -244,9 +244,10 @@ class InstallController extends Controller
             // Step 8: Create installation lock file
             File::put(storage_path('app/installed.lock'), now()->toDateTimeString());
 
-            // Step 9: Clear and cache config
+            // Step 9: Clear and cache config (skip route cache to avoid route conflict)
             Artisan::call('config:cache');
-            Artisan::call('route:cache');
+            // Skip route:cache to avoid route conflict with duplicate users.index
+            // Artisan::call('route:cache');
             Artisan::call('view:cache');
 
             Log::info('Installation completed successfully', [

@@ -175,19 +175,19 @@
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Admin Name *</label>
-                                <input type="text" name="admin_name" required
+                                <input type="text" name="admin_name" value="vivek" required
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#063A1C] focus:border-[#063A1C]"
                                     placeholder="Admin User">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Admin Email *</label>
-                                <input type="email" name="admin_email" required
+                                <input type="email" name="admin_email" value="vivek.baseinfra@gmail.com" required
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#063A1C] focus:border-[#063A1C]"
                                     placeholder="admin@example.com">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Admin Password *</label>
-                                <input type="password" name="admin_password" required minlength="8"
+                                <input type="password" name="admin_password" value="Base@9098b" required minlength="8"
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#063A1C] focus:border-[#063A1C]"
                                     placeholder="Minimum 8 characters">
                                 <p class="text-xs text-gray-500 mt-1">Password must be at least 8 characters long</p>
