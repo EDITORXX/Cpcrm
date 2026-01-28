@@ -66,13 +66,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Icon(
-                    Icons.phone_in_talk,
+                    Icons.business,
                     size: 80,
                     color: ThemeConfig.primaryColor,
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Telecaller CRM',
+                    'Base CRM',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineLarge,
                   ),

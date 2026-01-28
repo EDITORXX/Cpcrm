@@ -45,13 +45,13 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.phone_in_talk,
+              Icons.business,
               size: 80,
               color: Colors.white,
             ),
             const SizedBox(height: 20),
             const Text(
-              'Telecaller CRM',
+              'Base CRM',
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,

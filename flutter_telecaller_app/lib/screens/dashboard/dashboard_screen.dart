@@ -19,63 +19,130 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 0;
-
-  final List<Widget> _screens = [
-    const DashboardHome(),
-    const TaskListScreen(),
-    const LeadListScreen(),
-    const ProspectListScreen(),
-    const ProfileScreen(),
-  ];
+  late List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<TaskProvider>(context, listen: false).loadTasks();
-      Provider.of<CallTrackingProvider>(context, listen: false)
-          .loadCallStatistics();
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      _screens = _getScreens(authProvider);
+      
+      // Load data based on role
+      if (authProvider.isTelecaller || authProvider.isSalesExecutive) {
+        Provider.of<TaskProvider>(context, listen: false).loadTasks();
+        Provider.of<CallTrackingProvider>(context, listen: false)
+            .loadCallStatistics();
+      }
     });
+  }
+  
+  List<Widget> _getScreens(AuthProvider authProvider) {
+    final screens = <Widget>[
+      const DashboardHome(),
+    ];
+    
+    if (authProvider.isTelecaller || authProvider.isSalesExecutive) {
+      screens.addAll([
+        const TaskListScreen(),
+        const LeadListScreen(),
+        const ProspectListScreen(),
+      ]);
+    } else if (authProvider.isSalesManager || authProvider.isCrm || authProvider.isAdmin) {
+      screens.addAll([
+        const LeadListScreen(),
+        // Placeholder for reports screen
+        const DashboardHome(), // Temporary - can be replaced with ReportsScreen
+      ]);
+    }
+    
+    // Profile for all users
+    screens.add(const ProfileScreen());
+    
+    return screens;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _screens[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: ThemeConfig.primaryColor,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, _) {
+        // Update screens based on current role
+        _screens = _getScreens(authProvider);
+        
+        // Role-based navigation items
+        final navigationItems = _getNavigationItems(authProvider);
+        
+        // Ensure current index is valid
+        if (_currentIndex >= _screens.length) {
+          _currentIndex = 0;
+        }
+        
+        return Scaffold(
+          body: _screens[_currentIndex],
+          bottomNavigationBar: BottomNavigationBar(
+            currentIndex: _currentIndex,
+            onTap: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            type: BottomNavigationBarType.fixed,
+            selectedItemColor: ThemeConfig.primaryColor,
+            unselectedItemColor: Colors.grey,
+            items: navigationItems,
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.task),
-            label: 'Tasks',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Leads',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.verified_user),
-            label: 'Verification',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+        );
+      },
+    );
+  }
+  
+  List<BottomNavigationBarItem> _getNavigationItems(AuthProvider authProvider) {
+    // Base items for all users
+    final items = <BottomNavigationBarItem>[
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.dashboard),
+        label: 'Dashboard',
+      ),
+    ];
+    
+    // Role-based items
+    if (authProvider.isTelecaller || authProvider.isSalesExecutive) {
+      items.addAll([
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.task),
+          label: 'Tasks',
+        ),
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.people),
+          label: 'Leads',
+        ),
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.verified_user),
+          label: 'Verification',
+        ),
+      ]);
+    } else if (authProvider.isSalesManager || authProvider.isCrm || authProvider.isAdmin) {
+      items.addAll([
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.people),
+          label: 'Leads',
+        ),
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.analytics),
+          label: 'Reports',
+        ),
+      ]);
+    }
+    
+    // Profile for all users
+    items.add(
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.person),
+        label: 'Profile',
       ),
     );
+    
+    return items;
   }
 }
 
@@ -84,45 +151,169 @@ class DashboardHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bar_chart),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const CallStatisticsScreen(),
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, _) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Text('Dashboard - ${authProvider.userRoleName}'),
+            actions: [
+              if (authProvider.isTelecaller || authProvider.isSalesExecutive)
+                IconButton(
+                  icon: const Icon(Icons.bar_chart),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CallStatisticsScreen(),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await Future.wait([
-            Provider.of<TaskProvider>(context, listen: false).loadTasks(),
-            Provider.of<CallTrackingProvider>(context, listen: false)
-                .loadCallStatistics(),
-          ]);
-        },
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const StatsCards(),
-              const SizedBox(height: 24),
-              const CallStatsCards(),
-              const SizedBox(height: 24),
-              const QuickActions(),
             ],
           ),
+          body: RefreshIndicator(
+            onRefresh: () async {
+              final futures = <Future>[];
+              if (authProvider.isTelecaller || authProvider.isSalesExecutive) {
+                futures.addAll([
+                  Provider.of<TaskProvider>(context, listen: false).loadTasks(),
+                  Provider.of<CallTrackingProvider>(context, listen: false)
+                      .loadCallStatistics(),
+                ]);
+              }
+              await Future.wait(futures);
+            },
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Role-based welcome message
+                  _RoleWelcomeCard(userRole: authProvider.userRoleName),
+                  const SizedBox(height: 24),
+                  // Role-based stats
+                  if (authProvider.isTelecaller || authProvider.isSalesExecutive) ...[
+                    const StatsCards(),
+                    const SizedBox(height: 24),
+                    const CallStatsCards(),
+                    const SizedBox(height: 24),
+                  ] else if (authProvider.isSalesManager || authProvider.isCrm || authProvider.isAdmin) ...[
+                    const ManagerStatsCards(),
+                    const SizedBox(height: 24),
+                  ],
+                  const QuickActions(),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _RoleWelcomeCard extends StatelessWidget {
+  final String userRole;
+  
+  const _RoleWelcomeCard({required this.userRole});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: ThemeConfig.primaryColor.withOpacity(0.1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(
+              Icons.person,
+              size: 40,
+              color: ThemeConfig.primaryColor,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Welcome!',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  Text(
+                    'Logged in as $userRole',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+}
+
+class ManagerStatsCards extends StatelessWidget {
+  const ManagerStatsCards({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Overview',
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                title: 'Total Leads',
+                value: '0',
+                icon: Icons.people,
+                color: ThemeConfig.primaryColor,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _StatCard(
+                title: 'Team Members',
+                value: '0',
+                icon: Icons.group,
+                color: ThemeConfig.secondaryColor,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                title: 'Active Tasks',
+                value: '0',
+                icon: Icons.task,
+                color: ThemeConfig.warningColor,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _StatCard(
+                title: 'Performance',
+                value: '0%',
+                icon: Icons.trending_up,
+                color: ThemeConfig.successColor,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -289,58 +480,103 @@ class QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Quick Actions',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        const SizedBox(height: 16),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, _) {
+        final actions = _getQuickActions(context, authProvider);
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _QuickActionCard(
-              title: 'View Tasks',
-              icon: Icons.task,
-              onTap: () {
-                // Navigate to tasks
-              },
+            Text(
+              'Quick Actions',
+              style: Theme.of(context).textTheme.headlineMedium,
             ),
-            _QuickActionCard(
-              title: 'View Leads',
-              icon: Icons.people,
-              onTap: () {
-                // Navigate to leads
-              },
-            ),
-            _QuickActionCard(
-              title: 'Call Stats',
-              icon: Icons.bar_chart,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const CallStatisticsScreen(),
-                  ),
-                );
-              },
-            ),
-            _QuickActionCard(
-              title: 'Profile',
-              icon: Icons.person,
-              onTap: () {
-                // Navigate to profile
-              },
+            const SizedBox(height: 16),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              children: actions,
             ),
           ],
-        ),
-      ],
+        );
+      },
     );
+  }
+  
+  List<Widget> _getQuickActions(BuildContext context, AuthProvider authProvider) {
+    final actions = <Widget>[];
+    
+    if (authProvider.isTelecaller || authProvider.isSalesExecutive) {
+      actions.addAll([
+        _QuickActionCard(
+          title: 'View Tasks',
+          icon: Icons.task,
+          onTap: () {
+            // Navigate to tasks - handled by bottom nav
+          },
+        ),
+        _QuickActionCard(
+          title: 'View Leads',
+          icon: Icons.people,
+          onTap: () {
+            // Navigate to leads - handled by bottom nav
+          },
+        ),
+        _QuickActionCard(
+          title: 'Call Stats',
+          icon: Icons.bar_chart,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const CallStatisticsScreen(),
+              ),
+            );
+          },
+        ),
+      ]);
+    } else if (authProvider.isSalesManager || authProvider.isCrm || authProvider.isAdmin) {
+      actions.addAll([
+        _QuickActionCard(
+          title: 'View Leads',
+          icon: Icons.people,
+          onTap: () {
+            // Navigate to leads - handled by bottom nav
+          },
+        ),
+        _QuickActionCard(
+          title: 'Team Stats',
+          icon: Icons.analytics,
+          onTap: () {
+            // Navigate to team stats
+          },
+        ),
+        if (authProvider.isAdmin || authProvider.isCrm)
+          _QuickActionCard(
+            title: 'System Settings',
+            icon: Icons.settings,
+            onTap: () {
+              // Navigate to settings
+            },
+          ),
+      ]);
+    }
+    
+    // Profile for all users
+    actions.add(
+      _QuickActionCard(
+        title: 'Profile',
+        icon: Icons.person,
+        onTap: () {
+          // Navigate to profile - handled by bottom nav
+        },
+      ),
+    );
+    
+    return actions;
   }
 }
 

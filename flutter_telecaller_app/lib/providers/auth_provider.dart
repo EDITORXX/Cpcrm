@@ -12,6 +12,18 @@ class AuthProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get isAuthenticated => _user != null;
+  
+  // Role-based getters
+  bool get isAdmin => _user?.isAdmin ?? false;
+  bool get isCrm => _user?.isCrm ?? false;
+  bool get isSalesManager => _user?.isSalesManager ?? false;
+  bool get isSalesExecutive => _user?.isSalesExecutive ?? false;
+  bool get isTelecaller => _user?.isTelecaller ?? false;
+  bool get isHrManager => _user?.isHrManager ?? false;
+  bool get isFinanceManager => _user?.isFinanceManager ?? false;
+  
+  String get userRole => _user?.role ?? 'sales_executive';
+  String get userRoleName => _user?.roleName ?? _user?.role ?? 'Sales Executive';
 
   Future<bool> checkAuth() async {
     _isLoading = true;

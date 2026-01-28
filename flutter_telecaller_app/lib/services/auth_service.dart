@@ -47,17 +47,33 @@ class AuthService {
   }
 
   Future<ApiResponse<UserModel>> getCurrentUser() async {
-    final response = await _apiService.get<Map<String, dynamic>>(
-      ApiConfig.whoami,
-      fromJson: (data) => data as Map<String, dynamic>,
-    );
+    // Try general /api/me endpoint first, fallback to telecaller-specific if needed
+    try {
+      final response = await _apiService.get<Map<String, dynamic>>(
+        ApiConfig.me,
+        fromJson: (data) => data as Map<String, dynamic>,
+      );
 
-    if (response.success && response.data != null) {
-      final user = UserModel.fromJson(response.data!);
-      return ApiResponse.success(user);
+      if (response.success && response.data != null) {
+        final user = UserModel.fromJson(response.data!);
+        return ApiResponse.success(user);
+      }
+
+      return ApiResponse.error(response.message ?? 'Failed to get user');
+    } catch (e) {
+      // Fallback to telecaller-specific endpoint for backward compatibility
+      final response = await _apiService.get<Map<String, dynamic>>(
+        ApiConfig.whoami,
+        fromJson: (data) => data as Map<String, dynamic>,
+      );
+
+      if (response.success && response.data != null) {
+        final user = UserModel.fromJson(response.data!);
+        return ApiResponse.success(user);
+      }
+
+      return ApiResponse.error(response.message ?? 'Failed to get user');
     }
-
-    return ApiResponse.error(response.message ?? 'Failed to get user');
   }
 
   Future<bool> isAuthenticated() async {

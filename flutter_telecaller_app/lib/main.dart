@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CallTrackingProvider()),
       ],
       child: MaterialApp(
-        title: 'Telecaller CRM',
+        title: 'Base CRM',
         debugShowCheckedModeBanner: false,
         theme: ThemeConfig.lightTheme,
         home: const SplashScreen(),

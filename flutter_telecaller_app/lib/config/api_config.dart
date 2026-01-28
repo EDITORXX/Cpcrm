@@ -4,9 +4,14 @@ class ApiConfig {
   static const String baseUrl = 'http://192.168.1.7:8000/api';
   static const String telecallerBaseUrl = '$baseUrl/telecaller';
   
-  // Authentication Endpoints
-  static const String login = '$baseUrl/telecaller/login';
-  static const String logout = '$telecallerBaseUrl/logout';
+  // General Authentication Endpoints (for all users)
+  static const String login = '$baseUrl/login';
+  static const String logout = '$baseUrl/logout';
+  static const String me = '$baseUrl/me';
+  
+  // Telecaller-specific Authentication Endpoints (for backward compatibility)
+  static const String telecallerLogin = '$baseUrl/telecaller/login';
+  static const String telecallerLogout = '$telecallerBaseUrl/logout';
   static const String whoami = '$telecallerBaseUrl/whoami';
   
   // Profile Endpoints
