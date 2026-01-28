@@ -1,7 +1,7 @@
 class ApiConfig {
-  // Update this with your actual server URL
-  // For same network access, use your local IP address instead of localhost
-  static const String baseUrl = 'http://192.168.1.7:8000/api';
+  // Production server URL
+  // For production, using HTTPS server: https://crm.bihtech.com
+  static const String baseUrl = 'https://crm.bihtech.com/api';
   static const String telecallerBaseUrl = '$baseUrl/telecaller';
   
   // General Authentication Endpoints (for all users)
