@@ -28,9 +28,7 @@ dependencies:
   # Phone & Communication
   url_launcher: ^6.2.2
   permission_handler: ^11.1.0
-  call_log: ^0.1.3
-  phone_state: ^0.0.1
-  flutter_phone_state: ^1.0.0
+  call_log: ^4.0.0
 
   # Date & Time
   intl: ^0.18.1
