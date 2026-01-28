@@ -30,6 +30,21 @@
             height: 100vh;
         }
 
+        /* Mobile view - Enable scrolling */
+        @media (max-width: 968px) {
+            body {
+                height: auto;
+                min-height: 100vh;
+                overflow: auto;
+                overflow-x: hidden;
+            }
+
+            .login-container {
+                height: auto;
+                min-height: 100vh;
+            }
+        }
+
         /* Left Section - Gradient with Analytics */
         .left-section {
             flex: 0 0 40%;
@@ -365,6 +380,7 @@
 
             .right-section {
                 flex: 1;
+                min-height: auto;
             }
         }
 
@@ -391,10 +407,15 @@
 
             .right-section {
                 padding: 20px;
+                min-height: auto;
             }
 
             .welcome-title {
                 font-size: 24px;
+            }
+
+            .login-form-container {
+                padding-bottom: 40px;
             }
         }
     </style>
