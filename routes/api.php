@@ -45,6 +45,9 @@ Route::post('/login', [AuthController::class, 'login']);
 // Pabbly Webhook (public - no auth required)
 Route::post('/pabbly/webhook', [PabblyWebhookController::class, 'store']);
 
+// Google Sheets Lead API (public - for Google Apps Script)
+Route::post('/google-sheets/leads', [\App\Http\Controllers\Api\GoogleSheetsLeadController::class, 'store']);
+
 // Telecaller public routes
 Route::post('/telecaller/login', [TelecallerController::class, 'login']);
 
@@ -393,6 +396,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/incentives/{incentive}', [IncentiveController::class, 'show']);
         Route::post('/incentives/{incentive}/verify', [IncentiveController::class, 'verifyByFinanceManager']);
         Route::post('/incentives/{incentive}/reject', [IncentiveController::class, 'rejectByFinanceManager']);
+    });
+
+    // Flow Testing routes (Admin and CRM)
+    Route::prefix('admin/flow-test')->middleware(['auth:sanctum', 'role:admin,crm'])->group(function () {
+        Route::get('/stages', [\App\Http\Controllers\Admin\FlowTestController::class, 'getFlowStages']);
+        Route::post('/login-as/{userId}', [\App\Http\Controllers\Admin\FlowTestController::class, 'loginAsUser']);
+        Route::post('/restore-original-user', [\App\Http\Controllers\Admin\FlowTestController::class, 'restoreOriginalUser']);
+        Route::post('/stages/{stageId}/test', [\App\Http\Controllers\Admin\FlowTestController::class, 'testStage']);
+        Route::post('/stages/{stageId}/validate', [\App\Http\Controllers\Admin\FlowTestController::class, 'validateStage']);
+        Route::get('/stages/{stageId}/data', [\App\Http\Controllers\Admin\FlowTestController::class, 'getStageData']);
+        Route::post('/stages/{stageId}/fix', [\App\Http\Controllers\Admin\FlowTestController::class, 'fixErrors']);
+        Route::get('/users-by-role', [\App\Http\Controllers\Admin\FlowTestController::class, 'getUsersByRole']);
+        Route::post('/reset', [\App\Http\Controllers\Admin\FlowTestController::class, 'resetFlow']);
     });
 
     // Admin routes (for verification)

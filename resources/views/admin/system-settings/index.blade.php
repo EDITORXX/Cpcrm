@@ -213,6 +213,96 @@
         </div>
     </div>
 
+    <!-- Database Settings Section -->
+    <div class="section-card">
+        <div class="section-title">
+            <i class="fas fa-database"></i> Database Settings
+        </div>
+        
+        <p class="text-sm text-gray-600 mb-4">
+            Update your database connection settings. Changes will be saved to .env file.
+        </p>
+        
+        <form id="database-settings-form" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Database Host *</label>
+                    <input type="text" id="db-host" name="host" value="{{ env('DB_HOST', '127.0.0.1') }}" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Database Port *</label>
+                    <input type="number" id="db-port" name="port" value="{{ env('DB_PORT', '3306') }}" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Database Name *</label>
+                <input type="text" id="db-database" name="database" value="{{ env('DB_DATABASE', '') }}" required
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Database Username *</label>
+                    <input type="text" id="db-username" name="username" value="{{ env('DB_USERNAME', '') }}" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Database Password</label>
+                    <input type="password" id="db-password" name="password" value="{{ env('DB_PASSWORD', '') }}"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand"
+                        placeholder="Leave empty to keep current">
+                </div>
+            </div>
+            <div id="db-test-result" class="hidden"></div>
+            <div class="flex space-x-4">
+                <button type="button" onclick="testDatabaseConnection()" class="btn-secondary">
+                    <i class="fas fa-plug mr-2"></i> Test Connection
+                </button>
+                <button type="button" onclick="updateDatabaseSettings()" class="btn-primary">
+                    <i class="fas fa-save mr-2"></i> Save Database Settings
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Environment Variables Section -->
+    <div class="section-card">
+        <div class="section-title">
+            <i class="fas fa-cog"></i> Environment Variables
+        </div>
+        
+        <p class="text-sm text-gray-600 mb-4">
+            Manage environment variables from .env file. Be careful when editing these settings.
+        </p>
+        
+        <div class="mb-4">
+            <button onclick="loadEnvSettings()" class="btn-secondary">
+                <i class="fas fa-sync mr-2"></i> Load Environment Variables
+            </button>
+        </div>
+        
+        <div id="env-settings-container" class="hidden">
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <p class="text-sm text-yellow-800">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <strong>Warning:</strong> Changing environment variables can affect system functionality. Make sure you know what you're doing.
+                </p>
+            </div>
+            
+            <div id="env-settings-list" class="space-y-3 max-h-96 overflow-y-auto mb-4"></div>
+            
+            <div class="flex space-x-4">
+                <button onclick="updateEnvSettings()" class="btn-primary">
+                    <i class="fas fa-save mr-2"></i> Save Environment Variables
+                </button>
+                <button onclick="document.getElementById('env-settings-container').classList.add('hidden')" class="btn-secondary">
+                    <i class="fas fa-times mr-2"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- File Upload & Deploy Section -->
     <div class="section-card">
         <div class="section-title">
@@ -573,6 +663,166 @@ function showMessage(message, type) {
     setTimeout(() => {
         container.style.display = 'none';
     }, 5000);
+}
+
+// Database Settings
+async function testDatabaseConnection() {
+    const form = document.getElementById('database-settings-form');
+    const formData = new FormData(form);
+    const resultDiv = document.getElementById('db-test-result');
+    
+    resultDiv.classList.remove('hidden');
+    resultDiv.innerHTML = '<div class="bg-blue-50 border border-blue-200 rounded-lg p-4"><i class="fas fa-spinner fa-spin mr-2"></i>Testing connection...</div>';
+
+    try {
+        const response = await fetch('{{ route("admin.system-settings.database.test") }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                host: formData.get('host'),
+                port: parseInt(formData.get('port')),
+                database: formData.get('database'),
+                username: formData.get('username'),
+                password: formData.get('password'),
+            }),
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            resultDiv.innerHTML = '<div class="bg-green-50 border border-green-200 rounded-lg p-4"><i class="fas fa-check-circle text-green-600 mr-2"></i>Database connection successful!</div>';
+        } else {
+            resultDiv.innerHTML = `<div class="bg-red-50 border border-red-200 rounded-lg p-4"><i class="fas fa-times-circle text-red-600 mr-2"></i>${data.message}</div>`;
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `<div class="bg-red-50 border border-red-200 rounded-lg p-4"><i class="fas fa-times-circle text-red-600 mr-2"></i>Error: ${error.message}</div>`;
+    }
+}
+
+async function updateDatabaseSettings() {
+    if (!confirm('Are you sure you want to update database settings? This will modify your .env file.')) {
+        return;
+    }
+
+    const form = document.getElementById('database-settings-form');
+    const formData = new FormData(form);
+
+    try {
+        const response = await fetch('{{ route("admin.system-settings.database.update") }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                host: formData.get('host'),
+                port: parseInt(formData.get('port')),
+                database: formData.get('database'),
+                username: formData.get('username'),
+                password: formData.get('password'),
+            }),
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            showMessage(data.message, 'success');
+            // Test connection after update
+            setTimeout(() => testDatabaseConnection(), 1000);
+        } else {
+            showMessage(data.message, 'error');
+        }
+    } catch (error) {
+        showMessage('Error: ' + error.message, 'error');
+    }
+}
+
+// Environment Variables
+async function loadEnvSettings() {
+    try {
+        const response = await fetch('{{ route("admin.system-settings.env.get") }}');
+        const data = await response.json();
+        
+        if (data.success) {
+            const container = document.getElementById('env-settings-container');
+            const list = document.getElementById('env-settings-list');
+            
+            list.innerHTML = '';
+            
+            // Filter out sensitive keys or show all
+            const sensitiveKeys = ['APP_KEY', 'DB_PASSWORD', 'PUSHER_APP_SECRET'];
+            
+            Object.keys(data.settings).sort().forEach(key => {
+                const isSensitive = sensitiveKeys.includes(key);
+                const value = isSensitive && data.settings[key] ? '••••••••' : data.settings[key];
+                
+                const div = document.createElement('div');
+                div.className = 'border border-gray-200 rounded-lg p-3';
+                div.innerHTML = `
+                    <label class="block text-sm font-medium text-gray-700 mb-1">${key}</label>
+                    <input type="${isSensitive ? 'password' : 'text'}" 
+                           name="env_${key}" 
+                           value="${data.settings[key]}" 
+                           data-key="${key}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand text-sm">
+                    ${isSensitive ? '<p class="text-xs text-gray-500 mt-1">Sensitive value - enter new password to change</p>' : ''}
+                `;
+                list.appendChild(div);
+            });
+            
+            container.classList.remove('hidden');
+        } else {
+            showMessage(data.message, 'error');
+        }
+    } catch (error) {
+        showMessage('Error loading environment variables: ' + error.message, 'error');
+    }
+}
+
+async function updateEnvSettings() {
+    if (!confirm('Are you sure you want to update environment variables? This will modify your .env file.')) {
+        return;
+    }
+
+    const inputs = document.querySelectorAll('#env-settings-list input[data-key]');
+    const settings = {};
+
+    inputs.forEach(input => {
+        const key = input.getAttribute('data-key');
+        const value = input.value;
+        if (key && value !== undefined) {
+            settings[key] = value;
+        }
+    });
+
+    try {
+        const response = await fetch('{{ route("admin.system-settings.env.update") }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                settings: settings
+            }),
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            showMessage(data.message, 'success');
+            setTimeout(() => {
+                document.getElementById('env-settings-container').classList.add('hidden');
+            }, 2000);
+        } else {
+            showMessage(data.message, 'error');
+        }
+    } catch (error) {
+        showMessage('Error: ' + error.message, 'error');
+    }
 }
 </script>
 @endsection

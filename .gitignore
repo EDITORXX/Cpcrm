@@ -40,3 +40,6 @@ config/google-service-account.json
 !/storage/framework/views/.gitignore
 
 !/storage/logs/.gitignore
+
+# Archive folder (optional - uncomment to exclude from git)
+# _archive/

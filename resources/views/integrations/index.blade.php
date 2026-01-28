@@ -88,23 +88,77 @@
             </div>
         </div>
 
-        <!-- Facebook Meta Integration -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200 cursor-pointer" onclick="window.location.href='{{ route('integrations.facebook') }}'">
+        <!-- Meta Sheet Configuration -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200 cursor-pointer" onclick="window.location.href='{{ route('integrations.meta-sheet.index') }}'">
             <div class="p-6">
                 <div class="flex items-center justify-center mb-4">
                     <div class="w-16 h-16 rounded-full bg-gradient-to-r from-[#063A1C] to-[#205A44] flex items-center justify-center">
                         <i class="fab fa-facebook text-white text-2xl"></i>
                     </div>
                 </div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">Facebook Meta</h3>
-                <p class="text-sm text-gray-500 mb-4">Facebook and Meta platform integration</p>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Meta Sheet Configuration</h3>
+                <p class="text-sm text-gray-500 mb-4">Configure Meta/Facebook lead forms via Google Sheets</p>
+                @php
+                    try {
+                        $metaSheetCount = \App\Models\GoogleSheetsConfig::where('created_by', auth()->id())
+                            ->where('sheet_type', 'meta_facebook')
+                            ->where('is_active', true)
+                            ->count();
+                        $metaSheetActive = $metaSheetCount > 0;
+                    } catch (\Exception $e) {
+                        $metaSheetActive = false;
+                        $metaSheetCount = 0;
+                    }
+                @endphp
                 <div class="flex items-center mb-4">
-                    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Coming Soon</span>
+                    @if($metaSheetActive)
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{{ $metaSheetCount }} Active</span>
+                    @else
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">Not Configured</span>
+                    @endif
                 </div>
-                <button onclick="event.stopPropagation(); window.location.href='{{ route('integrations.configuration') }}'" 
+                <button onclick="event.stopPropagation(); window.location.href='{{ route('integrations.meta-sheet.index') }}'" 
                         class="w-full px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 text-sm font-medium">
                     <i class="fas fa-cog mr-2"></i>
-                    Configuration
+                    Configure
+                </button>
+            </div>
+        </div>
+
+        <!-- Facebook Meta / Form Integration -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200 cursor-pointer" onclick="window.location.href='{{ route('integrations.form-integration.index') }}'">
+            <div class="p-6">
+                <div class="flex items-center justify-center mb-4">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-r from-[#063A1C] to-[#205A44] flex items-center justify-center">
+                        <i class="fas fa-plug text-white text-2xl"></i>
+                    </div>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Form Integration</h3>
+                <p class="text-sm text-gray-500 mb-4">Google Forms & Custom form integration via Google Sheets</p>
+                @php
+                    try {
+                        $formIntegrationCount = \App\Models\GoogleSheetsConfig::where('created_by', auth()->id())
+                            ->whereNotNull('sheet_type')
+                            ->where('sheet_type', '!=', 'meta_facebook')
+                            ->where('is_active', true)
+                            ->count();
+                        $formIntegrationActive = $formIntegrationCount > 0;
+                    } catch (\Exception $e) {
+                        $formIntegrationActive = false;
+                        $formIntegrationCount = 0;
+                    }
+                @endphp
+                <div class="flex items-center mb-4">
+                    @if($formIntegrationActive)
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{{ $formIntegrationCount }} Active</span>
+                    @else
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">Not Configured</span>
+                    @endif
+                </div>
+                <button onclick="event.stopPropagation(); window.location.href='{{ route('integrations.form-integration.index') }}'" 
+                        class="w-full px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 text-sm font-medium">
+                    <i class="fas fa-cog mr-2"></i>
+                    Manage
                 </button>
             </div>
         </div>

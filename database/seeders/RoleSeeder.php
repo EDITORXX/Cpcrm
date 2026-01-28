@@ -58,10 +58,19 @@ class RoleSeeder extends Seeder
                 'description' => 'View assigned leads only, update call status, add call remarks',
                 'is_active' => true,
             ],
+            [
+                'name' => 'Telecaller',
+                'slug' => 'telecaller',
+                'description' => 'Make calls to leads, update call status, verify leads',
+                'is_active' => true,
+            ],
         ];
 
         foreach ($roles as $role) {
-            Role::create($role);
+            Role::firstOrCreate(
+                ['slug' => $role['slug']],
+                $role
+            );
         }
     }
 }

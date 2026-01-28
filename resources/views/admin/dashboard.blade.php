@@ -6,6 +6,9 @@
 
 @section('header-actions')
 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+    <a href="{{ route('admin.flow-test') }}" class="btn btn-brand-gradient" style="color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center;">
+        <i class="fas fa-check-circle" style="margin-right: 5px;"></i> Flow Testing
+    </a>
     <div class="dropdown" style="position: relative;">
         <button class="btn btn-brand-gradient" style="color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">
             <i class="fas fa-download" style="margin-right: 5px;"></i> Export Leads

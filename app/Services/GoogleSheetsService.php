@@ -45,14 +45,29 @@ class GoogleSheetsService
 
         // Try to find file in storage or config directory
         $fullPath = null;
+        $checkedPaths = [];
+        
         if (Storage::exists($jsonPath)) {
             $fullPath = Storage::path($jsonPath);
-        } elseif (file_exists(config_path($jsonPath))) {
+        } else {
+            $checkedPaths[] = Storage::path($jsonPath);
+        }
+        
+        if (!$fullPath && file_exists(config_path($jsonPath))) {
             $fullPath = config_path($jsonPath);
-        } elseif (file_exists($jsonPath)) {
+        } else {
+            $checkedPaths[] = config_path($jsonPath);
+        }
+        
+        if (!$fullPath && file_exists($jsonPath)) {
             $fullPath = $jsonPath;
         } else {
-            throw new \Exception("Service Account JSON file not found: {$jsonPath}");
+            $checkedPaths[] = $jsonPath;
+        }
+        
+        if (!$fullPath) {
+            $checkedPathsStr = implode(", ", array_filter($checkedPaths));
+            throw new \Exception("Service Account JSON file not found. Checked paths: {$checkedPathsStr}. Please verify the file path is correct.");
         }
 
         // Read and validate JSON
@@ -102,25 +117,47 @@ class GoogleSheetsService
         ?int $startRow = null
     ): array {
         // Build range string
-        $rangeString = "{$sheetName}!{$range}";
-        if ($startRow !== null && $startRow > 1) {
-            // Adjust range to start from specific row
+        // If startRow is specified, include row number in range
+        if ($startRow !== null && $startRow >= 1) {
+            // Adjust range to include specific row number
             $rangeParts = explode(':', $range);
             $startCol = $rangeParts[0];
             $endCol = $rangeParts[1] ?? $rangeParts[0];
-            $rangeString = "{$sheetName}!{$startCol}{$startRow}:{$endCol}";
+            $rangeString = "{$sheetName}!{$startCol}{$startRow}:{$endCol}{$startRow}";
+        } else {
+            // No startRow specified, use range as-is
+            $rangeString = "{$sheetName}!{$range}";
         }
 
-        $url = "https://sheets.googleapis.com/v4/spreadsheets/{$sheetId}/values/{$rangeString}";
+        // Validate and sanitize sheet ID
+        $sheetId = trim($sheetId);
+        if (empty($sheetId)) {
+            throw new \Exception("Sheet ID cannot be empty");
+        }
+
+        // Validate sheet ID format (should be alphanumeric with dashes/underscores)
+        if (!preg_match('/^[a-zA-Z0-9_-]+$/', $sheetId)) {
+            throw new \Exception("Invalid sheet ID format. Sheet ID should only contain letters, numbers, dashes, and underscores.");
+        }
+
+        // URL encode the range string to handle special characters in sheet names
+        // Note: Sheet ID should NOT be encoded, only the range part
+        $encodedRange = rawurlencode($rangeString);
+        
+        // Build URL - sheet ID goes directly in path, range is URL encoded
+        $url = "https://sheets.googleapis.com/v4/spreadsheets/{$sheetId}/values/{$encodedRange}";
 
         // Try service account first, then API key, then CSV fallback
         $headers = [];
+        $serviceAccountError = null;
         if ($serviceAccountPath) {
             try {
                 $accessToken = $this->getGoogleAccessTokenFromServiceAccount($serviceAccountPath);
                 $headers['Authorization'] = "Bearer {$accessToken}";
             } catch (\Exception $e) {
-                Log::warning("Service account auth failed: " . $e->getMessage());
+                $serviceAccountError = $e->getMessage();
+                Log::warning("Service account auth failed: " . $serviceAccountError);
+                // Continue to try API key or public access
             }
         }
 
@@ -150,7 +187,50 @@ class GoogleSheetsService
         }
 
         if ($httpCode === 403) {
-            throw new \Exception("Access denied. Share sheet as 'Anyone with link' or provide valid API key/service account.");
+            // If no authentication was provided, try CSV fallback for public sheets
+            if (empty($headers) && !$apiKey && !$serviceAccountPath) {
+                Log::info("403 error with no auth - trying CSV fallback for public sheet", [
+                    'sheet_id' => $sheetId,
+                    'sheet_name' => $sheetName,
+                ]);
+                try {
+                    return $this->fetchSheetDataCsv($sheetId, $sheetName);
+                } catch (\Exception $e) {
+                    Log::warning("CSV fallback also failed: " . $e->getMessage());
+                    // Continue to throw the 403 error below
+                }
+            }
+            
+            // If we have auth but still got 403, or CSV fallback failed
+            $errorDetails = [];
+            $solutions = [];
+            
+            if ($serviceAccountPath && $serviceAccountError) {
+                $errorDetails[] = "Service account authentication failed: {$serviceAccountError}";
+                $solutions[] = "Check the service account file path and ensure the file exists and is valid";
+                $solutions[] = "Ensure the service account email has been granted access to the sheet";
+            } elseif ($serviceAccountPath) {
+                $errorDetails[] = "Service account doesn't have access to this sheet";
+                $solutions[] = "Grant the service account email access to the sheet";
+            }
+            
+            if ($apiKey) {
+                $errorDetails[] = "API key authentication failed or API key doesn't have access";
+                $solutions[] = "Verify the API key is correct and has Google Sheets API enabled";
+            }
+            
+            if (empty($errorDetails)) {
+                $errorDetails[] = "No authentication provided and sheet is not publicly accessible via API";
+                $solutions[] = "Share the sheet as 'Anyone with link' (Viewer access) - Note: Google Sheets API v4 requires authentication even for public sheets";
+                $solutions[] = "Alternatively, provide an API key or service account for authentication";
+            }
+            
+            $errorMessage = "Access denied. " . implode(". ", $errorDetails);
+            if (!empty($solutions)) {
+                $errorMessage .= "\n\nSolutions:\n" . implode("\n", array_map(function($s, $i) { return ($i + 1) . ") " . $s; }, $solutions, array_keys($solutions)));
+            }
+            
+            throw new \Exception($errorMessage);
         }
 
         if ($httpCode === 404) {

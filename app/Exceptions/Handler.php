@@ -85,8 +85,8 @@ class Handler extends ExceptionHandler
                 ->withInput();
         }
 
-        // Ensure API routes always return JSON, even for unexpected errors
-        if ($request->expectsJson() || $request->is('api/*')) {
+        // Ensure API routes and install routes always return JSON, even for unexpected errors
+        if ($request->expectsJson() || $request->is('api/*') || $request->is('install/*')) {
             return $this->handleApiException($request, $e);
         }
 

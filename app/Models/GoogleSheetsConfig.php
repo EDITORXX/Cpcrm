@@ -17,6 +17,10 @@ class GoogleSheetsConfig extends Model
     protected $fillable = [
         'sheet_id',
         'sheet_name',
+        'sheet_type',
+        'selected_columns_json',
+        'crm_status_columns_json',
+        'api_endpoint_url',
         'api_key',
         'refresh_token',
         'service_account_json_path',
@@ -35,17 +39,23 @@ class GoogleSheetsConfig extends Model
         'linked_telecaller_id',
         'per_sheet_daily_limit',
         'is_active',
+        'is_draft',
+        'setup_completed_at',
         'completion_notification_sent',
         'created_by',
     ];
 
     protected $casts = [
         'last_sync_at' => 'datetime',
+        'setup_completed_at' => 'datetime',
         'auto_sync_enabled' => 'boolean',
         'is_active' => 'boolean',
+        'is_draft' => 'boolean',
         'completion_notification_sent' => 'boolean',
         'last_synced_row' => 'integer',
         'sync_interval_minutes' => 'integer',
+        'crm_status_columns_json' => 'array',
+        'selected_columns_json' => 'array',
     ];
 
     public function creator(): BelongsTo

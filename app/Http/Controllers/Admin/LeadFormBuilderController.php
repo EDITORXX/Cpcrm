@@ -37,7 +37,7 @@ class LeadFormBuilderController extends Controller
         $validated = $request->validate([
             'field_key' => 'required|string|max:255|unique:lead_form_fields,field_key',
             'field_label' => 'required|string|max:255',
-            'field_type' => 'required|in:text,textarea,select,date,time,number,email,tel',
+            'field_type' => 'required|in:text,textarea,select,date,time,datetime,number,email,tel',
             'field_level' => 'required|in:telecaller,sales_executive,sales_manager',
             'options' => 'nullable|array',
             'options.*' => 'nullable|string',
@@ -100,7 +100,7 @@ class LeadFormBuilderController extends Controller
         $validated = $request->validate([
             'field_key' => 'required|string|max:255|unique:lead_form_fields,field_key,' . $leadFormField->id,
             'field_label' => 'required|string|max:255',
-            'field_type' => 'required|in:text,textarea,select,date,time,number,email,tel',
+            'field_type' => 'required|in:text,textarea,select,date,time,datetime,number,email,tel',
             'field_level' => 'required|in:telecaller,sales_executive,sales_manager',
             'options' => 'nullable|array',
             'options.*' => 'nullable|string',

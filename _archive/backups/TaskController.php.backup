@@ -1,0 +1,156 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Task;
+use App\Models\Lead;
+use App\Services\TaskService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+
+class TaskController extends Controller
+{
+    protected $taskService;
+
+    public function __construct(TaskService $taskService)
+    {
+        $this->taskService = $taskService;
+    }
+
+    /**
+     * Display a listing of user's tasks
+     */
+    public function index(Request $request)
+    {
+        $user = $request->user();
+        
+        // If user is authenticated, show only their tasks, otherwise show all tasks
+        if ($user) {
+            $tasks = Task::where('assigned_to', $user->id)
+                ->with(['lead', 'assignedTo'])
+                ->orderBy('scheduled_at', 'asc')
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
+        } else {
+            $tasks = Task::with(['lead', 'assignedTo'])
+                ->orderBy('scheduled_at', 'asc')
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
+        }
+
+        return view('tasks.index', compact('tasks'));
+    }
+
+    /**
+     * Display the specified task
+     */
+    public function show(Task $task)
+    {
+        $task->load(['lead', 'assignedTo', 'creator']);
+        
+        return view('tasks.show', compact('task'));
+    }
+
+    /**
+     * Complete a task and return lead data for popup form
+     */
+    public function complete(Request $request, Task $task)
+    {
+        $user = $request->user();
+        
+        // If user is authenticated, verify task belongs to user
+        if ($user && $task->assigned_to !== $user->id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        try {
+            $this->taskService->completeTask($task);
+            $leadData = $this->taskService->getLeadDataForForm($task);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Task completed successfully',
+                'lead_data' => $leadData,
+                'task_id' => $task->id,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to complete task: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update lead after call completion
+     */
+    public function updateLeadAfterCall(Request $request, Task $task)
+    {
+        $user = $request->user();
+        
+        // If user is authenticated, verify task belongs to user
+        if ($user && $task->assigned_to !== $user->id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        if ($task->status !== 'completed') {
+            return response()->json(['error' => 'Task must be completed first'], 400);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string',
+            'city' => 'nullable|string|max:100',
+            'state' => 'nullable|string|max:100',
+            'pincode' => 'nullable|string|max:10',
+            'preferred_location' => 'nullable|string|max:255',
+            'preferred_size' => 'nullable|string|max:255',
+            'use_end_use' => 'nullable|string',
+            'investment' => 'nullable|numeric|min:0',
+            'budget_min' => 'nullable|numeric|min:0',
+            'budget_max' => 'nullable|numeric|min:0|gte:budget_min',
+            'source' => 'nullable|in:website,referral,walk_in,call,social_media,other',
+            'property_type' => 'nullable|in:apartment,villa,plot,commercial,other',
+            'requirements' => 'nullable|string',
+            'notes' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            $lead = $task->lead;
+            $lead->update($validator->validated());
+
+            // Update lead status to connected if it was new
+            if ($lead->status === 'new') {
+                $lead->update([
+                    'status' => 'connected',
+                    'last_contacted_at' => now(),
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Lead updated successfully',
+                'lead' => $lead->fresh(),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update lead: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+}

@@ -348,6 +348,39 @@
             }
         }
         
+        /* Sidebar Tooltip Styles */
+        .sidebar-tooltip {
+            position: fixed;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+            font-size: 14px;
+            color: #333;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        
+        .sidebar-tooltip.show {
+            opacity: 1;
+        }
+        
+        .tooltip-arrow {
+            position: absolute;
+            left: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+            border-right: 6px solid white;
+        }
+        
     </style>
     
     @stack('styles')
@@ -384,65 +417,65 @@
             <!-- Navigation -->
             <nav style="padding: 0 20px;">
                 @if(auth()->user()->isAdmin())
-                <a href="{{ route('admin.dashboard') }}" class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                <a href="{{ route('admin.dashboard') }}" class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" data-tooltip="Dashboard" title="Dashboard">
                     <i class="fas fa-home" style="margin-right: 10px; width: 20px;"></i>
                     Dashboard
                 </a>
-                <a href="{{ route('users.index') }}" class="sidebar-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                <a href="{{ route('users.index') }}" class="sidebar-link {{ request()->routeIs('users.*') ? 'active' : '' }}" data-tooltip="All Users" title="All Users">
                     <i class="fas fa-users" style="margin-right: 10px; width: 20px;"></i>
                     All Users
                 </a>
-                <a href="{{ route('admin.targets.index') }}" class="sidebar-link {{ request()->routeIs('admin.targets.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.targets.index') }}" class="sidebar-link {{ request()->routeIs('admin.targets.*') ? 'active' : '' }}" data-tooltip="Target Setting" title="Target Setting">
                     <i class="fas fa-bullseye" style="margin-right: 10px; width: 20px;"></i>
                     Target Setting
                 </a>
-                <div class="sidebar-link {{ request()->routeIs('leads.*') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'active' : '' }}" style="cursor: pointer;" onclick="toggleLeadsMenu()">
+                <div class="sidebar-link {{ request()->routeIs('leads.*') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'active' : '' }}" style="cursor: pointer;" onclick="toggleLeadsMenu()" data-tooltip="Leads" title="Leads">
                     <i class="fas fa-user-friends" style="margin-right: 10px; width: 20px;"></i>
                     Leads
                     <i class="fas fa-chevron-down ml-auto" id="leadsMenuIcon" style="transition: transform 0.3s;"></i>
                 </div>
                 <div id="leadsSubMenu" class="pl-8" style="display: {{ request()->routeIs('leads.*') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'block' : 'none' }};">
-                    <a href="{{ route('leads.index') }}" class="sidebar-link {{ request()->routeIs('leads.*') && !request()->routeIs('prospects.*') && !request()->routeIs('meetings.*') && !request()->routeIs('site-visits.*') && !request()->routeIs('closers.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;">
+                    <a href="{{ route('leads.index') }}" class="sidebar-link {{ request()->routeIs('leads.*') && !request()->routeIs('prospects.*') && !request()->routeIs('meetings.*') && !request()->routeIs('site-visits.*') && !request()->routeIs('closers.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;" data-tooltip="All Leads" title="All Leads">
                         <i class="fas fa-list" style="margin-right: 10px; width: 20px;"></i>
                         All Leads
                     </a>
-                    <a href="{{ route('prospects.index') }}" class="sidebar-link {{ request()->routeIs('prospects.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;">
+                    <a href="{{ route('prospects.index') }}" class="sidebar-link {{ request()->routeIs('prospects.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;" data-tooltip="Prospects" title="Prospects">
                         <i class="fas fa-user-check" style="margin-right: 10px; width: 20px;"></i>
                         Prospects
                     </a>
-                    <a href="{{ route('meetings.index') }}" class="sidebar-link {{ request()->routeIs('meetings.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;">
+                    <a href="{{ route('meetings.index') }}" class="sidebar-link {{ request()->routeIs('meetings.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;" data-tooltip="Meetings" title="Meetings">
                         <i class="fas fa-handshake" style="margin-right: 10px; width: 20px;"></i>
                         Meetings
                     </a>
-                    <a href="{{ route('site-visits.index') }}" class="sidebar-link {{ request()->routeIs('site-visits.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;">
+                    <a href="{{ route('site-visits.index') }}" class="sidebar-link {{ request()->routeIs('site-visits.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;" data-tooltip="Site Visits" title="Site Visits">
                         <i class="fas fa-map-marker-alt" style="margin-right: 10px; width: 20px;"></i>
                         Visits
                     </a>
-                    <a href="{{ route('closers.index') }}" class="sidebar-link {{ request()->routeIs('closers.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;">
+                    <a href="{{ route('closers.index') }}" class="sidebar-link {{ request()->routeIs('closers.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;" data-tooltip="Closers" title="Closers">
                         <i class="fas fa-check-circle" style="margin-right: 10px; width: 20px;"></i>
                         Closers
                     </a>
                 </div>
-                <div class="sidebar-link {{ request()->routeIs('projects.*') || request()->routeIs('builders.*') ? 'active' : '' }}" style="cursor: pointer;" onclick="toggleProjectsMenu()">
+                <div class="sidebar-link {{ request()->routeIs('projects.*') || request()->routeIs('builders.*') ? 'active' : '' }}" style="cursor: pointer;" onclick="toggleProjectsMenu()" data-tooltip="Projects" title="Projects">
                     <i class="fas fa-project-diagram" style="margin-right: 10px; width: 20px;"></i>
                     Projects
                     <i class="fas fa-chevron-down ml-auto" id="projectsMenuIcon" style="transition: transform 0.3s;"></i>
                 </div>
                 <div id="projectsSubMenu" class="pl-8" style="display: {{ request()->routeIs('projects.*') || request()->routeIs('builders.*') ? 'block' : 'none' }};">
-                    <a href="{{ route('projects.index') }}" class="sidebar-link {{ request()->routeIs('projects.*') && !request()->routeIs('builders.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;">
+                    <a href="{{ route('projects.index') }}" class="sidebar-link {{ request()->routeIs('projects.*') && !request()->routeIs('builders.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;" data-tooltip="All Projects" title="All Projects">
                         <i class="fas fa-list" style="margin-right: 10px; width: 20px;"></i>
                         All Projects
                     </a>
-                    <a href="{{ route('builders.index') }}" class="sidebar-link {{ request()->routeIs('builders.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;">
+                    <a href="{{ route('builders.index') }}" class="sidebar-link {{ request()->routeIs('builders.*') ? 'active' : '' }}" style="padding: 8px 16px; font-size: 14px;" data-tooltip="Builders" title="Builders">
                         <i class="fas fa-building" style="margin-right: 10px; width: 20px;"></i>
                         Builders
                     </a>
                 </div>
-                <a href="{{ route('calls.index') }}" class="sidebar-link {{ request()->routeIs('calls.*') ? 'active' : '' }}">
+                <a href="{{ route('calls.index') }}" class="sidebar-link {{ request()->routeIs('calls.*') ? 'active' : '' }}" data-tooltip="All Calls" title="All Calls">
                     <i class="fas fa-phone" style="margin-right: 10px; width: 20px;"></i>
                     All Calls
                 </a>
-                <a href="{{ route('chat.index') }}" class="sidebar-link {{ request()->routeIs('chat.*') ? 'active' : '' }}">
+                <a href="{{ route('chat.index') }}" class="sidebar-link {{ request()->routeIs('chat.*') ? 'active' : '' }}" data-tooltip="WhatsApp Chat" title="WhatsApp Chat">
                     <i class="fab fa-whatsapp" style="margin-right: 10px; width: 20px;"></i>
                     WhatsApp Chat
                 </a>
@@ -451,31 +484,35 @@
                     <i class="fas fa-chart-bar" style="margin-right: 10px; width: 20px;"></i>
                     Reports
                 </a> --}}
-                <a href="{{ route('export.index') }}" class="sidebar-link {{ request()->routeIs('export.*') ? 'active' : '' }}">
+                <a href="{{ route('export.index') }}" class="sidebar-link {{ request()->routeIs('export.*') ? 'active' : '' }}" data-tooltip="Export" title="Export">
                     <i class="fas fa-download" style="margin-right: 10px; width: 20px;"></i>
                     Export
                 </a>
-                <a href="{{ route('admin.forms.index') }}" class="sidebar-link {{ request()->routeIs('admin.forms.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.forms.index') }}" class="sidebar-link {{ request()->routeIs('admin.forms.*') ? 'active' : '' }}" data-tooltip="Forms" title="Forms">
                     <i class="fas fa-wpforms" style="margin-right: 10px; width: 20px;"></i>
                     Forms
                 </a>
-                <a href="{{ route('admin.lead-form-builder.index') }}" class="sidebar-link {{ request()->routeIs('admin.lead-form-builder.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.lead-form-builder.index') }}" class="sidebar-link {{ request()->routeIs('admin.lead-form-builder.*') ? 'active' : '' }}" data-tooltip="Lead Form Builder" title="Lead Form Builder">
                     <i class="fas fa-list-alt" style="margin-right: 10px; width: 20px;"></i>
                     Lead Form Builder
                 </a>
-                <a href="{{ route('admin.company-settings.index') }}" class="sidebar-link {{ request()->routeIs('admin.company-settings.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.company-settings.index') }}" class="sidebar-link {{ request()->routeIs('admin.company-settings.*') ? 'active' : '' }}" data-tooltip="Company Settings" title="Company Settings">
                     <i class="fas fa-cog" style="margin-right: 10px; width: 20px;"></i>
                     Company Settings
                 </a>
-                <a href="{{ route('admin.system-settings.index') }}" class="sidebar-link {{ request()->routeIs('admin.system-settings.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.system-settings.index') }}" class="sidebar-link {{ request()->routeIs('admin.system-settings.*') ? 'active' : '' }}" data-tooltip="System Settings" title="System Settings">
                     <i class="fas fa-server" style="margin-right: 10px; width: 20px;"></i>
                     System Settings
                 </a>
-                <a href="{{ route('integrations.index') }}" class="sidebar-link {{ request()->routeIs('integrations.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.deploy.index') }}" class="sidebar-link {{ request()->routeIs('admin.deploy.*') ? 'active' : '' }}" data-tooltip="Deployment" title="Deployment">
+                    <i class="fas fa-rocket" style="margin-right: 10px; width: 20px;"></i>
+                    Deployment
+                </a>
+                <a href="{{ route('integrations.index') }}" class="sidebar-link {{ request()->routeIs('integrations.*') ? 'active' : '' }}" data-tooltip="Integration" title="Integration">
                     <i class="fas fa-plug" style="margin-right: 10px; width: 20px;"></i>
                     Integration
                 </a>
-                <a href="{{ route('admin.profile') }}" class="sidebar-link {{ request()->routeIs('admin.profile') ? 'active' : '' }}">
+                <a href="{{ route('admin.profile') }}" class="sidebar-link {{ request()->routeIs('admin.profile') ? 'active' : '' }}" data-tooltip="Profile" title="Profile">
                     <i class="fas fa-user" style="margin-right: 10px; width: 20px;"></i>
                     Profile
                 </a>
@@ -585,6 +622,12 @@
                     Export
                 </a>
                 @endif
+                @if(auth()->user()->isAdmin() || auth()->user()->isCrm())
+                <a href="{{ route('integrations.index') }}" class="sidebar-link {{ request()->routeIs('integrations.*') ? 'active' : '' }}" data-tooltip="Integration" title="Integration">
+                    <i class="fas fa-plug" style="margin-right: 10px; width: 20px;"></i>
+                    Integration
+                </a>
+                @endif
                 @if(!auth()->user()->isAdmin() && auth()->user()->canManageUsers() && !auth()->user()->isSalesHead())
                 <a href="{{ route('admin.dead-leads') }}" class="sidebar-link {{ request()->routeIs('admin.dead-leads') ? 'active' : '' }}">
                     <i class="fas fa-trash" style="margin-right: 10px; width: 20px;"></i>
@@ -594,6 +637,12 @@
                 @endif
             </nav>
         </aside>
+        
+        <!-- Sidebar Tooltip -->
+        <div id="sidebarTooltip" class="sidebar-tooltip">
+            <span class="tooltip-text"></span>
+            <span class="tooltip-arrow"></span>
+        </div>
         
         <!-- Main Content -->
         <div id="mainContent" style="margin-left: 64px; flex: 1; overflow-y: auto; height: 100vh; background: #F7F6F3; transition: margin-left 0.3s ease-in-out;">
@@ -748,6 +797,114 @@
             // DOM is already ready
             initSidebar();
         }
+        
+        // Sidebar Tooltip Functionality
+        (function() {
+            let tooltipTimeout;
+            let activeTooltip = null;
+            const tooltipElement = document.getElementById('sidebarTooltip');
+            const tooltipText = tooltipElement ? tooltipElement.querySelector('.tooltip-text') : null;
+            
+            if (!tooltipElement || !tooltipText) {
+                return; // Tooltip elements not found
+            }
+            
+            function showTooltip(link, text) {
+                if (!tooltipElement || !tooltipText) return;
+                
+                tooltipText.textContent = text;
+                tooltipElement.classList.add('show');
+                
+                // Position tooltip to the right of the icon
+                const rect = link.getBoundingClientRect();
+                const sidebar = document.getElementById('sidebar');
+                const sidebarRect = sidebar ? sidebar.getBoundingClientRect() : { right: 64 };
+                
+                // Position tooltip
+                tooltipElement.style.left = (sidebarRect.right + 8) + 'px';
+                tooltipElement.style.top = (rect.top + (rect.height / 2) - (tooltipElement.offsetHeight / 2)) + 'px';
+            }
+            
+            function hideTooltip() {
+                if (tooltipElement) {
+                    tooltipElement.classList.remove('show');
+                }
+            }
+            
+            // Initialize tooltips for all sidebar links with data-tooltip attribute
+            function initTooltips() {
+                // Handle all elements with data-tooltip (both links and divs)
+                document.querySelectorAll('[data-tooltip]').forEach(element => {
+                    // Skip if not a sidebar link or parent menu item
+                    if (!element.classList.contains('sidebar-link') && !element.closest('#sidebar')) {
+                        return;
+                    }
+                    
+                    // Hover tooltip (with delay)
+                    element.addEventListener('mouseenter', function(e) {
+                        clearTimeout(tooltipTimeout);
+                        tooltipTimeout = setTimeout(() => {
+                            if (activeTooltip !== this) {
+                                showTooltip(this, this.dataset.tooltip);
+                            }
+                        }, 300);
+                    });
+                    
+                    element.addEventListener('mouseleave', function() {
+                        clearTimeout(tooltipTimeout);
+                        if (activeTooltip !== this) {
+                            hideTooltip();
+                        }
+                    });
+                    
+                    // Click tooltip (persist until another click or outside click)
+                    element.addEventListener('click', function(e) {
+                        // Don't prevent navigation for links, just show tooltip
+                        if (activeTooltip === this) {
+                            hideTooltip();
+                            activeTooltip = null;
+                        } else {
+                            if (activeTooltip) {
+                                hideTooltip();
+                            }
+                            activeTooltip = this;
+                            showTooltip(this, this.dataset.tooltip);
+                        }
+                    });
+                });
+                
+                // Hide tooltip on outside click
+                document.addEventListener('click', function(e) {
+                    if (activeTooltip && !activeTooltip.contains(e.target) && !tooltipElement.contains(e.target)) {
+                        hideTooltip();
+                        activeTooltip = null;
+                    }
+                });
+                
+                // Hide tooltip when sidebar is hidden
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar) {
+                    const observer = new MutationObserver(function(mutations) {
+                        mutations.forEach(function(mutation) {
+                            if (mutation.attributeName === 'class') {
+                                if (sidebar.classList.contains('sidebar-hidden')) {
+                                    hideTooltip();
+                                    activeTooltip = null;
+                                }
+                            }
+                        });
+                    });
+                    observer.observe(sidebar, { attributes: true });
+                }
+            }
+            
+            // Initialize tooltips when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initTooltips);
+            } else {
+                initTooltips();
+            }
+        })();
         
         // Toggle Projects sub-menu
         function toggleProjectsMenu() {

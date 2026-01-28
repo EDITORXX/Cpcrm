@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use ZipArchive;
 
 class SystemSettingsController extends Controller
@@ -334,6 +335,306 @@ class SystemSettingsController extends Controller
                 'success' => false,
                 'message' => 'Error executing command: ' . $e->getMessage(),
                 'output' => $e->getTraceAsString()
+            ], 500);
+        }
+    }
+
+    /**
+     * Test database connection with new credentials
+     */
+    public function testDatabaseConnection(Request $request)
+    {
+        // Security check: Only admin users
+        $user = auth()->user();
+        if (!$user || !$user->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only admin users can test database connections.',
+            ], 403);
+        }
+
+        $request->validate([
+            'host' => 'required|string|max:255',
+            'port' => 'required|integer|min:1|max:65535',
+            'database' => 'required|string|max:255',
+            'username' => 'required|string|max:255',
+            'password' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            // Test connection with provided credentials
+            config([
+                'database.connections.mysql.host' => $request->host,
+                'database.connections.mysql.port' => $request->port,
+                'database.connections.mysql.database' => $request->database,
+                'database.connections.mysql.username' => $request->username,
+                'database.connections.mysql.password' => $request->password ?? '',
+            ]);
+
+            DB::purge('mysql');
+            DB::connection('mysql')->getPdo();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Database connection successful!',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Database connection test failed', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Database connection failed: ' . $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    /**
+     * Update database settings
+     */
+    public function updateDatabaseSettings(Request $request)
+    {
+        // Security check: Only admin users
+        $user = auth()->user();
+        if (!$user || !$user->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only admin users can update database settings.',
+            ], 403);
+        }
+
+        $request->validate([
+            'host' => 'required|string|max:255',
+            'port' => 'required|integer|min:1|max:65535',
+            'database' => 'required|string|max:255',
+            'username' => 'required|string|max:255',
+            'password' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            // Backup current .env file
+            $envPath = base_path('.env');
+            if (File::exists($envPath)) {
+                File::copy($envPath, $envPath . '.backup.' . date('Y-m-d_H-i-s'));
+            }
+
+            // Read current .env
+            $envContent = File::get($envPath);
+
+            // Update database settings
+            $envContent = preg_replace('/^DB_HOST=.*/m', 'DB_HOST=' . $request->host, $envContent);
+            $envContent = preg_replace('/^DB_PORT=.*/m', 'DB_PORT=' . $request->port, $envContent);
+            $envContent = preg_replace('/^DB_DATABASE=.*/m', 'DB_DATABASE=' . $request->database, $envContent);
+            $envContent = preg_replace('/^DB_USERNAME=.*/m', 'DB_USERNAME=' . $request->username, $envContent);
+            $envContent = preg_replace('/^DB_PASSWORD=.*/m', 'DB_PASSWORD=' . ($request->password ?? ''), $envContent);
+
+            // Write updated .env
+            File::put($envPath, $envContent);
+
+            // Clear config cache
+            Artisan::call('config:clear');
+
+            // Test new connection
+            config([
+                'database.connections.mysql.host' => $request->host,
+                'database.connections.mysql.port' => $request->port,
+                'database.connections.mysql.database' => $request->database,
+                'database.connections.mysql.username' => $request->username,
+                'database.connections.mysql.password' => $request->password ?? '',
+            ]);
+
+            DB::purge('mysql');
+            DB::connection('mysql')->getPdo();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Database settings updated successfully!',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error updating database settings', ['error' => $e->getMessage()]);
+            
+            // Restore backup if exists
+            $backupFiles = glob(base_path('.env.backup.*'));
+            if (!empty($backupFiles)) {
+                $latestBackup = end($backupFiles);
+                File::copy($latestBackup, base_path('.env'));
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update database settings: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get environment variables
+     */
+    public function getEnvSettings()
+    {
+        // Security check: Only admin users
+        $user = auth()->user();
+        if (!$user || !$user->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only admin users can view environment settings.',
+            ], 403);
+        }
+
+        try {
+            $envPath = base_path('.env');
+            if (!File::exists($envPath)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '.env file not found',
+                ], 404);
+            }
+
+            $envContent = File::get($envPath);
+            $lines = explode("\n", $envContent);
+            $settings = [];
+
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if (empty($line) || strpos($line, '#') === 0) {
+                    continue;
+                }
+
+                if (strpos($line, '=') !== false) {
+                    list($key, $value) = explode('=', $line, 2);
+                    $key = trim($key);
+                    $value = trim($value);
+                    // Remove quotes if present
+                    $value = trim($value, '"\'');
+                    $settings[$key] = $value;
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'settings' => $settings,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error reading env settings', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error reading environment settings: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Update environment variables
+     */
+    public function updateEnvSettings(Request $request)
+    {
+        // Security check: Only admin users
+        $user = auth()->user();
+        if (!$user || !$user->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only admin users can update environment settings.',
+            ], 403);
+        }
+
+        $request->validate([
+            'settings' => 'required|array',
+            'settings.*' => 'nullable|string|max:1000', // Limit value length
+        ]);
+
+        // Security: Block certain critical keys from being changed via web interface
+        $blockedKeys = ['APP_KEY']; // Add more if needed
+        foreach ($blockedKeys as $key) {
+            if (isset($request->settings[$key])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Cannot update {$key} via web interface for security reasons.",
+                ], 400);
+            }
+        }
+
+        try {
+            $envPath = base_path('.env');
+            if (!File::exists($envPath)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '.env file not found',
+                ], 404);
+            }
+
+            // Backup current .env
+            File::copy($envPath, $envPath . '.backup.' . date('Y-m-d_H-i-s'));
+
+            // Read current .env
+            $envContent = File::get($envPath);
+            $lines = explode("\n", $envContent);
+            $updatedLines = [];
+
+            // Track which keys we've updated
+            $updatedKeys = [];
+
+            foreach ($lines as $line) {
+                $originalLine = $line;
+                $line = trim($line);
+
+                // Keep comments and empty lines as is
+                if (empty($line) || strpos($line, '#') === 0) {
+                    $updatedLines[] = $originalLine;
+                    continue;
+                }
+
+                // Check if this line has a key we need to update
+                if (strpos($line, '=') !== false) {
+                    list($key, $value) = explode('=', $line, 2);
+                    $key = trim($key);
+
+                    if (isset($request->settings[$key])) {
+                        $newValue = $request->settings[$key];
+                        // Add quotes if value contains spaces or special characters
+                        if (preg_match('/[\s=#]/', $newValue)) {
+                            $newValue = '"' . $newValue . '"';
+                        }
+                        $updatedLines[] = $key . '=' . $newValue;
+                        $updatedKeys[] = $key;
+                    } else {
+                        $updatedLines[] = $originalLine;
+                    }
+                } else {
+                    $updatedLines[] = $originalLine;
+                }
+            }
+
+            // Add any new settings that weren't in the file
+            foreach ($request->settings as $key => $value) {
+                if (!in_array($key, $updatedKeys)) {
+                    if (preg_match('/[\s=#]/', $value)) {
+                        $value = '"' . $value . '"';
+                    }
+                    $updatedLines[] = $key . '=' . $value;
+                }
+            }
+
+            // Write updated .env
+            File::put($envPath, implode("\n", $updatedLines));
+
+            // Clear config cache
+            Artisan::call('config:clear');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Environment settings updated successfully!',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error updating env settings', ['error' => $e->getMessage()]);
+            
+            // Restore backup if exists
+            $backupFiles = glob(base_path('.env.backup.*'));
+            if (!empty($backupFiles)) {
+                $latestBackup = end($backupFiles);
+                File::copy($latestBackup, base_path('.env'));
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update environment settings: ' . $e->getMessage(),
             ], 500);
         }
     }

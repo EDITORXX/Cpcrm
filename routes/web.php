@@ -14,6 +14,14 @@ use App\Http\Controllers\Auth\LoginController;
 |
 */
 
+// Installation Routes (must be before other routes)
+Route::prefix('install')->group(function () {
+    Route::get('/', [\App\Http\Controllers\InstallController::class, 'index'])->name('install.index');
+    Route::post('/check-requirements', [\App\Http\Controllers\InstallController::class, 'checkRequirements'])->name('install.check-requirements');
+    Route::post('/test-database', [\App\Http\Controllers\InstallController::class, 'testDatabase'])->name('install.test-database');
+    Route::post('/install', [\App\Http\Controllers\InstallController::class, 'install'])->name('install.install');
+});
+
 Route::get('/', function () {
     return view('welcome');
 });
@@ -343,8 +351,8 @@ Route::middleware(['auth'])->group(function () {
     });
     
     // Admin Dashboard (Admin only)
-    // Integration Routes (Admin only)
-    Route::middleware(['auth', 'role:admin'])->prefix('integrations')->name('integrations.')->group(function () {
+    // Integration Routes (Admin & CRM)
+    Route::middleware(['auth', 'role:admin,crm'])->prefix('integrations')->name('integrations.')->group(function () {
         Route::get('/', [\App\Http\Controllers\IntegrationController::class, 'index'])->name('index');
         Route::get('/email', function () {
             return view('integrations.coming-soon', ['integration' => 'Email']);
@@ -395,6 +403,49 @@ Route::middleware(['auth'])->group(function () {
             return redirect()->route('lead-import.index');
         })->name('google-sheets');
         
+        // Form Integration Routes (Google Sheets Form Integration)
+        Route::prefix('form-integration')->name('form-integration.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\FormIntegrationController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\Admin\FormIntegrationController::class, 'create'])->name('create');
+            Route::post('/step1', [\App\Http\Controllers\Admin\FormIntegrationController::class, 'storeStep1'])->name('store-step1');
+            Route::get('/step2/{id}', [\App\Http\Controllers\Admin\FormIntegrationController::class, 'step2'])->name('step2');
+            Route::post('/step2/{id}', [\App\Http\Controllers\Admin\FormIntegrationController::class, 'storeStep2'])->name('store-step2');
+            Route::get('/step3/{id}', [\App\Http\Controllers\Admin\FormIntegrationController::class, 'step3'])->name('step3');
+            Route::post('/step3/{id}', [\App\Http\Controllers\Admin\FormIntegrationController::class, 'storeStep3'])->name('store-step3');
+            Route::get('/step4/{id}', [\App\Http\Controllers\Admin\FormIntegrationController::class, 'step4'])->name('step4');
+            Route::post('/step4/{id}', [\App\Http\Controllers\Admin\FormIntegrationController::class, 'storeStep4'])->name('store-step4');
+            Route::get('/step5/{id}', [\App\Http\Controllers\Admin\FormIntegrationController::class, 'step5'])->name('step5');
+            Route::post('/step5/{id}', [\App\Http\Controllers\Admin\FormIntegrationController::class, 'storeStep5'])->name('store-step5');
+            Route::get('/step6/{id}', [\App\Http\Controllers\Admin\FormIntegrationController::class, 'step6'])->name('step6');
+            Route::post('/auto-detect-columns', [\App\Http\Controllers\Admin\FormIntegrationController::class, 'autoDetectColumns'])->name('auto-detect-columns');
+            Route::get('/generate-script/{id}', [\App\Http\Controllers\Admin\FormIntegrationController::class, 'generateScript'])->name('generate-script');
+            Route::post('/test/{id}', [\App\Http\Controllers\Admin\FormIntegrationController::class, 'test'])->name('test');
+            Route::get('/template', [\App\Http\Controllers\Admin\FormIntegrationController::class, 'getFormTemplate'])->name('template');
+            Route::post('/toggle/{id}', [\App\Http\Controllers\Admin\FormIntegrationController::class, 'toggle'])->name('toggle');
+        });
+        
+        // Meta Sheet Integration Routes (Meta/Facebook only)
+        Route::prefix('meta-sheet')->name('meta-sheet.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\MetaSheetController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\Admin\MetaSheetController::class, 'create'])->name('create');
+            Route::post('/step1', [\App\Http\Controllers\Admin\MetaSheetController::class, 'storeStep1'])->name('store-step1');
+            Route::get('/step2/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'step2'])->name('step2');
+            Route::post('/step2/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'storeStep2'])->name('store-step2');
+            Route::get('/step3/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'step3'])->name('step3');
+            Route::post('/step3/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'storeStep3'])->name('store-step3');
+            Route::get('/step4/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'step4'])->name('step4');
+            Route::post('/step4/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'storeStep4'])->name('store-step4');
+            Route::get('/step5/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'step5'])->name('step5');
+            Route::post('/step5/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'storeStep5'])->name('store-step5');
+            Route::get('/step6/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'step6'])->name('step6');
+            Route::post('/auto-detect-columns', [\App\Http\Controllers\Admin\MetaSheetController::class, 'autoDetectColumns'])->name('auto-detect-columns');
+            Route::post('/create-custom-field', [\App\Http\Controllers\Admin\MetaSheetController::class, 'createCustomField'])->name('create-custom-field');
+            Route::post('/save-draft/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'saveDraft'])->name('save-draft');
+            Route::get('/generate-script/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'generateScript'])->name('generate-script');
+            Route::post('/test/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'test'])->name('test');
+            Route::post('/toggle/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'toggle'])->name('toggle');
+        });
+        
         Route::get('/facebook', function () {
             return view('integrations.coming-soon', ['integration' => 'Facebook Meta']);
         })->name('facebook');
@@ -438,10 +489,21 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{leadFormField}/toggle-active', [\App\Http\Controllers\Admin\LeadFormBuilderController::class, 'toggleActive'])->name('toggle-active');
     });
 
+    // Deployment Routes (Admin only)
+    Route::middleware(['auth', 'role:admin'])->prefix('admin/deploy')->name('admin.deploy.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\DeploymentController::class, 'index'])->name('index');
+        Route::post('/deploy', [\App\Http\Controllers\Admin\DeploymentController::class, 'deploy'])->name('deploy');
+        Route::get('/status', [\App\Http\Controllers\Admin\DeploymentController::class, 'checkGitStatus'])->name('status');
+        Route::get('/logs', [\App\Http\Controllers\Admin\DeploymentController::class, 'getLogs'])->name('logs');
+    });
+
     Route::middleware(['role:admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'dashboard'])->name('dashboard');
         Route::get('/dashboard/data', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'getDashboardData'])->name('dashboard.data');
         Route::get('/profile', [\App\Http\Controllers\Admin\AdminDashboardController::class, 'profile'])->name('profile');
+        
+        // Flow Testing (Admin and CRM)
+        Route::get('/flow-test', [\App\Http\Controllers\Admin\FlowTestController::class, 'index'])->name('flow-test');
         
         // Company Settings Routes
         Route::prefix('company-settings')->name('company-settings.')->group(function () {
@@ -463,6 +525,11 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/files/deploy', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'deployFiles'])->name('files.deploy');
             Route::post('/migrations/run', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'runMigrations'])->name('migrations.run');
             Route::post('/command/run', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'runCommand'])->name('command.run');
+            // Database and Environment Settings
+            Route::post('/database/test', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'testDatabaseConnection'])->name('database.test');
+            Route::post('/database/update', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'updateDatabaseSettings'])->name('database.update');
+            Route::get('/env/get', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'getEnvSettings'])->name('env.get');
+            Route::post('/env/update', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'updateEnvSettings'])->name('env.update');
         });
         
         // Debug Routes (only for testing)

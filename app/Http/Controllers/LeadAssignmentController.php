@@ -204,7 +204,7 @@ class LeadAssignmentController extends Controller
             ->where('is_active', true)
             ->count();
 
-        $activeTelecallers = User::where('role_id', $telecallerRoleId)
+        $activeTelecallers = User::where('role_id', $salesExecutiveRoleId)
             ->where('is_active', true)
             ->whereHas('telecallerProfile', function ($q) {
                 $q->where('is_absent', false);
