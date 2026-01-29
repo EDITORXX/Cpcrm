@@ -11,26 +11,18 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
+use App\Services\InstallationChecker;
 
 class InstallController extends Controller
 {
-    /**
-     * Check if installation is already completed
-     */
-    private function isInstalled()
-    {
-        $lockFile = storage_path('app/installed.lock');
-        return File::exists($lockFile);
-    }
-
     /**
      * Show installation wizard
      */
     public function index()
     {
         try {
-            // If already installed, redirect to home
-            if ($this->isInstalled()) {
+            // If already installed (lock file or DB fallback), redirect to home
+            if (InstallationChecker::isInstalled()) {
                 return redirect('/');
             }
 
@@ -133,7 +125,7 @@ class InstallController extends Controller
     public function install(Request $request)
     {
         // If already installed, return error
-        if ($this->isInstalled()) {
+        if (InstallationChecker::isInstalled()) {
             return response()->json([
                 'success' => false,
                 'message' => 'System is already installed.',

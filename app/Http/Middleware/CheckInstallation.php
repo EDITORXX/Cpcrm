@@ -4,7 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\File;
+use App\Services\InstallationChecker;
 use Symfony\Component\HttpFoundation\Response;
 
 class CheckInstallation
@@ -16,8 +16,7 @@ class CheckInstallation
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $lockFile = storage_path('app/installed.lock');
-        $isInstalled = File::exists($lockFile);
+        $isInstalled = InstallationChecker::isInstalled();
         
         // If trying to access install routes but already installed
         if ($request->is('install*') && $isInstalled) {
