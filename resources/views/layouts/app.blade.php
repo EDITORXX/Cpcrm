@@ -369,6 +369,10 @@
             #mobileFooterNav {
                 display: flex !important;
             }
+            /* CRM: hide header Logout on mobile (same as telecaller; use Profile/Logout in footer) */
+            .layout-crm .header .header-logout-form {
+                display: none !important;
+            }
         }
         
         /* Mobile Bottom Navigation Bar */
@@ -521,7 +525,7 @@
     
     @stack('styles')
 </head>
-<body class="bg-[#F7F6F3] font-sans antialiased" style="margin: 0; padding: 0; overflow: hidden;">
+<body class="bg-[#F7F6F3] font-sans antialiased @if(auth()->user()->isCrm()) layout-crm @endif" style="margin: 0; padding: 0; overflow: hidden;">
     <!-- Sidebar Toggle Button - Always visible -->
     <button id="sidebarToggle" class="sidebar-toggle" title="Toggle Sidebar">
         <i class="fas fa-chevron-left sidebar-toggle-icon" id="sidebarToggleIcon"></i>
@@ -790,20 +794,23 @@
                         @hasSection('page-subtitle')
                             <p style="color: #B3B5B4; font-size: 14px; margin-top: 4px;">@yield('page-subtitle')</p>
                         @endif
+                        @hasSection('header-below-title')
+                            <div style="margin-top: 8px;">@yield('header-below-title')</div>
+                        @endif
                     </div>
                     <div style="display: flex; align-items: center; gap: 15px;">
                         @hasSection('header-actions')
                             @yield('header-actions')
                         @endif
-                        @if(!auth()->user()->isCrm())
-                        <!-- Date/Time Clock (hidden for CRM - shown in dashboard content) -->
+                        <!-- Date/Time Clock (shown for all including CRM) -->
                         <div id="datetimeClock" style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px 12px; font-family: 'Courier New', monospace; font-weight: 600; font-size: 14px; color: #063A1C; min-width: 160px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                             <div id="clockTime" style="font-size: 16px; color: #205A44;">--:--:--</div>
                             <div id="clockDate" style="font-size: 11px; color: #B3B5B4; margin-top: 2px;">-- -- ----</div>
                         </div>
-                        @endif
+                        @if(!auth()->user()->isCrm())
                         <span style="color: #B3B5B4; font-size: 14px;">{{ auth()->user()->name }}</span>
-                        <form action="{{ route('logout') }}" method="POST" style="display: inline;">
+                        @endif
+                        <form action="{{ route('logout') }}" method="POST" class="header-logout-form" style="display: inline;">
                             @csrf
                             <button type="submit" class="btn btn-danger">
                                 <i class="fas fa-sign-out-alt" style="margin-right: 5px;"></i>
@@ -913,6 +920,10 @@
             <a href="{{ route('dashboard') }}" class="footer-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                 <i class="fas fa-user"></i>
                 <span>Profile</span>
+            </a>
+            <a href="{{ route('logout.get') }}" class="footer-nav-link">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
             </a>
         @else
             <a href="{{ route('dashboard') }}" class="footer-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">

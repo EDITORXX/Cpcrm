@@ -2,6 +2,17 @@
 
 @section('title', 'CRM - Base CRM')
 @section('page-title', 'CRM')
+@section('header-below-title')
+    <label class="form-label small mb-0 fw-bold" for="date-range-filter">Date Range:</label>
+    <select id="date-range-filter" class="form-select form-select-sm" style="max-width: 160px;">
+        <option value="today">Today</option>
+        <option value="this_week">This Week</option>
+        <option value="this_month" selected>This Month</option>
+        <option value="this_year">This Year</option>
+        <option value="till_date">Till Date</option>
+        <option value="all_time">All Time</option>
+    </select>
+@endsection
 
 @push('styles')
 <!-- Bootstrap 5.3.3 CSS -->
@@ -93,31 +104,6 @@
     <div id="notification-alert" class="alert alert-success alert-dismissible fade d-none" role="alert">
         <span id="notification-message"></span>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-
-    <!-- Compact Clock + Date Range (CRM only - small, below title) -->
-    <div class="row mb-3 crm-clock-date-row">
-        <div class="col-12">
-            <div class="card py-2 px-3">
-                <div class="card-body py-2 d-flex flex-column flex-md-row align-items-center gap-2">
-                    <div id="crmCompactClock" class="text-center" style="font-family: 'Courier New', monospace; font-weight: 600; font-size: 12px; color: #063A1C;">
-                        <div id="crmClockTime" style="font-size: 14px; color: #205A44;">--:--:--</div>
-                        <div id="crmClockDate" style="font-size: 10px; color: #B3B5B4;">-- -- ----</div>
-                    </div>
-                    <div class="flex-grow-1">
-                        <label class="form-label small mb-0 fw-bold">Date Range:</label>
-                        <select id="date-range-filter" class="form-select form-select-sm">
-                            <option value="today">Today</option>
-                            <option value="this_week">This Week</option>
-                            <option value="this_month" selected>This Month</option>
-                            <option value="this_year">This Year</option>
-                            <option value="till_date">Till Date</option>
-                            <option value="all_time">All Time</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Top Stats Cards (4 Cards) - Phone: 50% x 2 -->
