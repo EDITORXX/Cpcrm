@@ -251,12 +251,15 @@ class User extends Authenticatable
     }
 
     /**
-     * Deprecated: Use isSalesExecutive() instead
-     * Kept for backward compatibility during migration
+     * Check if user is Telecaller (either Telecaller or Sales Executive role).
+     * Both roles get telecaller token and same behaviour for tasks/leads/verification/profile.
      */
     public function isTelecaller(): bool
     {
-        return $this->isSalesExecutive();
+        if (!$this->relationLoaded('role')) {
+            $this->load('role');
+        }
+        return $this->role && in_array($this->role->slug, ['telecaller', Role::SALES_EXECUTIVE], true);
     }
 
     /**

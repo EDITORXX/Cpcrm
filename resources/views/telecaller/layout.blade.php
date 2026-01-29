@@ -859,7 +859,7 @@
         var API_BASE_URL = '{{ url("/api") }}';
         
         // Initialize token from session on page load for web-logged-in telecallers
-        @if(auth()->check() && auth()->user()->isSalesExecutive())
+        @if(auth()->check() && auth()->user()->isTelecaller())
             @php
                 $token = session('telecaller_api_token');
                 $user = auth()->user()->load('role', 'manager');
@@ -907,7 +907,7 @@
                 } catch (e) {
                     console.error('Error parsing user data:', e);
                     // Try to get user from session as fallback
-                    @if(auth()->check() && auth()->user()->isSalesExecutive())
+                    @if(auth()->check() && auth()->user()->isTelecaller())
                         @php
                             $user = auth()->user();
                         @endphp
@@ -919,7 +919,7 @@
                 }
             } else {
                 // If no user in localStorage but user is logged in via session, use session data
-                @if(auth()->check() && auth()->user()->isSalesExecutive())
+                @if(auth()->check() && auth()->user()->isTelecaller())
                     @php
                         $user = auth()->user();
                     @endphp
