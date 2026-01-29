@@ -28,10 +28,10 @@ class DeploymentService
             }
 
             // Get current branch
-            $branch = trim(shell_exec('cd ' . base_path() . ' && git rev-parse --abbrev-ref HEAD 2>&1') ?? '');
+            $branch = trim(\shell_exec('cd ' . base_path() . ' && git rev-parse --abbrev-ref HEAD 2>&1') ?? '');
             
             // Check for uncommitted changes
-            $statusOutput = shell_exec('cd ' . base_path() . ' && git status --porcelain 2>&1');
+            $statusOutput = \shell_exec('cd ' . base_path() . ' && git status --porcelain 2>&1');
             $hasChanges = !empty(trim($statusOutput ?? ''));
             
             // Get uncommitted files
@@ -52,9 +52,9 @@ class DeploymentService
 
             // Get last commit
             $lastCommit = null;
-            $commitHash = trim(shell_exec('cd ' . base_path() . ' && git rev-parse HEAD 2>&1') ?? '');
-            $commitMessage = trim(shell_exec('cd ' . base_path() . ' && git log -1 --pretty=format:"%s" 2>&1') ?? '');
-            $commitDate = trim(shell_exec('cd ' . base_path() . ' && git log -1 --pretty=format:"%ci" 2>&1') ?? '');
+            $commitHash = trim(\shell_exec('cd ' . base_path() . ' && git rev-parse HEAD 2>&1') ?? '');
+            $commitMessage = trim(\shell_exec('cd ' . base_path() . ' && git log -1 --pretty=format:"%s" 2>&1') ?? '');
+            $commitDate = trim(\shell_exec('cd ' . base_path() . ' && git log -1 --pretty=format:"%ci" 2>&1') ?? '');
             
             if ($commitHash && !str_contains($commitHash, 'fatal')) {
                 $lastCommit = [
@@ -97,7 +97,7 @@ class DeploymentService
             }
 
             $command = 'cd ' . base_path() . ' && git log -' . $limit . ' --pretty=format:"%h|%s|%ci|%an" 2>&1';
-            $output = shell_exec($command);
+            $output = \shell_exec($command);
             
             if (empty($output) || str_contains($output, 'fatal')) {
                 return [];
@@ -138,11 +138,11 @@ class DeploymentService
         try {
             // Add all changes
             $addCommand = 'cd ' . base_path() . ' && git add -A 2>&1';
-            $addOutput = shell_exec($addCommand);
+            $addOutput = \shell_exec($addCommand);
             
             // Commit
             $commitCommand = 'cd ' . base_path() . ' && git commit -m "' . escapeshellarg($message) . '" 2>&1';
-            $commitOutput = shell_exec($commitCommand);
+            $commitOutput = \shell_exec($commitCommand);
             
             if (str_contains($commitOutput, 'fatal') || str_contains($commitOutput, 'error')) {
                 throw new \Exception('Git commit failed: ' . $commitOutput);
@@ -170,14 +170,14 @@ class DeploymentService
             $branch = $this->getGitStatus()['branch'] ?? 'main';
             
             $command = 'cd ' . base_path() . ' && git push origin ' . escapeshellarg($branch) . ' 2>&1';
-            $output = shell_exec($command);
+            $output = \shell_exec($command);
             
             if (str_contains($output, 'fatal') || str_contains($output, 'error')) {
                 throw new \Exception('Git push failed: ' . $output);
             }
 
             // Get commit hash
-            $commitHash = trim(shell_exec('cd ' . base_path() . ' && git rev-parse HEAD 2>&1') ?? '');
+            $commitHash = trim(\shell_exec('cd ' . base_path() . ' && git rev-parse HEAD 2>&1') ?? '');
 
             return [
                 'success' => true,
