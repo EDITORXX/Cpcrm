@@ -6,9 +6,25 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Process;
 
 class DeploymentService
 {
+    /**
+     * Run a shell command in the project base path (avoids shell_exec which may be disabled on server).
+     */
+    private function runCommand(string $command): ?string
+    {
+        try {
+            $result = Process::path(base_path())->timeout(30)->run($command);
+            $output = trim($result->output() . "\n" . $result->errorOutput());
+            return $output !== '' ? $output : null;
+        } catch (\Throwable $e) {
+            Log::warning('DeploymentService runCommand failed', ['command' => $command, 'error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
     /**
      * Get Git status
      */
@@ -28,10 +44,10 @@ class DeploymentService
             }
 
             // Get current branch
-            $branch = trim(\shell_exec('cd ' . base_path() . ' && git rev-parse --abbrev-ref HEAD 2>&1') ?? '');
+            $branch = trim($this->runCommand('git rev-parse --abbrev-ref HEAD 2>&1') ?? '');
             
             // Check for uncommitted changes
-            $statusOutput = \shell_exec('cd ' . base_path() . ' && git status --porcelain 2>&1');
+            $statusOutput = $this->runCommand('git status --porcelain 2>&1');
             $hasChanges = !empty(trim($statusOutput ?? ''));
             
             // Get uncommitted files
@@ -52,9 +68,9 @@ class DeploymentService
 
             // Get last commit
             $lastCommit = null;
-            $commitHash = trim(\shell_exec('cd ' . base_path() . ' && git rev-parse HEAD 2>&1') ?? '');
-            $commitMessage = trim(\shell_exec('cd ' . base_path() . ' && git log -1 --pretty=format:"%s" 2>&1') ?? '');
-            $commitDate = trim(\shell_exec('cd ' . base_path() . ' && git log -1 --pretty=format:"%ci" 2>&1') ?? '');
+            $commitHash = trim($this->runCommand('git rev-parse HEAD 2>&1') ?? '');
+            $commitMessage = trim($this->runCommand('git log -1 --pretty=format:"%s" 2>&1') ?? '');
+            $commitDate = trim($this->runCommand('git log -1 --pretty=format:"%ci" 2>&1') ?? '');
             
             if ($commitHash && !str_contains($commitHash, 'fatal')) {
                 $lastCommit = [
@@ -96,10 +112,9 @@ class DeploymentService
                 return [];
             }
 
-            $command = 'cd ' . base_path() . ' && git log -' . $limit . ' --pretty=format:"%h|%s|%ci|%an" 2>&1';
-            $output = \shell_exec($command);
+            $output = $this->runCommand('git log -' . (int) $limit . ' --pretty=format:"%h|%s|%ci|%an" 2>&1');
             
-            if (empty($output) || str_contains($output, 'fatal')) {
+            if (empty($output) || str_contains($output ?? '', 'fatal')) {
                 return [];
             }
 
@@ -137,12 +152,10 @@ class DeploymentService
 
         try {
             // Add all changes
-            $addCommand = 'cd ' . base_path() . ' && git add -A 2>&1';
-            $addOutput = \shell_exec($addCommand);
+            $this->runCommand('git add -A 2>&1');
             
             // Commit
-            $commitCommand = 'cd ' . base_path() . ' && git commit -m "' . escapeshellarg($message) . '" 2>&1';
-            $commitOutput = \shell_exec($commitCommand);
+            $commitOutput = $this->runCommand('git commit -m ' . escapeshellarg($message) . ' 2>&1') ?? '';
             
             if (str_contains($commitOutput, 'fatal') || str_contains($commitOutput, 'error')) {
                 throw new \Exception('Git commit failed: ' . $commitOutput);
@@ -169,15 +182,14 @@ class DeploymentService
         try {
             $branch = $this->getGitStatus()['branch'] ?? 'main';
             
-            $command = 'cd ' . base_path() . ' && git push origin ' . escapeshellarg($branch) . ' 2>&1';
-            $output = \shell_exec($command);
+            $output = $this->runCommand('git push origin ' . $branch . ' 2>&1') ?? '';
             
             if (str_contains($output, 'fatal') || str_contains($output, 'error')) {
                 throw new \Exception('Git push failed: ' . $output);
             }
 
             // Get commit hash
-            $commitHash = trim(\shell_exec('cd ' . base_path() . ' && git rev-parse HEAD 2>&1') ?? '');
+            $commitHash = trim($this->runCommand('git rev-parse HEAD 2>&1') ?? '');
 
             return [
                 'success' => true,
