@@ -411,6 +411,27 @@
         #mobileFooterNav.admin-mobile-nav {
             scroll-snap-type: x mandatory;
         }
+        /* CRM mobile nav: same scroll UX as admin (5 visible at 20%, rest on scroll) */
+        #mobileFooterNav.crm-mobile-nav {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            justify-content: flex-start;
+            scroll-snap-type: x mandatory;
+        }
+        #mobileFooterNav.crm-mobile-nav::-webkit-scrollbar {
+            display: none;
+        }
+        #mobileFooterNav.crm-mobile-nav .footer-nav-link {
+            flex: 0 0 20%;
+            min-width: 20%;
+            max-width: 20%;
+            scroll-snap-align: start;
+        }
         /* Scroll hint: gradient overlay on right edge so user knows more items on scroll */
         .admin-mobile-nav-scroll-hint {
             position: fixed;
@@ -795,8 +816,8 @@
         </div>
     </div>
     
-    <!-- Mobile Bottom Navigation (shown on small screens only). Admin: 5 visible (20% each), 4 on scroll. -->
-    <nav id="mobileFooterNav" @if(auth()->user()->isAdmin()) class="admin-mobile-nav" @endif>
+    <!-- Mobile Bottom Navigation (shown on small screens only). Admin/CRM: 5 visible (20% each), rest on scroll. -->
+    <nav id="mobileFooterNav" @if(auth()->user()->isAdmin()) class="admin-mobile-nav" @elseif(auth()->user()->isCrm()) class="crm-mobile-nav" @endif>
         @if(auth()->user()->isAdmin())
             <a href="{{ route('admin.dashboard') }}" class="footer-nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                 <i class="fas fa-home"></i>
@@ -834,6 +855,63 @@
                 <i class="fas fa-user"></i>
                 <span>Profile</span>
             </a>
+        @elseif(auth()->user()->isCrm())
+            <a href="{{ route('dashboard') }}" class="footer-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </a>
+            <a href="{{ route('leads.index') }}" class="footer-nav-link {{ request()->routeIs('leads.*') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'active' : '' }}">
+                <i class="fas fa-user-friends"></i>
+                <span>Leads</span>
+            </a>
+            <a href="{{ route('crm.verifications') }}" class="footer-nav-link {{ request()->routeIs('crm.verifications') ? 'active' : '' }}">
+                <i class="fas fa-check-circle"></i>
+                <span>Verifications</span>
+            </a>
+            <a href="{{ route('lead-import.index') }}" class="footer-nav-link {{ request()->routeIs('lead-import.*') ? 'active' : '' }}">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span>Lead Import</span>
+            </a>
+            <a href="{{ route('lead-assignment.index') }}" class="footer-nav-link {{ request()->routeIs('lead-assignment.*') ? 'active' : '' }}">
+                <i class="fas fa-clipboard"></i>
+                <span>Lead Assign</span>
+            </a>
+            <a href="{{ route('export.index') }}" class="footer-nav-link {{ request()->routeIs('export.*') ? 'active' : '' }}">
+                <i class="fas fa-download"></i>
+                <span>Export</span>
+            </a>
+            <a href="{{ route('users.index') }}" class="footer-nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                <i class="fas fa-users"></i>
+                <span>Users</span>
+            </a>
+            <a href="{{ route('admin.targets.index') }}" class="footer-nav-link {{ request()->routeIs('admin.targets.*') ? 'active' : '' }}">
+                <i class="fas fa-bullseye"></i>
+                <span>Targets</span>
+            </a>
+            <a href="{{ route('projects.index') }}" class="footer-nav-link {{ request()->routeIs('projects.*') || request()->routeIs('builders.*') ? 'active' : '' }}">
+                <i class="fas fa-project-diagram"></i>
+                <span>Projects</span>
+            </a>
+            <a href="{{ route('calls.index') }}" class="footer-nav-link {{ request()->routeIs('calls.*') ? 'active' : '' }}">
+                <i class="fas fa-phone"></i>
+                <span>Calls</span>
+            </a>
+            <a href="{{ route('chat.index') }}" class="footer-nav-link {{ request()->routeIs('chat.*') ? 'active' : '' }}">
+                <i class="fab fa-whatsapp"></i>
+                <span>Chat</span>
+            </a>
+            <a href="{{ route('integrations.index') }}" class="footer-nav-link {{ request()->routeIs('integrations.*') ? 'active' : '' }}">
+                <i class="fas fa-plug"></i>
+                <span>Integration</span>
+            </a>
+            <a href="{{ route('admin.dead-leads') }}" class="footer-nav-link {{ request()->routeIs('admin.dead-leads') ? 'active' : '' }}">
+                <i class="fas fa-trash"></i>
+                <span>Dead Leads</span>
+            </a>
+            <a href="{{ route('dashboard') }}" class="footer-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
+            </a>
         @else
             <a href="{{ route('dashboard') }}" class="footer-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                 <i class="fas fa-home"></i>
@@ -868,7 +946,7 @@
             @endif
         @endif
     </nav>
-    @if(auth()->user()->isAdmin())
+    @if(auth()->user()->isAdmin() || auth()->user()->isCrm())
     <div class="admin-mobile-nav-scroll-hint" aria-hidden="true"></div>
     @endif
 
