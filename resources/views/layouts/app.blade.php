@@ -373,6 +373,46 @@
             .layout-crm .header .header-logout-form {
                 display: none !important;
             }
+            /* CRM phone: compact header – hide title and label, only clock + date range */
+            .layout-crm .header {
+                flex-wrap: wrap;
+                align-items: center;
+                padding: 10px 12px !important;
+                min-height: 50px;
+            }
+            .layout-crm .header > div:first-child {
+                padding: 0;
+                margin: 0;
+                margin-top: 0 !important;
+                flex: 1 1 auto;
+                min-width: 0;
+            }
+            .layout-crm .header h1 {
+                display: none !important;
+            }
+            .layout-crm .header .form-label[for="date-range-filter"],
+            .layout-crm .header label[for="date-range-filter"] {
+                display: none !important;
+            }
+            .layout-crm .header [style*="margin-top: 8px"] {
+                margin-top: 0 !important;
+            }
+            .layout-crm .header #date-range-filter {
+                max-width: 120px;
+                padding: 4px 8px;
+                font-size: 13px;
+                height: 36px;
+            }
+            .layout-crm .header #datetimeClock {
+                padding: 6px 10px;
+                min-width: 120px;
+            }
+            .layout-crm .header #datetimeClock #clockTime {
+                font-size: 14px;
+            }
+            .layout-crm .header #datetimeClock #clockDate {
+                font-size: 10px;
+            }
         }
         
         /* Mobile Bottom Navigation Bar */
