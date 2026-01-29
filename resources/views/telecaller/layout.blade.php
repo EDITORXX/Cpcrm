@@ -931,7 +931,7 @@
             }
         }
 
-        // Logout function
+        // Logout function: clear token, then hit web logout so server session is cleared and redirects to login
         async function logout() {
             try {
                 const token = getToken();
@@ -955,7 +955,8 @@
                 localStorage.removeItem('telecaller_token');
                 localStorage.removeItem('telecaller_user');
                 localStorage.removeItem('user_current_password');
-                window.location.href = '{{ route("login") }}';
+                // Use web logout URL so server session is cleared; then server redirects to login page
+                window.location.href = '{{ route("logout.get") }}';
             }
         }
 
