@@ -58,6 +58,35 @@ BROADCAST_DRIVER=pusher
 # Configure Laravel WebSockets package
 ```
 
+### 6. Configure Application URL
+
+**IMPORTANT**: Set the `APP_URL` to match your deployment environment:
+
+```env
+# For local development
+APP_URL=http://localhost:8007
+
+# For production deployment
+APP_URL=https://yourdomain.com
+
+# For network/local IP access
+APP_URL=http://192.168.1.100:8007
+```
+
+**Optional URL Configuration** (auto-detected if not set):
+
+```env
+# Sanctum Stateful Domains (comma-separated)
+# Auto-detected from APP_URL if not specified
+SANCTUM_STATEFUL_DOMAINS=localhost,localhost:3000,yourdomain.com
+
+# CORS Allowed Origins (comma-separated)
+# Auto-detected from APP_URL in production, allows all in development
+CORS_ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
+```
+
+**Note**: The application automatically configures Sanctum and CORS based on `APP_URL` if these optional variables are not set. For production, it's recommended to explicitly set them for better security.
+
 ## Step 3: Database Setup
 
 1. Create the database:
@@ -159,6 +188,26 @@ PUSHER_SCHEME=http
 ```
 
 ## Production Deployment
+
+### 0. Configure URLs for Production
+
+Before deploying to production, ensure your `.env` file has the correct URL configuration:
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://yourdomain.com
+
+# Optional: Explicitly set for better security
+SANCTUM_STATEFUL_DOMAINS=yourdomain.com,www.yourdomain.com
+CORS_ALLOWED_ORIGINS=https://yourdomain.com
+```
+
+**Key Points**:
+- Always use `https://` for production URLs
+- Include the full domain without trailing slash
+- The application will automatically configure Sanctum and CORS based on `APP_URL`
+- For multiple domains/subdomains, use comma-separated lists
 
 ### 1. Optimize Application
 
@@ -275,3 +324,44 @@ chown -R www-data:www-data storage bootstrap/cache
 - Check database exists
 - Verify user has proper permissions
 
+### URL Configuration Issues
+
+**Problem**: Application not working on different domain/URL
+
+**Solutions**:
+1. **Update APP_URL**: Make sure `APP_URL` in `.env` matches your actual domain
+   ```bash
+   # Edit .env file
+   APP_URL=https://your-actual-domain.com
+   
+   # Clear config cache
+   php artisan config:clear
+   php artisan config:cache
+   ```
+
+2. **Sanctum Authentication Issues**: If API authentication fails on new domain
+   - Add your domain to `SANCTUM_STATEFUL_DOMAINS` in `.env`
+   - Or ensure `APP_URL` is correctly set (auto-detection should work)
+   - Clear config cache after changes
+
+3. **CORS Errors**: If you see CORS errors in browser console
+   - For production: Set `CORS_ALLOWED_ORIGINS` in `.env` with your domain
+   - For development: CORS allows all origins by default
+   - Clear config cache after changes
+
+4. **Flutter Mobile App**: If mobile app can't connect
+   - Update `baseUrl` in `flutter_telecaller_app/lib/config/api_config.dart`
+   - Rebuild the APK: `flutter clean && flutter build apk --release`
+
+### Deployment on Different URLs
+
+The application is designed to work seamlessly on any URL. Simply:
+
+1. Set `APP_URL` in `.env` to your deployment URL
+2. Run `php artisan config:clear && php artisan config:cache`
+3. The application will automatically configure:
+   - Sanctum stateful domains
+   - CORS allowed origins
+   - All internal URL references
+
+No code changes are required for different deployment URLs!

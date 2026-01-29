@@ -91,7 +91,7 @@
         
         <div class="info-box">
             <strong>Current Token:</strong> <code id="currentToken">{{ csrf_token() }}</code><br>
-            <strong>API Base URL:</strong> <code id="apiBaseUrl">http://localhost:8007/api</code>
+            <strong>API Base URL:</strong> <code id="apiBaseUrl">{{ config('app.url') }}/api</code>
         </div>
 
         <div class="section">
@@ -122,7 +122,7 @@
     </div>
 
     <script>
-        const API_BASE_URL = 'http://localhost:8007/api';
+        const API_BASE_URL = '{{ config('app.url') }}/api';
         
         function getToken() {
             return localStorage.getItem('telecaller_token') || localStorage.getItem('api_token');

@@ -348,6 +348,83 @@
             }
         }
         
+        /* Mobile: Hide Sidebar, Show Bottom Nav */
+        @media (max-width: 767px) {
+            #sidebar {
+                display: none !important;
+                width: 0 !important;
+                height: 0 !important;
+                position: absolute !important;
+                left: -9999px !important;
+                visibility: hidden !important;
+            }
+            #sidebarToggle {
+                display: none !important;
+            }
+            #mainContent {
+                margin-left: 0 !important;
+                width: 100% !important;
+                padding-bottom: 70px !important;
+            }
+            #mobileFooterNav {
+                display: flex !important;
+            }
+        }
+        
+        /* Mobile Bottom Navigation Bar */
+        #mobileFooterNav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+            z-index: 1000;
+            padding: 8px 0;
+            justify-content: space-around;
+            align-items: center;
+            height: 60px;
+        }
+        .footer-nav-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: #666;
+            padding: 6px 4px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            flex: 1;
+            max-width: 72px;
+        }
+        .footer-nav-link i {
+            font-size: 18px;
+            margin-bottom: 2px;
+        }
+        .footer-nav-link span {
+            font-size: 9px;
+            color: #666;
+            text-align: center;
+            line-height: 1.2;
+        }
+        .footer-nav-link:hover,
+        .footer-nav-link.active {
+            background: #F7F6F3;
+            color: var(--text-color);
+        }
+        .footer-nav-link.active span {
+            color: var(--text-color);
+        }
+        @media (min-width: 768px) {
+            #mobileFooterNav {
+                display: none !important;
+            }
+        }
+        
         /* Sidebar Tooltip Styles */
         .sidebar-tooltip {
             position: fixed;
@@ -679,6 +756,68 @@
             </div>
         </div>
     </div>
+    
+    <!-- Mobile Bottom Navigation (shown on small screens only) -->
+    <nav id="mobileFooterNav">
+        @if(auth()->user()->isAdmin())
+            <a href="{{ route('admin.dashboard') }}" class="footer-nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </a>
+            <a href="{{ route('users.index') }}" class="footer-nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                <i class="fas fa-users"></i>
+                <span>Users</span>
+            </a>
+            <a href="{{ route('leads.index') }}" class="footer-nav-link {{ request()->routeIs('leads.*') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'active' : '' }}">
+                <i class="fas fa-user-friends"></i>
+                <span>Leads</span>
+            </a>
+            <a href="{{ route('export.index') }}" class="footer-nav-link {{ request()->routeIs('export.*') ? 'active' : '' }}">
+                <i class="fas fa-download"></i>
+                <span>Export</span>
+            </a>
+            <a href="{{ route('admin.company-settings.index') }}" class="footer-nav-link {{ request()->routeIs('admin.company-settings.*') || request()->routeIs('admin.system-settings.*') ? 'active' : '' }}">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+            <a href="{{ route('admin.profile') }}" class="footer-nav-link {{ request()->routeIs('admin.profile') ? 'active' : '' }}">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
+            </a>
+        @else
+            <a href="{{ route('dashboard') }}" class="footer-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </a>
+            @if(!auth()->user()->isTelecaller())
+            <a href="{{ route('users.index') }}" class="footer-nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                <i class="fas fa-users"></i>
+                <span>Users</span>
+            </a>
+            @endif
+            <a href="{{ route('leads.index') }}" class="footer-nav-link {{ request()->routeIs('leads.*') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'active' : '' }}">
+                <i class="fas fa-user-friends"></i>
+                <span>Leads</span>
+            </a>
+            @if(auth()->user()->isAdmin() || auth()->user()->isCrm() || auth()->user()->isSalesManager() || auth()->user()->isSalesHead())
+            <a href="{{ route('export.index') }}" class="footer-nav-link {{ request()->routeIs('export.*') ? 'active' : '' }}">
+                <i class="fas fa-download"></i>
+                <span>Export</span>
+            </a>
+            @endif
+            @if(auth()->user()->isAdmin())
+            <a href="{{ route('admin.profile') }}" class="footer-nav-link {{ request()->routeIs('admin.profile') ? 'active' : '' }}">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
+            </a>
+            @else
+            <a href="{{ route('dashboard') }}" class="footer-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
+            </a>
+            @endif
+        @endif
+    </nav>
     
     @stack('scripts')
     <script src="{{ asset('js/branding-update.js') }}"></script>

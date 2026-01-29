@@ -1,7 +1,28 @@
+/// API Configuration
+/// 
+/// To change the server URL for deployment:
+/// 1. Update the baseUrl constant below with your server URL
+/// 2. Format: 'https://yourdomain.com/api' or 'http://your-ip:port/api'
+/// 3. Rebuild the app: flutter clean && flutter pub get && flutter build apk --release
+/// 
+/// Examples:
+/// - Production: 'https://crm.yourdomain.com/api'
+/// - Local Development: 'http://192.168.1.100:8000/api'
+/// - Localhost: 'http://localhost:8000/api'
 class ApiConfig {
-  // Production server URL
-  // For production, using HTTPS server: https://crm.bihtech.com
-  static const String baseUrl = 'https://crm.bihtech.com/api';
+  // ============================================
+  // SERVER URL CONFIGURATION
+  // ============================================
+  // Change this URL to match your deployment server
+  // IMPORTANT: Include the full URL with protocol (http:// or https://)
+  // and the /api path at the end
+  // ============================================
+  static const String baseUrl = 'https://crm.bihtech.com/api'; // CHANGE THIS FOR YOUR DEPLOYMENT
+  
+  // ============================================
+  // END CONFIGURATION
+  // ============================================
+  
   static const String telecallerBaseUrl = '$baseUrl/telecaller';
   
   // General Authentication Endpoints (for all users)
