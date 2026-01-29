@@ -16,13 +16,6 @@
                 </div>
             @endif
 
-            @if(auth()->user()->isCrm())
-                <div class="mb-6 bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded-lg">
-                    <strong>Note:</strong> For CRM users, only Name and Phone Number are required. 
-                    Detailed requirements can be filled later through the centralized lead requirement form at lead edit page.
-                </div>
-            @endif
-
             <form method="POST" action="{{ route('leads.store') }}">
                 @csrf
 
@@ -70,6 +63,25 @@
                         </div>
                     @endif
                 </div>
+
+                @if(auth()->user()->isCrm())
+                <!-- Assignment (CRM) -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">Assignment</h3>
+                    <div>
+                        <label for="assigned_to_crm" class="block text-sm font-medium text-gray-700 mb-2">Assign To User (Optional)</label>
+                        <select name="assigned_to" id="assigned_to_crm" class="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#205A44] focus:border-[#205A44]">
+                            <option value="">-- Don't Assign Now --</option>
+                            @foreach($users as $user)
+                                <option value="{{ $user->id }}" {{ old('assigned_to') == $user->id ? 'selected' : '' }}>
+                                    {{ $user->name }} ({{ $user->role->name ?? 'User' }})
+                                </option>
+                            @endforeach
+                        </select>
+                        <p class="text-sm text-gray-500 mt-2">You can assign this lead to a user now; a calling task will be created for them.</p>
+                    </div>
+                </div>
+                @endif
 
                 @if(!auth()->user()->isCrm())
                 <!-- Location Details -->
@@ -292,6 +304,7 @@
                                   class="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#205A44] focus:border-[#205A44]">{{ old('notes') }}</textarea>
                     </div>
                 </div>
+                @endif
 
                 <!-- Buttons -->
                 <div class="flex justify-end gap-4">
@@ -352,15 +365,16 @@
     @endif
 
     <script>
-        // Show/hide custom source input
-        document.getElementById('source').addEventListener('change', function() {
-            const customInput = document.getElementById('custom_source_input');
-            if (this.value === 'custom') {
-                customInput.style.display = 'block';
-            } else {
-                customInput.style.display = 'none';
-            }
-        });
+        // Show/hide custom source input (only when element exists – non-CRM)
+        const sourceEl = document.getElementById('source');
+        if (sourceEl) {
+            sourceEl.addEventListener('change', function() {
+                const customInput = document.getElementById('custom_source_input');
+                if (customInput) {
+                    customInput.style.display = this.value === 'custom' ? 'block' : 'none';
+                }
+            });
+        }
 
         // Handle project selection (single click without Ctrl)
         function handleProjectSelection(event) {
@@ -380,6 +394,7 @@
         // Update selected projects display box
         function updateSelectedProjectsBox() {
             const select = document.getElementById('preferred_projects');
+            if (!select) return;
             const selectedOptions = Array.from(select.selectedOptions);
             const box = document.getElementById('selected_projects_list');
             const noProjectsText = document.getElementById('no_projects_text');
@@ -413,12 +428,13 @@
             }
         }
 
-        // Initialize on page load
+        // Initialize on page load (only when preferred_projects exists – non-CRM)
         document.addEventListener('DOMContentLoaded', function() {
+            const select = document.getElementById('preferred_projects');
+            if (!select) return;
             updateSelectedProjectsBox();
             
             // Make dropdown work with single click (without Ctrl)
-            const select = document.getElementById('preferred_projects');
             select.addEventListener('mousedown', function(e) {
                 // Only handle if Ctrl/Cmd is not pressed
                 if (!e.ctrlKey && !e.metaKey) {
@@ -492,6 +508,8 @@
 
         // Reload projects list from server
         function reloadProjectsList(selectedProjectId = null) {
+            const select = document.getElementById('preferred_projects');
+            if (!select) return;
             fetch('{{ route("projects.list") }}', {
                 method: 'GET',
                 headers: {
@@ -501,11 +519,12 @@
             })
             .then(response => response.json())
             .then(projects => {
-                const select = document.getElementById('preferred_projects');
-                const currentSelected = Array.from(select.selectedOptions).map(opt => opt.value);
+                const selectEl = document.getElementById('preferred_projects');
+                if (!selectEl) return;
+                const currentSelected = Array.from(selectEl.selectedOptions).map(opt => opt.value);
                 
                 // Clear existing options
-                select.innerHTML = '';
+                selectEl.innerHTML = '';
                 
                 // Add all projects
                 projects.forEach(project => {
@@ -521,7 +540,7 @@
                         option.selected = true;
                     }
                     
-                    select.appendChild(option);
+                    selectEl.appendChild(option);
                 });
                 
                 // Update the display box

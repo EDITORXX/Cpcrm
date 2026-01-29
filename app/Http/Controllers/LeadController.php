@@ -154,12 +154,11 @@ class LeadController extends Controller
                 ->with('info', 'Old lead creation form is disabled. Please use the centralized lead requirement form by editing an existing lead or contact admin for new lead creation.');
         }
         
-        // Existing code for other roles (Admin, CRM, etc.)
+        // All active users for Assign dropdown (sare user jo system mein hain)
         $users = User::where('is_active', true)
-            ->whereHas('role', function($q) {
-                $q->whereIn('slug', ['sales_manager', 'sales_executive', 'telecaller']);
-            })
+            ->whereHas('role')
             ->with('role')
+            ->orderBy('name')
             ->get();
 
         $projects = Project::where('is_active', true)->orderBy('name')->get();
@@ -176,6 +175,7 @@ class LeadController extends Controller
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'phone' => 'required|string|max:20',
+                'assigned_to' => 'nullable|exists:users,id',
             ]);
         } else {
             // For other users, full validation
@@ -226,17 +226,20 @@ class LeadController extends Controller
 
             $lead = Lead::create($validated);
 
-            // Assign lead if user selected (non-CRM users only)
-            if (!$user->isCrm() && $request->has('assigned_to') && $request->assigned_to) {
-                $this->assignLead($lead, $request->assigned_to, $user->id);
+            // Assign lead if user selected (CRM and non-CRM); auto-creates calling task for assignee
+            if ($request->filled('assigned_to')) {
+                $this->assignLead($lead, (int) $request->assigned_to, $user->id);
             }
 
             DB::commit();
 
             if ($user->isCrm()) {
+                $msg = $request->filled('assigned_to')
+                    ? "Lead '{$lead->name}' created successfully and assigned. A calling task has been created for the assigned user."
+                    : "Lead '{$lead->name}' created successfully. You can now fill detailed requirements using the centralized form.";
                 return redirect()
                     ->route('leads.show', $lead->id)
-                    ->with('success', "Lead '{$lead->name}' created successfully. You can now fill detailed requirements using the centralized form.");
+                    ->with('success', $msg);
             }
 
             return redirect()
