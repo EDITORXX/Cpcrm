@@ -170,6 +170,39 @@
         color: #205A44;
         border-bottom-color: #205A44;
     }
+    /* Mobile: 6 tabs as icon-only, one horizontal row */
+    @media (max-width: 767px) {
+        .tabs {
+            flex-wrap: nowrap;
+            gap: 4px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .tabs::-webkit-scrollbar { display: none; }
+        .tab {
+            flex: 0 0 calc(100% / 6);
+            min-width: 0;
+            padding: 10px 4px;
+            font-size: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+        }
+        .tab i {
+            font-size: 1.25rem;
+            color: inherit;
+        }
+        .tab .badge {
+            font-size: 10px;
+            padding: 2px 5px;
+            min-width: 18px;
+        }
+        .tab.active i { color: #205A44; }
+    }
     .modal {
         display: none;
         position: fixed;

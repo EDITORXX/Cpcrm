@@ -795,11 +795,13 @@
                         @hasSection('header-actions')
                             @yield('header-actions')
                         @endif
-                        <!-- Date/Time Clock -->
+                        @if(!auth()->user()->isCrm())
+                        <!-- Date/Time Clock (hidden for CRM - shown in dashboard content) -->
                         <div id="datetimeClock" style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px 12px; font-family: 'Courier New', monospace; font-weight: 600; font-size: 14px; color: #063A1C; min-width: 160px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                             <div id="clockTime" style="font-size: 16px; color: #205A44;">--:--:--</div>
                             <div id="clockDate" style="font-size: 11px; color: #B3B5B4; margin-top: 2px;">-- -- ----</div>
                         </div>
+                        @endif
                         <span style="color: #B3B5B4; font-size: 14px;">{{ auth()->user()->name }}</span>
                         <form action="{{ route('logout') }}" method="POST" style="display: inline;">
                             @csrf
@@ -953,26 +955,25 @@
     @stack('scripts')
     <script src="{{ asset('js/branding-update.js') }}"></script>
     <script>
-        // Live Clock Functionality
+        // Live Clock Functionality (header + CRM compact clock when present)
         function updateClock() {
             const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const timeStr = `${hours}:${minutes}:${seconds}`;
+            const dateStr = now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
             const timeElement = document.getElementById('clockTime');
             const dateElement = document.getElementById('clockDate');
-            
             if (timeElement && dateElement) {
-                // Format time: HH:MM:SS
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                const seconds = String(now.getSeconds()).padStart(2, '0');
-                timeElement.textContent = `${hours}:${minutes}:${seconds}`;
-                
-                // Format date: DD MMM YYYY
-                const date = now.toLocaleDateString('en-IN', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric'
-                });
-                dateElement.textContent = date;
+                timeElement.textContent = timeStr;
+                dateElement.textContent = dateStr;
+            }
+            const crmTime = document.getElementById('crmClockTime');
+            const crmDate = document.getElementById('crmClockDate');
+            if (crmTime && crmDate) {
+                crmTime.textContent = timeStr;
+                crmDate.textContent = dateStr;
             }
         }
         

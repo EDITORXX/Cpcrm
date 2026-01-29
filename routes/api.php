@@ -160,8 +160,8 @@ Route::middleware('auth:sanctum')->group(function () {
         'destroy' => 'api.users.destroy',
     ]);
 
-    // Telecaller routes
-    Route::prefix('telecaller')->middleware('role:telecaller')->group(function () {
+    // Telecaller / Sales Executive routes (both roles use same API)
+    Route::prefix('telecaller')->middleware('role:telecaller,sales_executive')->group(function () {
         // Auth routes
         Route::get('/whoami', [TelecallerController::class, 'whoami']);
         Route::post('/logout', [TelecallerController::class, 'logout']);

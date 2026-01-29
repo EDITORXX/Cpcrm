@@ -6,6 +6,117 @@
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/telecaller-dashboard.css') }}">
 <style>
+    /* Incentive amount modal - centered on mobile and desktop */
+    .incentive-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+    .incentive-modal-dialog {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 360px;
+        width: 100%;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+    .incentive-modal-title {
+        margin: 0 0 12px 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #1f2937;
+    }
+    .incentive-modal-input {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 16px;
+        margin-bottom: 6px;
+        box-sizing: border-box;
+    }
+    .incentive-modal-input:focus {
+        outline: none;
+        border-color: #063A1C;
+        box-shadow: 0 0 0 2px rgba(6, 58, 28, 0.2);
+    }
+    .incentive-modal-hint {
+        display: block;
+        color: #6b7280;
+        font-size: 12px;
+        margin-bottom: 16px;
+    }
+    .incentive-modal-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+    .incentive-modal-btn {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+    }
+    .incentive-modal-btn-cancel {
+        background: #f3f4f6;
+        color: #374151;
+    }
+    .incentive-modal-btn-cancel:hover {
+        background: #e5e7eb;
+    }
+    .incentive-modal-btn-ok {
+        background: linear-gradient(135deg, #063A1C 0%, #205A44 100%);
+        color: white;
+    }
+    .incentive-modal-btn-ok:hover {
+        opacity: 0.95;
+    }
+
+    /* Message modal (success/error) - same centered overlay */
+    .message-modal-overlay {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    .message-modal-dialog {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 360px;
+        width: 100%;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+    .message-modal-title {
+        margin: 0 0 12px 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #1f2937;
+    }
+    .message-modal-dialog.success .message-modal-title { color: #059669; }
+    .message-modal-dialog.error .message-modal-title { color: #dc2626; }
+    .message-modal-text {
+        margin: 0 0 20px 0;
+        font-size: 15px;
+        color: #4b5563;
+        line-height: 1.5;
+    }
+    .message-modal-actions {
+        display: flex;
+        justify-content: flex-end;
+    }
+
     .dashboard-container {
         width: 100%;
         max-width: 100%;
@@ -525,6 +636,30 @@
         </div>
     </div>
 </div>
+
+<!-- Incentive Amount Modal (centered, mobile & desktop) -->
+<div id="incentiveAmountModal" class="incentive-modal-overlay" style="display: none;" aria-hidden="true">
+    <div class="incentive-modal-dialog" role="dialog" aria-labelledby="incentiveModalTitle" aria-modal="true">
+        <h3 id="incentiveModalTitle" class="incentive-modal-title">Enter incentive amount</h3>
+        <input type="number" id="incentiveAmountInput" class="incentive-modal-input" step="0.01" min="0" placeholder="e.g. 5000" autocomplete="off">
+        <small class="incentive-modal-hint">Enter the amount in ₹ (e.g. 5000)</small>
+        <div class="incentive-modal-actions">
+            <button type="button" id="incentiveModalCancel" class="incentive-modal-btn incentive-modal-btn-cancel">Cancel</button>
+            <button type="button" id="incentiveModalOk" class="incentive-modal-btn incentive-modal-btn-ok">OK</button>
+        </div>
+    </div>
+</div>
+
+<!-- Message modal (success/error - centered, mobile & desktop) -->
+<div id="messageModal" class="incentive-modal-overlay message-modal-overlay" style="display: none;" aria-hidden="true">
+    <div class="message-modal-dialog" role="alertdialog" aria-labelledby="messageModalTitle">
+        <h3 id="messageModalTitle" class="message-modal-title"></h3>
+        <p id="messageModalText" class="message-modal-text"></p>
+        <div class="message-modal-actions">
+            <button type="button" id="messageModalOk" class="incentive-modal-btn incentive-modal-btn-ok">OK</button>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -666,12 +801,58 @@
         }
     }
 
-    async function requestSiteVisitIncentive(siteVisitId) {
-        const amount = prompt('Enter incentive amount:');
-        if (!amount || parseFloat(amount) <= 0) {
-            alert('Please enter a valid incentive amount');
+    let pendingIncentiveSiteVisitId = null;
+
+    function showMessageModal(message, type) {
+        type = type || 'info';
+        const overlay = document.getElementById('messageModal');
+        const titleEl = document.getElementById('messageModalTitle');
+        const textEl = document.getElementById('messageModalText');
+        const dialog = overlay ? overlay.querySelector('.message-modal-dialog') : null;
+        if (!overlay || !titleEl || !textEl || !dialog) return;
+        dialog.classList.remove('success', 'error');
+        if (type === 'success') {
+            titleEl.textContent = 'Success';
+            dialog.classList.add('success');
+        } else {
+            titleEl.textContent = type === 'error' ? 'Error' : 'Notice';
+            if (type === 'error') dialog.classList.add('error');
+        }
+        textEl.textContent = message;
+        overlay.style.display = 'flex';
+    }
+
+    function closeMessageModal() {
+        const overlay = document.getElementById('messageModal');
+        if (overlay) overlay.style.display = 'none';
+    }
+
+    function requestSiteVisitIncentive(siteVisitId) {
+        pendingIncentiveSiteVisitId = siteVisitId;
+        const modal = document.getElementById('incentiveAmountModal');
+        const input = document.getElementById('incentiveAmountInput');
+        if (modal && input) {
+            input.value = '';
+            modal.style.display = 'flex';
+            input.focus();
+        }
+    }
+
+    function closeIncentiveModal() {
+        const modal = document.getElementById('incentiveAmountModal');
+        if (modal) modal.style.display = 'none';
+        pendingIncentiveSiteVisitId = null;
+    }
+
+    async function submitIncentiveAmount() {
+        const amountVal = document.getElementById('incentiveAmountInput').value;
+        if (!amountVal || parseFloat(amountVal) <= 0) {
+            showMessageModal('Please enter a valid incentive amount.', 'error');
             return;
         }
+        const siteVisitId = pendingIncentiveSiteVisitId;
+        if (!siteVisitId) return;
+        closeIncentiveModal();
 
         try {
             const API_BASE_URL = '{{ url("/api/telecaller") }}';
@@ -684,26 +865,54 @@
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
-                body: JSON.stringify({ amount: parseFloat(amount) })
+                body: JSON.stringify({ amount: parseFloat(amountVal) })
             });
 
             const result = await response.json();
 
             if (result && result.success) {
-                alert('Incentive requested successfully! Awaiting verification.');
+                showMessageModal('Incentive requested successfully! Awaiting verification.', 'success');
                 loadTelecallerIncentives();
             } else {
-                alert(result.message || 'Failed to request incentive');
+                showMessageModal(result.message || 'Failed to request incentive', 'error');
             }
         } catch (error) {
             console.error('Error requesting incentive:', error);
-            alert('Network error. Please try again.');
+            showMessageModal('Network error. Please try again.', 'error');
         }
     }
 
-    // Load on page load
+    // Load on page load + bind modal buttons
     document.addEventListener('DOMContentLoaded', function() {
         loadTelecallerIncentives();
+
+        const modal = document.getElementById('incentiveAmountModal');
+        const input = document.getElementById('incentiveAmountInput');
+        const okBtn = document.getElementById('incentiveModalOk');
+        const cancelBtn = document.getElementById('incentiveModalCancel');
+
+        if (cancelBtn) cancelBtn.addEventListener('click', closeIncentiveModal);
+        if (okBtn) okBtn.addEventListener('click', submitIncentiveAmount);
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) closeIncentiveModal();
+            });
+        }
+        if (input) {
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') submitIncentiveAmount();
+                if (e.key === 'Escape') closeIncentiveModal();
+            });
+        }
+
+        const messageModal = document.getElementById('messageModal');
+        const messageOk = document.getElementById('messageModalOk');
+        if (messageOk) messageOk.addEventListener('click', closeMessageModal);
+        if (messageModal) {
+            messageModal.addEventListener('click', function(e) {
+                if (e.target === messageModal) closeMessageModal();
+            });
+        }
     });
 </script>
 @endpush

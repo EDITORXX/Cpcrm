@@ -1,8 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'CRM Dashboard - Base CRM')
-@section('page-title', 'CRM Dashboard')
-@section('page-subtitle', 'Manage leads, telecallers, and prospects')
+@section('title', 'CRM - Base CRM')
+@section('page-title', 'CRM')
 
 @push('styles')
 <!-- Bootstrap 5.3.3 CSS -->
@@ -96,50 +95,52 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 
-    <!-- Date Range Filter -->
-    <div class="row mb-4">
+    <!-- Compact Clock + Date Range (CRM only - small, below title) -->
+    <div class="row mb-3 crm-clock-date-row">
         <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold">Date Range:</label>
-                            <select id="date-range-filter" class="form-select">
-                                <option value="today">Today</option>
-                                <option value="this_week">This Week</option>
-                                <option value="this_month" selected>This Month</option>
-                                <option value="this_year">This Year</option>
-                                <option value="till_date">Till Date</option>
-                                <option value="all_time">All Time</option>
-                            </select>
-                        </div>
+            <div class="card py-2 px-3">
+                <div class="card-body py-2 d-flex flex-column flex-md-row align-items-center gap-2">
+                    <div id="crmCompactClock" class="text-center" style="font-family: 'Courier New', monospace; font-weight: 600; font-size: 12px; color: #063A1C;">
+                        <div id="crmClockTime" style="font-size: 14px; color: #205A44;">--:--:--</div>
+                        <div id="crmClockDate" style="font-size: 10px; color: #B3B5B4;">-- -- ----</div>
+                    </div>
+                    <div class="flex-grow-1">
+                        <label class="form-label small mb-0 fw-bold">Date Range:</label>
+                        <select id="date-range-filter" class="form-select form-select-sm">
+                            <option value="today">Today</option>
+                            <option value="this_week">This Week</option>
+                            <option value="this_month" selected>This Month</option>
+                            <option value="this_year">This Year</option>
+                            <option value="till_date">Till Date</option>
+                            <option value="all_time">All Time</option>
+                        </select>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Top Stats Cards (4 Cards) -->
+    <!-- Top Stats Cards (4 Cards) - Phone: 50% x 2 -->
     <div class="row mb-4" id="stats-cards-container">
-        <div class="col-lg-3 col-md-6 mb-3">
+        <div class="col-lg-3 col-md-6 col-6 mb-3">
             <div class="stats-card stats-card-gradient" data-filter="all">
                 <h6 class="text-white-50 mb-2">Total Assigned Leads</h6>
                 <h2 class="text-white mb-0" id="stat-total-assigned">0</h2>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6 mb-3">
+        <div class="col-lg-3 col-md-6 col-6 mb-3">
             <div class="stats-card stats-card-gradient" data-filter="called">
                 <h6 class="text-white-50 mb-2">Called Leads</h6>
                 <h2 class="text-white mb-0" id="stat-called">0</h2>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6 mb-3">
+        <div class="col-lg-3 col-md-6 col-6 mb-3">
             <div class="stats-card stats-card-gradient" data-filter="called_not_interested">
                 <h6 class="text-white-50 mb-2">Not Interested</h6>
                 <h2 class="text-white mb-0" id="stat-not-interested">0</h2>
             </div>
         </div>
-        <div class="col-lg-3 col-md-6 mb-3">
+        <div class="col-lg-3 col-md-6 col-6 mb-3">
             <div class="stats-card stats-card-gradient" data-filter="called_interested">
                 <h6 class="text-white-50 mb-2">Interested</h6>
                 <h2 class="text-white mb-0" id="stat-interested">0</h2>
