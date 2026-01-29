@@ -285,6 +285,29 @@
         padding-bottom: 16px;
         border-bottom: 2px solid #f0f0f0;
     }
+    /* Phone: hide edit-header (title + buttons at top), show buttons below profile-header */
+    .profile-actions-mobile {
+        display: none;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #f0f0f0;
+    }
+    @media (max-width: 767px) {
+        .profile-card .edit-header {
+            display: none !important;
+        }
+        .profile-actions-mobile {
+            display: flex;
+            align-items: center;
+        }
+    }
+    @media (min-width: 768px) {
+        .profile-actions-mobile {
+            display: none !important;
+        }
+    }
 </style>
 @endpush
 
@@ -317,6 +340,15 @@
                 <h2 id="profileName">User</h2>
                 <p id="profileEmail">Loading...</p>
             </div>
+        </div>
+        <!-- Phone view: Save & Logout below profile-header -->
+        <div class="profile-actions-mobile">
+            <button type="button" class="btn btn-success" onclick="saveAllChanges()">
+                <i class="fas fa-save"></i> Save Changes
+            </button>
+            <button type="button" class="btn btn-danger" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
         </div>
         <div id="profilePictureAlert"></div>
         <div style="margin-top: 16px;">
