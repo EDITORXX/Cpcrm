@@ -225,7 +225,22 @@
     let customEndDate = '';
 
     function getToken() {
-        return localStorage.getItem('telecaller_token');
+        var token = localStorage.getItem('telecaller_token');
+        if (token) return token;
+        var meta = document.querySelector('meta[name="api-token"]');
+        if (meta && meta.getAttribute('content')) {
+            token = meta.getAttribute('content').trim();
+            if (token) {
+                localStorage.setItem('telecaller_token', token);
+                return token;
+            }
+        }
+        var sessionToken = '{{ session("telecaller_api_token") ?? session("api_token") ?? "" }}';
+        if (sessionToken) {
+            localStorage.setItem('telecaller_token', sessionToken);
+            return sessionToken;
+        }
+        return null;
     }
 
     async function apiCall(endpoint, options = {}) {
@@ -234,7 +249,7 @@
             console.error('No token found, redirecting to login');
             setTimeout(() => {
                 window.location.href = '{{ route("login") }}';
-            }, 2000);
+            }, 3000);
             return { success: false, message: 'Authentication required. Redirecting to login...' };
         }
 

@@ -861,7 +861,7 @@
         // Initialize token from session on page load for web-logged-in telecallers
         @if(auth()->check() && auth()->user()->isTelecaller())
             @php
-                $token = session('telecaller_api_token');
+                $token = session('telecaller_api_token') ?? session('api_token');
                 $user = auth()->user()->load('role', 'manager');
             @endphp
             @if($token)
