@@ -9,6 +9,11 @@ let isPollingPaused = false;
 if (typeof API_BASE_URL === 'undefined') {
     var API_BASE_URL = window.location.origin + '/api';
 }
+// Base URL for telecaller API (profile page sets API_BASE_URL to /api/telecaller, layout to /api)
+function getTelecallerNotificationsBase() {
+    const base = typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : (window.location.origin + '/api');
+    return base.endsWith('/telecaller') ? base : base + '/telecaller';
+}
 
 // Request browser notification permission
 function requestNotificationPermission() {
@@ -112,7 +117,7 @@ async function loadNotifications() {
             return;
         }
 
-        const response = await fetch(`${API_BASE_URL}/telecaller/notifications`, {
+        const response = await fetch(`${getTelecallerNotificationsBase()}/notifications`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Accept': 'application/json',
@@ -232,7 +237,7 @@ async function handleNotificationClick(notificationId, taskId) {
         if (!token) return;
 
         // Mark as clicked
-        const response = await fetch(`${API_BASE_URL}/telecaller/notifications/${notificationId}/click`, {
+        const response = await fetch(`${getTelecallerNotificationsBase()}/notifications/${notificationId}/click`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -262,7 +267,7 @@ async function markNotificationAsRead(notificationId) {
         const token = localStorage.getItem('telecaller_token');
         if (!token) return;
 
-        await fetch(`${API_BASE_URL}/telecaller/notifications/${notificationId}/read`, {
+        await fetch(`${getTelecallerNotificationsBase()}/notifications/${notificationId}/read`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -280,7 +285,7 @@ async function markNotificationAsClicked(notificationId) {
         const token = localStorage.getItem('telecaller_token');
         if (!token) return;
 
-        await fetch(`${API_BASE_URL}/telecaller/notifications/${notificationId}/click`, {
+        await fetch(`${getTelecallerNotificationsBase()}/notifications/${notificationId}/click`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -298,7 +303,7 @@ async function markAllNotificationsRead() {
         const token = localStorage.getItem('telecaller_token');
         if (!token) return;
 
-        const response = await fetch(`${API_BASE_URL}/telecaller/notifications/mark-all-read`, {
+        const response = await fetch(`${getTelecallerNotificationsBase()}/notifications/mark-all-read`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,

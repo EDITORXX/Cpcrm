@@ -959,10 +959,10 @@ class TelecallerController extends Controller
                 'created_at' => $user->created_at ? $user->created_at->format('d M Y') : '-',
             ],
             'profile' => [
-                'is_absent' => $user->telecallerProfile->is_absent ?? false,
-                'absent_reason' => $user->telecallerProfile->absent_reason ?? null,
-                'absent_until' => $user->telecallerProfile->absent_until ? $user->telecallerProfile->absent_until->format('Y-m-d H:i:s') : null,
-                'max_pending_leads' => $user->telecallerProfile->max_pending_leads ?? null,
+                'is_absent' => $user->telecallerProfile?->is_absent ?? false,
+                'absent_reason' => $user->telecallerProfile?->absent_reason ?? null,
+                'absent_until' => $user->telecallerProfile?->absent_until?->format('Y-m-d H:i:s'),
+                'max_pending_leads' => $user->telecallerProfile?->max_pending_leads ?? null,
             ],
             'activity_history' => $activityHistory->map(function ($log) {
                 return [

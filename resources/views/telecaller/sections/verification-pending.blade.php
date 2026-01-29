@@ -11,31 +11,119 @@
         border-radius: 12px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    .filter-bar {
+    .filter-row {
         display: flex;
-        gap: 12px;
+        align-items: center;
+        gap: 8px;
         margin-bottom: 20px;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        width: 100%;
+        box-sizing: border-box;
     }
-    .filter-btn {
-        padding: 10px 20px;
+    .filter-row .filter-col {
+        flex: 0 0 33.33%;
+        max-width: 33.33%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    .filter-row .filter-col-search {
+        flex: 0 0 33.34%;
+        max-width: 33.34%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    @media (max-width: 768px) {
+        .filter-row {
+            gap: 6px;
+        }
+        .filter-row .filter-col,
+        .filter-row .filter-col-search {
+            flex: 0 0 33.33%;
+            max-width: 33.33%;
+        }
+        .filter-row .filter-col-search {
+            flex: 0 0 33.34%;
+            max-width: 33.34%;
+        }
+        .filter-row select {
+            padding: 6px 10px;
+            font-size: 13px;
+            height: 38px;
+            line-height: 1.3;
+            box-sizing: border-box;
+        }
+        .search-filter-btn {
+            padding: 0 10px;
+            font-size: 13px;
+            height: 38px;
+            line-height: 1.3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+        .search-filter-btn i {
+            margin-right: 6px;
+        }
+    }
+    .filter-row select {
+        width: 100%;
+        padding: 10px 16px;
         border: 2px solid #e0e0e0;
         border-radius: 8px;
         background: white;
         color: #063A1C;
-        cursor: pointer;
         font-size: 14px;
         font-weight: 500;
+        cursor: pointer;
         transition: all 0.3s;
     }
-    .filter-btn:hover {
+    .filter-row select:hover {
         border-color: #205A44;
-        color: #205A44;
     }
-    .filter-btn.active {
+    .filter-row select:focus {
+        outline: none;
+        border-color: #205A44;
+    }
+    .search-filter-btn {
+        width: 100%;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
         background: #205A44;
         color: white;
-        border-color: #205A44;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-sizing: border-box;
+    }
+    .search-filter-btn:hover {
+        background: #063A1C;
+    }
+    .search-filter-btn i {
+        margin-right: 8px;
+    }
+    .date-col-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .custom-date-inputs {
+        display: none;
+        align-items: center;
+        gap: 10px;
+        margin-top: 8px;
+        flex-wrap: wrap;
+    }
+    .custom-date-inputs.show {
+        display: flex;
+    }
+    .custom-date-inputs .date-input {
+        padding: 8px 12px;
+        border: 2px solid #E5DED4;
+        border-radius: 8px;
+        font-size: 14px;
     }
     .prospects-grid {
         display: grid;
@@ -184,26 +272,32 @@
 
 @section('content')
     <div class="verification-container">
-        <div class="filter-bar">
-            <button class="filter-btn active" onclick="filterProspects('pending')">Pending</button>
-            <button class="filter-btn" onclick="filterProspects('approved')">Approved</button>
-            <button class="filter-btn" onclick="filterProspects('rejected')">Rejected</button>
-            <button class="filter-btn" onclick="filterProspects('all')">All</button>
-        </div>
-
-        <!-- Date Filter Section -->
-        <div class="date-filter-bar" style="margin-bottom: 20px; padding: 15px; background: #F7F6F3; border-radius: 8px;">
-            <div class="date-filter-buttons" style="display: flex; gap: 12px; flex-wrap: wrap;">
-                <button class="filter-btn date-filter-btn active" data-filter="today" onclick="applyDateFilter('today')">Today</button>
-                <button class="filter-btn date-filter-btn" data-filter="this_week" onclick="applyDateFilter('this_week')">This Week</button>
-                <button class="filter-btn date-filter-btn" data-filter="this_month" onclick="applyDateFilter('this_month')">This Month</button>
-                <button class="filter-btn date-filter-btn" data-filter="custom" id="custom-date-filter-btn" onclick="toggleCustomDateInputs()">Custom Date</button>
+        <div class="filter-row">
+            <div class="filter-col">
+                <select id="status-filter" class="filter-select">
+                    <option value="pending" selected>Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="all">All</option>
+                </select>
             </div>
-            <div class="custom-date-inputs" id="custom-date-inputs" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #E5DED4; align-items: center; gap: 10px;">
-                <input type="date" id="start-date" class="date-input" style="padding: 8px 12px; border: 2px solid #E5DED4; border-radius: 8px;">
-                <span style="color: #B3B5B4;">to</span>
-                <input type="date" id="end-date" class="date-input" style="padding: 8px 12px; border: 2px solid #E5DED4; border-radius: 8px;">
-                <button onclick="applyCustomDate()" class="apply-btn" style="padding: 8px 20px; background: #063A1C; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;">Apply</button>
+            <div class="filter-col">
+                <div class="date-col-wrap">
+                    <select id="date-filter" class="filter-select">
+                        <option value="today" selected>Today</option>
+                        <option value="this_week">This Week</option>
+                        <option value="this_month">This Month</option>
+                        <option value="custom">Custom Date</option>
+                    </select>
+                    <div class="custom-date-inputs" id="custom-date-inputs">
+                        <input type="date" id="start-date" class="date-input">
+                        <span style="color: #B3B5B4;">to</span>
+                        <input type="date" id="end-date" class="date-input">
+                    </div>
+                </div>
+            </div>
+            <div class="filter-col-search">
+                <button type="button" id="search-filter-btn" class="search-filter-btn"><i class="fas fa-search mr-2"></i>Search</button>
             </div>
         </div>
 
@@ -488,72 +582,52 @@
         return statusMap[status] || status;
     }
 
-    function filterProspects(status) {
-        currentStatus = status;
-        
-        // Update active button
-        document.querySelectorAll('.filter-bar .filter-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        event.target.classList.add('active');
-        
-        // Load prospects
-        loadProspects(status);
-    }
+    function applyFilters() {
+        const statusEl = document.getElementById('status-filter');
+        const dateEl = document.getElementById('date-filter');
+        if (!statusEl || !dateEl) return;
 
-    function applyDateFilter(filter) {
-        currentDateFilter = filter;
-        customStartDate = '';
-        customEndDate = '';
-        
-        // Update active button
-        document.querySelectorAll('.date-filter-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        event.target.classList.add('active');
-        
-        // Hide custom inputs
-        document.getElementById('custom-date-inputs').style.display = 'none';
-        document.getElementById('start-date').value = '';
-        document.getElementById('end-date').value = '';
-        
-        // Reload prospects
+        currentStatus = statusEl.value;
+        currentDateFilter = dateEl.value;
+
+        if (currentDateFilter === 'custom') {
+            customStartDate = document.getElementById('start-date').value || '';
+            customEndDate = document.getElementById('end-date').value || '';
+            if (!customStartDate || !customEndDate) {
+                alert('Please select both start and end dates for Custom Date.');
+                return;
+            }
+            if (new Date(customStartDate) > new Date(customEndDate)) {
+                alert('Start date cannot be after end date');
+                return;
+            }
+        } else {
+            customStartDate = '';
+            customEndDate = '';
+        }
+
         loadProspects(currentStatus);
     }
 
-    function toggleCustomDateInputs() {
+    function onDateFilterChange() {
+        const dateEl = document.getElementById('date-filter');
         const customInputs = document.getElementById('custom-date-inputs');
-        if (customInputs.style.display === 'none' || !customInputs.style.display) {
-            customInputs.style.display = 'flex';
-            document.getElementById('custom-date-filter-btn').classList.add('active');
-            document.querySelectorAll('.date-filter-btn').forEach(btn => {
-                if (btn.id !== 'custom-date-filter-btn') {
-                    btn.classList.remove('active');
-                }
-            });
+        if (!dateEl || !customInputs) return;
+        currentDateFilter = dateEl.value;
+        if (currentDateFilter === 'custom') {
+            customInputs.classList.add('show');
+        } else {
+            customInputs.classList.remove('show');
+            document.getElementById('start-date').value = '';
+            document.getElementById('end-date').value = '';
+            customStartDate = '';
+            customEndDate = '';
         }
     }
 
-    function applyCustomDate() {
-        const startDate = document.getElementById('start-date').value;
-        const endDate = document.getElementById('end-date').value;
-        
-        if (!startDate || !endDate) {
-            alert('Please select both start and end dates');
-            return;
-        }
-        
-        if (new Date(startDate) > new Date(endDate)) {
-            alert('Start date cannot be after end date');
-            return;
-        }
-        
-        currentDateFilter = 'custom';
-        customStartDate = startDate;
-        customEndDate = endDate;
-        
-        // Reload prospects
-        loadProspects(currentStatus);
+    function onStatusFilterChange() {
+        const statusEl = document.getElementById('status-filter');
+        if (statusEl) currentStatus = statusEl.value;
     }
 
     function openWhatsApp(phoneNumber) {
@@ -574,6 +648,13 @@
         console.log('Verification Pending page loaded, initializing...');
         console.log('API_BASE_URL:', API_BASE_URL);
         console.log('Token:', getToken() ? 'Exists' : 'Missing');
+        
+        const statusEl = document.getElementById('status-filter');
+        const dateEl = document.getElementById('date-filter');
+        const searchBtn = document.getElementById('search-filter-btn');
+        if (statusEl) statusEl.addEventListener('change', onStatusFilterChange);
+        if (dateEl) dateEl.addEventListener('change', onDateFilterChange);
+        if (searchBtn) searchBtn.addEventListener('click', applyFilters);
         
         const contentDiv = document.getElementById('prospectsContent');
         if (contentDiv) {
