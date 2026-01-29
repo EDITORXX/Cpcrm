@@ -388,6 +388,43 @@
             align-items: center;
             height: 60px;
         }
+        /* Admin mobile nav: 5 visible (20% each), 4 on scroll; smooth swipe, hidden scrollbar, scroll hint */
+        #mobileFooterNav.admin-mobile-nav {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            justify-content: flex-start;
+        }
+        #mobileFooterNav.admin-mobile-nav::-webkit-scrollbar {
+            display: none;
+        }
+        #mobileFooterNav.admin-mobile-nav .footer-nav-link {
+            flex: 0 0 20%;
+            min-width: 20%;
+            max-width: 20%;
+            scroll-snap-align: start;
+        }
+        #mobileFooterNav.admin-mobile-nav {
+            scroll-snap-type: x mandatory;
+        }
+        /* Scroll hint: gradient overlay on right edge so user knows more items on scroll */
+        .admin-mobile-nav-scroll-hint {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            width: 32px;
+            height: 60px;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.95) 70%);
+            pointer-events: none;
+            z-index: 1001;
+        }
+        @media (min-width: 768px) {
+            .admin-mobile-nav-scroll-hint { display: none !important; }
+        }
         .footer-nav-link {
             display: flex;
             flex-direction: column;
@@ -400,6 +437,7 @@
             transition: all 0.3s;
             flex: 1;
             max-width: 72px;
+            min-height: 44px;
         }
         .footer-nav-link i {
             font-size: 18px;
@@ -757,8 +795,8 @@
         </div>
     </div>
     
-    <!-- Mobile Bottom Navigation (shown on small screens only) -->
-    <nav id="mobileFooterNav">
+    <!-- Mobile Bottom Navigation (shown on small screens only). Admin: 5 visible (20% each), 4 on scroll. -->
+    <nav id="mobileFooterNav" @if(auth()->user()->isAdmin()) class="admin-mobile-nav" @endif>
         @if(auth()->user()->isAdmin())
             <a href="{{ route('admin.dashboard') }}" class="footer-nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                 <i class="fas fa-home"></i>
@@ -771,6 +809,18 @@
             <a href="{{ route('leads.index') }}" class="footer-nav-link {{ request()->routeIs('leads.*') || request()->routeIs('prospects.*') || request()->routeIs('meetings.*') || request()->routeIs('site-visits.*') || request()->routeIs('closers.*') ? 'active' : '' }}">
                 <i class="fas fa-user-friends"></i>
                 <span>Leads</span>
+            </a>
+            <a href="{{ route('projects.index') }}" class="footer-nav-link {{ request()->routeIs('projects.*') || request()->routeIs('builders.*') ? 'active' : '' }}">
+                <i class="fas fa-project-diagram"></i>
+                <span>Projects</span>
+            </a>
+            <a href="{{ route('calls.index') }}" class="footer-nav-link {{ request()->routeIs('calls.*') ? 'active' : '' }}">
+                <i class="fas fa-phone"></i>
+                <span>Calls</span>
+            </a>
+            <a href="{{ route('chat.index') }}" class="footer-nav-link {{ request()->routeIs('chat.*') ? 'active' : '' }}">
+                <i class="fab fa-whatsapp"></i>
+                <span>Chat</span>
             </a>
             <a href="{{ route('export.index') }}" class="footer-nav-link {{ request()->routeIs('export.*') ? 'active' : '' }}">
                 <i class="fas fa-download"></i>
@@ -818,7 +868,10 @@
             @endif
         @endif
     </nav>
-    
+    @if(auth()->user()->isAdmin())
+    <div class="admin-mobile-nav-scroll-hint" aria-hidden="true"></div>
+    @endif
+
     @stack('scripts')
     <script src="{{ asset('js/branding-update.js') }}"></script>
     <script>
