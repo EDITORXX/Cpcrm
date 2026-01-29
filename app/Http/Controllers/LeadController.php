@@ -170,58 +170,49 @@ class LeadController extends Controller
     {
         $user = $request->user();
         
-        // For CRM users, only name and phone are required
-        if ($user->isCrm()) {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'phone' => 'required|string|max:20',
-                'assigned_to' => 'nullable|exists:users,id',
-            ]);
-        } else {
-            // For other users, full validation
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'phone' => 'required|string|max:20',
-                'email' => 'nullable|email|max:255',
-                'address' => 'nullable|string',
-                'city' => 'nullable|string|max:100',
-                'state' => 'nullable|string|max:100',
-                'pincode' => 'nullable|string|max:10',
-                'preferred_location' => 'nullable|string|max:255',
-                'preferred_size' => 'nullable|string|max:255',
-                'preferred_projects' => 'nullable|array',
-                'preferred_projects.*' => 'nullable|exists:projects,id',
-                'use_end_use' => 'nullable|string|in:End User,2nd Investments',
-                'budget' => 'nullable|string|in:Under ₹1 Cr,₹1.1 Cr – ₹2 Cr,Above ₹2 Cr',
-                'source' => 'nullable|in:website,referral,walk_in,call,social_media,other,custom',
-                'custom_source' => 'required_if:source,custom|nullable|string|max:255',
-                'property_type' => 'nullable|in:apartment,villa,plot,commercial,other',
-                'possession_status' => 'nullable|string|in:Ready to Move,Under Construction',
-                'requirements' => 'nullable|string',
-                'notes' => 'nullable|string',
-                'assigned_to' => 'nullable|exists:users,id',
-            ]);
-        }
+        // Full form: name and phone required; all other fields optional (CRM and non-CRM)
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string',
+            'city' => 'nullable|string|max:100',
+            'state' => 'nullable|string|max:100',
+            'pincode' => 'nullable|string|max:10',
+            'preferred_location' => 'nullable|string|max:255',
+            'preferred_size' => 'nullable|string|max:255',
+            'preferred_projects' => 'nullable|array',
+            'preferred_projects.*' => 'nullable|exists:projects,id',
+            'use_end_use' => 'nullable|string|in:End User,2nd Investments',
+            'budget' => 'nullable|string|in:Under ₹1 Cr,₹1.1 Cr – ₹2 Cr,Above ₹2 Cr',
+            'source' => 'nullable|in:website,referral,walk_in,call,social_media,other,custom',
+            'custom_source' => 'required_if:source,custom|nullable|string|max:255',
+            'property_type' => 'nullable|in:apartment,villa,plot,commercial,other',
+            'possession_status' => 'nullable|string|in:Ready to Move,Under Construction',
+            'requirements' => 'nullable|string',
+            'notes' => 'nullable|string',
+            'assigned_to' => 'nullable|exists:users,id',
+        ]);
 
         DB::beginTransaction();
         try {
             $validated['created_by'] = $user->id;
             $validated['status'] = 'new';
             
-            // For CRM users, set source
-            if ($user->isCrm()) {
-                $validated['source'] = 'crm_manual';
-            } else {
-                // Handle preferred projects array - convert to JSON string
-                if (isset($validated['preferred_projects']) && is_array($validated['preferred_projects'])) {
-                    $validated['preferred_projects'] = json_encode($validated['preferred_projects']);
-                }
+            // Handle preferred projects array - convert to JSON string (CRM and non-CRM)
+            if (isset($validated['preferred_projects']) && is_array($validated['preferred_projects'])) {
+                $validated['preferred_projects'] = json_encode($validated['preferred_projects']);
+            }
 
-                // Handle custom source
-                if ($request->source === 'custom' && $request->has('custom_source')) {
-                    $validated['source'] = $request->custom_source;
-                }
-                unset($validated['custom_source']);
+            // Handle custom source
+            if ($request->source === 'custom' && $request->has('custom_source')) {
+                $validated['source'] = $request->custom_source;
+            }
+            unset($validated['custom_source']);
+
+            // CRM default source when not provided
+            if ($user->isCrm() && empty($validated['source'])) {
+                $validated['source'] = 'crm_manual';
             }
 
             $lead = Lead::create($validated);

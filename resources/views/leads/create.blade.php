@@ -51,39 +51,17 @@
                         </div>
                     </div>
 
-                    @if(!auth()->user()->isCrm())
-                        <div class="mt-6">
-                            <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                            <input type="email" 
-                                   name="email" 
-                                   id="email"
-                                   value="{{ old('email') }}"
-                                   placeholder="Enter email address"
-                                       class="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#205A44] focus:border-[#205A44]">
-                        </div>
-                    @endif
-                </div>
-
-                @if(auth()->user()->isCrm())
-                <!-- Assignment (CRM) -->
-                <div class="mb-8">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">Assignment</h3>
-                    <div>
-                        <label for="assigned_to_crm" class="block text-sm font-medium text-gray-700 mb-2">Assign To User (Optional)</label>
-                        <select name="assigned_to" id="assigned_to_crm" class="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#205A44] focus:border-[#205A44]">
-                            <option value="">-- Don't Assign Now --</option>
-                            @foreach($users as $user)
-                                <option value="{{ $user->id }}" {{ old('assigned_to') == $user->id ? 'selected' : '' }}>
-                                    {{ $user->name }} ({{ $user->role->name ?? 'User' }})
-                                </option>
-                            @endforeach
-                        </select>
-                        <p class="text-sm text-gray-500 mt-2">You can assign this lead to a user now; a calling task will be created for them.</p>
+                    <div class="mt-6">
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                        <input type="email" 
+                               name="email" 
+                               id="email"
+                               value="{{ old('email') }}"
+                               placeholder="Enter email address"
+                               class="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#205A44] focus:border-[#205A44]">
                     </div>
                 </div>
-                @endif
 
-                @if(!auth()->user()->isCrm())
                 <!-- Location Details -->
                 <div class="mb-8">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">Location Details</h3>
@@ -304,7 +282,6 @@
                                   class="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#205A44] focus:border-[#205A44]">{{ old('notes') }}</textarea>
                     </div>
                 </div>
-                @endif
 
                 <!-- Buttons -->
                 <div class="flex justify-end gap-4">
