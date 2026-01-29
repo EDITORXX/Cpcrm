@@ -170,6 +170,19 @@
     .btn-warning:hover {
         background: #d97706;
     }
+    .btn-danger {
+        background: #dc2626;
+        color: white;
+    }
+    .btn-danger:hover {
+        background: #b91c1c;
+    }
+    .edit-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
     .status-badge {
         display: inline-block;
         padding: 8px 16px;
@@ -272,10 +285,6 @@
         padding-bottom: 16px;
         border-bottom: 2px solid #f0f0f0;
     }
-    .edit-actions {
-        display: flex;
-        gap: 10px;
-    }
 </style>
 @endpush
 
@@ -287,6 +296,9 @@
             <div class="edit-actions">
                 <button type="button" id="saveChangesBtn" class="btn btn-success" onclick="saveAllChanges()">
                     <i class="fas fa-save"></i> Save Changes
+                </button>
+                <button type="button" class="btn btn-danger" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
                 </button>
             </div>
         </div>
