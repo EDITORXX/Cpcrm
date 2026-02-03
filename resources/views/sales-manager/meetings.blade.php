@@ -1242,22 +1242,31 @@
         hiddenInput.value = projectNames.join(',');
     }
     
-    // Reminder Toggle Function
+    // Reminder Toggle Function (green theme)
+    const reminderGreenStyle = 'linear-gradient(135deg, #063A1C 0%, #205A44 100%)';
     function toggleReminder(enabled) {
         const enableBtn = document.getElementById('enableReminderBtn');
         const disableBtn = document.getElementById('disableReminderBtn');
         const hiddenInput = document.getElementById('reminderEnabled');
         
         if (enabled) {
+            enableBtn.style.background = reminderGreenStyle;
+            enableBtn.style.color = 'white';
+            enableBtn.classList.add('shadow-md');
             enableBtn.classList.remove('bg-gray-200', 'text-gray-700');
-            enableBtn.classList.add('bg-gradient-to-r', 'from-blue-600', 'to-blue-500', 'text-white', 'shadow-md');
-            disableBtn.classList.remove('bg-gradient-to-r', 'from-blue-600', 'to-blue-500', 'text-white', 'shadow-md');
+            disableBtn.style.background = '';
+            disableBtn.style.color = '';
+            disableBtn.classList.remove('shadow-md');
             disableBtn.classList.add('bg-gray-200', 'text-gray-700');
             hiddenInput.value = 'true';
         } else {
+            disableBtn.style.background = reminderGreenStyle;
+            disableBtn.style.color = 'white';
+            disableBtn.classList.add('shadow-md');
             disableBtn.classList.remove('bg-gray-200', 'text-gray-700');
-            disableBtn.classList.add('bg-gradient-to-r', 'from-blue-600', 'to-blue-500', 'text-white', 'shadow-md');
-            enableBtn.classList.remove('bg-gradient-to-r', 'from-blue-600', 'to-blue-500', 'text-white', 'shadow-md');
+            enableBtn.style.background = '';
+            enableBtn.style.color = '';
+            enableBtn.classList.remove('shadow-md');
             enableBtn.classList.add('bg-gray-200', 'text-gray-700');
             hiddenInput.value = 'false';
         }
@@ -1344,12 +1353,12 @@
         const select = document.getElementById('convertTelecallerSelect');
         if (!select) return;
         
-        select.innerHTML = '<option value="">Select Telecaller (Optional)</option>';
+        select.innerHTML = '<option value="">Select Sales Executive (Optional)</option>';
         telecallers.forEach(telecaller => {
             const option = document.createElement('option');
             const telecallerId = telecaller.id || telecaller.user_id;
             option.value = telecallerId;
-            option.textContent = `${telecaller.name || telecaller.user_name || 'Telecaller'} (Telecaller)`;
+            option.textContent = `${telecaller.name || telecaller.user_name || 'Sales Executive'} (Sales Executive)`;
             
             // Pre-select if this is the lead's telecaller
             if (preSelectId && telecallerId == preSelectId) {
@@ -1754,8 +1763,8 @@
 <!-- Convert to Site Visit Modal -->
 <div id="convertToSiteVisitModal" class="modal">
     <div class="modal-content" style="max-width: 600px; padding: 0; overflow: hidden;">
-        <!-- Header with gradient (blue theme for site visit) -->
-        <div class="bg-gradient-to-r from-blue-800 to-blue-600 px-6 py-5 rounded-t-2xl w-full">
+        <!-- Header with gradient (green theme - matches app) -->
+        <div class="bg-gradient-to-r from-[#063A1C] to-[#205A44] px-6 py-5 rounded-t-2xl w-full">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
@@ -1776,7 +1785,7 @@
                     <!-- Project Selection -->
                     <div class="form-group">
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            <i class="fas fa-building text-blue-600 mr-1"></i> Project <span style="color: #ef4444;">*</span>
+                            <i class="fas fa-building mr-1" style="color: #205A44;"></i> Project <span style="color: #ef4444;">*</span>
                         </label>
                         <!-- Tag Container -->
                         <div id="convertProjectTagsContainer" class="flex flex-wrap gap-2 p-2 border-2 border-gray-200 rounded-xl min-h-[42px] bg-white mb-2">
@@ -1786,7 +1795,7 @@
                         <input type="text" 
                                id="convertProjectInput" 
                                placeholder="Type project name and press Enter"
-                               class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                               class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#205A44] focus:border-transparent transition">
                         <input type="hidden" name="project" id="convertProjectHidden" required>
                         <small class="text-gray-500">Type project name and press Enter</small>
                     </div>
@@ -1794,17 +1803,17 @@
                     <!-- Visit With Checkboxes -->
                     <div class="form-group">
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            <i class="fas fa-users text-blue-600 mr-1"></i> Visit With
+                            <i class="fas fa-users mr-1" style="color: #205A44;"></i> Visit With
                         </label>
                         <div class="flex gap-4">
                             <label class="flex items-center cursor-pointer">
                                 <input type="radio" name="visit_type" value="with_family" id="visitTypeWithFamily"
-                                    class="mr-2 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                    class="mr-2 w-4 h-4 border-gray-300 focus:ring-[#205A44]" style="accent-color: #205A44;">
                                 <span class="text-sm text-gray-700">With Family</span>
                             </label>
                             <label class="flex items-center cursor-pointer">
                                 <input type="radio" name="visit_type" value="without_family" id="visitTypeWithoutFamily"
-                                    class="mr-2 w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                    class="mr-2 w-4 h-4 border-gray-300 focus:ring-[#205A44]" style="accent-color: #205A44;">
                                 <span class="text-sm text-gray-700">Without Family</span>
                             </label>
                         </div>
@@ -1813,10 +1822,10 @@
                     <!-- Visit Sequence -->
                     <div class="form-group">
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            <i class="fas fa-list-ol text-blue-600 mr-1"></i> Visit Sequence
+                            <i class="fas fa-list-ol mr-1" style="color: #205A44;"></i> Visit Sequence
                         </label>
                         <select id="convertVisitSequence" name="visit_sequence" 
-                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition">
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#205A44] bg-white transition">
                             <option value="">Select Visit Sequence</option>
                             <option value="fresh_visit">Fresh Visit</option>
                             <option value="2nd_visit">2nd Visit</option>
@@ -1826,17 +1835,17 @@
                     </div>
 
                     <!-- Reminder Buttons -->
-                    <div class="form-group bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border-2 border-blue-100">
+                    <div class="form-group p-4 rounded-xl border-2" style="background: linear-gradient(to bottom right, #f0fdf4, #dcfce7); border-color: #bbf7d0;">
                         <label class="block text-sm font-semibold text-gray-700 mb-3">
-                            <i class="fas fa-bell text-blue-600 mr-1"></i> Reminder
+                            <i class="fas fa-bell mr-1" style="color: #205A44;"></i> Reminder
                         </label>
                         <div class="flex gap-3">
                             <button type="button" id="enableReminderBtn" onclick="toggleReminder(true)"
-                                class="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg hover:from-blue-700 hover:to-blue-600 font-semibold transition-all shadow-md hover:shadow-lg flex items-center justify-center">
+                                class="flex-1 px-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center bg-gray-200 text-gray-700 hover:bg-gray-300">
                                 <i class="fas fa-bell mr-2"></i>Enable Reminder
                             </button>
                             <button type="button" id="disableReminderBtn" onclick="toggleReminder(false)"
-                                class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-semibold transition-all flex items-center justify-center">
+                                class="flex-1 px-4 py-2 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg flex items-center justify-center text-white" style="background: linear-gradient(135deg, #063A1C 0%, #205A44 100%);">
                                 <i class="fas fa-bell-slash mr-2"></i>Disable Reminder
                             </button>
                         </div>
@@ -1845,25 +1854,25 @@
                         <small class="text-gray-500 mt-2 block">Get a calling task 10 minutes before the site visit</small>
                     </div>
 
-                    <!-- Telecaller Selection -->
+                    <!-- Sales Executive Selection -->
                     <div class="form-group">
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            <i class="fas fa-user-tie text-blue-600 mr-1"></i> Telecaller (Optional)
+                            <i class="fas fa-user-tie mr-1" style="color: #205A44;"></i> Sales Executive (Optional)
                         </label>
                         <select id="convertTelecallerSelect" name="telecaller_id" 
-                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition">
-                            <option value="">Select Telecaller (Optional)</option>
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#205A44] bg-white transition">
+                            <option value="">Select Sales Executive (Optional)</option>
                         </select>
-                        <small class="text-gray-500">Create a calling task for selected telecaller 30 minutes before site visit</small>
+                        <small class="text-gray-500">Create a calling task for selected Sales Executive 30 minutes before site visit</small>
                     </div>
 
                     <!-- Scheduled Date & Time -->
                     <div class="form-group">
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            <i class="fas fa-clock text-blue-600 mr-1"></i> Scheduled Date & Time <span style="color: #ef4444;">*</span>
+                            <i class="fas fa-clock mr-1" style="color: #205A44;"></i> Scheduled Date & Time <span style="color: #ef4444;">*</span>
                         </label>
                         <input type="datetime-local" id="convertScheduledAt" name="scheduled_at" required 
-                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#205A44] focus:border-transparent transition">
                         <small class="text-gray-500">Select date and time for the site visit</small>
                     </div>
                 </div>
@@ -1872,11 +1881,11 @@
             <!-- Footer with buttons -->
             <div class="bg-gray-50 px-6 py-3 border-t border-gray-200 flex gap-3 shrink-0">
                 <button type="button" onclick="closeConvertToSiteVisitModal()" 
-                    class="flex-1 h-12 bg-white border-2 border-blue-700 rounded-lg text-blue-800 hover:bg-blue-50 font-semibold transition-all shadow-sm flex items-center justify-center">
+                    class="flex-1 h-12 bg-white rounded-lg font-semibold transition-all shadow-sm flex items-center justify-center" style="border: 2px solid #205A44; color: #063A1C;" onmouseover="this.style.backgroundColor='#f0fdf4';" onmouseout="this.style.backgroundColor='white';">
                     <i class="fas fa-times mr-2"></i>Cancel
                 </button>
                 <button type="submit" 
-                    class="flex-1 h-12 bg-gradient-to-r from-blue-700 to-blue-600 text-white rounded-lg hover:from-blue-800 hover:to-blue-700 font-semibold transition-all shadow-md hover:shadow-lg flex items-center justify-center">
+                    class="flex-1 h-12 text-white rounded-lg font-semibold transition-all shadow-md hover:shadow-lg flex items-center justify-center" style="background: linear-gradient(135deg, #063A1C 0%, #205A44 100%);" onmouseover="this.style.opacity='0.95';" onmouseout="this.style.opacity='1';">
                     <i class="fas fa-exchange-alt mr-2"></i>Convert
                 </button>
             </div>

@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Telecaller Status - Base CRM')
-@section('page-title', 'Telecaller Status')
-@section('page-subtitle', 'Manage telecaller availability and status')
+@section('title', 'Sales Executive Status - Base CRM')
+@section('page-title', 'Sales Executive Status')
+@section('page-subtitle', 'Manage sales executive availability and status')
 
 @section('header-actions')
     <a href="{{ route('lead-assignment.index') }}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 text-sm font-medium">

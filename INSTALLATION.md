@@ -337,9 +337,7 @@ chown -R www-data:www-data storage bootstrap/cache
    # Clear config cache
    php artisan config:clear
    php artisan config:cache
-   ```
-
-2. **Sanctum Authentication Issues**: If API authentication fails on new domain
+   ```2. **Sanctum Authentication Issues**: If API authentication fails on new domain
    - Add your domain to `SANCTUM_STATEFUL_DOMAINS` in `.env`
    - Or ensure `APP_URL` is correctly set (auto-detection should work)
    - Clear config cache after changes
@@ -351,11 +349,7 @@ chown -R www-data:www-data storage bootstrap/cache
 
 4. **Flutter Mobile App**: If mobile app can't connect
    - Update `baseUrl` in `flutter_telecaller_app/lib/config/api_config.dart`
-   - Rebuild the APK: `flutter clean && flutter build apk --release`
-
-### Deployment on Different URLs
-
-The application is designed to work seamlessly on any URL. Simply:
+   - Rebuild the APK: `flutter clean && flutter build apk --release`### Deployment on Different URLsThe application is designed to work seamlessly on any URL. Simply:
 
 1. Set `APP_URL` in `.env` to your deployment URL
 2. Run `php artisan config:clear && php artisan config:cache`

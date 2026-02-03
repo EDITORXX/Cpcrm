@@ -2,7 +2,7 @@
 
 @section('title', 'Lead Assignment - Base CRM')
 @section('page-title', 'Lead Assignment')
-@section('page-subtitle', 'Manage lead assignments and telecaller configurations')
+@section('page-subtitle', 'Manage lead assignments and sales executive configurations')
 
 @section('header-actions')
     <a href="{{ route('lead-assignment.unassigned') }}" class="px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 text-sm font-medium">
@@ -16,7 +16,7 @@
         <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-600">Total Telecallers</p>
+                    <p class="text-sm font-medium text-gray-600">Total Sales Executives</p>
                     <p class="text-3xl font-bold text-gray-900 mt-2">{{ $stats['total_telecallers'] }}</p>
                 </div>
                 <div class="p-3 bg-blue-100 rounded-lg">
@@ -30,7 +30,7 @@
         <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-600">Active Telecallers</p>
+                    <p class="text-sm font-medium text-gray-600">Active Sales Executives</p>
                     <p class="text-3xl font-bold text-green-600 mt-2">{{ $stats['active_telecallers'] }}</p>
                 </div>
                 <div class="p-3 bg-green-100 rounded-lg">
@@ -81,7 +81,7 @@
                 </div>
                 <div>
                     <h3 class="font-semibold text-gray-800">Unassigned Leads</h3>
-                    <p class="text-sm text-gray-500 mt-1">Assign leads to telecallers</p>
+                    <p class="text-sm text-gray-500 mt-1">Assign leads to sales executives</p>
                 </div>
             </div>
         </a>
@@ -95,7 +95,7 @@
                 </div>
                 <div>
                     <h3 class="font-semibold text-gray-800">Daily Limits</h3>
-                    <p class="text-sm text-gray-500 mt-1">Manage telecaller daily limits</p>
+                    <p class="text-sm text-gray-500 mt-1">Manage sales executive daily limits</p>
                 </div>
             </div>
         </a>
@@ -123,7 +123,7 @@
                 <svg class="w-5 h-5 text-gray-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span class="text-gray-700">Telecaller Status Management</span>
+                <span class="text-gray-700">Sales Executive Status Management</span>
             </a>
         </div>
     </div>

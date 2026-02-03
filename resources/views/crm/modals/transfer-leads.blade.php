@@ -9,15 +9,15 @@
             <div class="modal-body">
                 <form id="transfer-leads-form">
                     <div class="mb-3">
-                        <label class="form-label">From Telecaller <span class="text-danger">*</span></label>
+                        <label class="form-label">From Sales Executive <span class="text-danger">*</span></label>
                         <select class="form-select" id="transfer-from-telecaller" required>
-                            <option value="">Select Telecaller...</option>
+                            <option value="">Select Sales Executive...</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">To Telecaller <span class="text-danger">*</span></label>
+                        <label class="form-label">To Sales Executive <span class="text-danger">*</span></label>
                         <select class="form-select" id="transfer-to-telecaller" required>
-                            <option value="">Select Telecaller...</option>
+                            <option value="">Select Sales Executive...</option>
                         </select>
                     </div>
                     <div class="mb-3">

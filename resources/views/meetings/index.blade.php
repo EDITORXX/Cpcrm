@@ -914,7 +914,7 @@
 <div id="convertToSiteVisitModal" class="modal">
     <div class="modal-content" style="max-width: 500px;">
         <div style="text-align: center; margin-bottom: 24px;">
-            <div style="width: 64px; height: 64px; margin: 0 auto 16px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <div style="width: 64px; height: 64px; margin: 0 auto 16px; background: linear-gradient(135deg, #063A1C 0%, #205A44 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
                 <i class="fas fa-exchange-alt" style="font-size: 28px; color: white;"></i>
             </div>
             <h3 style="font-size: 22px; font-weight: 600; margin-bottom: 12px; color: #063A1C;">Convert to Site Visit</h3>
@@ -926,7 +926,7 @@
 
         <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                <i class="fas fa-info-circle" style="color: #3b82f6; font-size: 18px;"></i>
+                <i class="fas fa-info-circle" style="color: #205A44; font-size: 18px;"></i>
                 <span style="color: #374151; font-size: 14px; font-weight: 500;">What will happen:</span>
             </div>
             <ul style="margin: 0; padding-left: 32px; color: #6b7280; font-size: 14px; line-height: 1.8;">
@@ -940,7 +940,7 @@
             <button type="button" class="btn btn-secondary" onclick="closeConvertToSiteVisitModal()" style="min-width: 100px;">
                 Cancel
             </button>
-            <button type="button" class="btn btn-primary" onclick="convertToSiteVisit()" style="min-width: 100px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+            <button type="button" class="btn btn-primary" onclick="convertToSiteVisit()" style="min-width: 100px; background: linear-gradient(135deg, #063A1C 0%, #205A44 100%);">
                 <i class="fas fa-check mr-2"></i>Convert
             </button>
         </div>

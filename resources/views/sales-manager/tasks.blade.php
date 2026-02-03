@@ -2295,7 +2295,7 @@
                                    style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
                             <small style="display: block; margin-top: 4px; color: #666; font-size: 12px;">Select date and time for the follow-up call. A calling task will be created automatically.</small>
                             
-                            <!-- Create Telecaller Task Option (shown when Follow Up Required is checked) -->
+                            <!-- Create Sales Executive Task Option (shown when Follow Up Required is checked) -->
                             <div id="createTelecallerTaskContainer" style="display: none; margin-top: 12px;">
                                 <div style="display: flex; align-items: center;">
                                     <input type="checkbox" 
@@ -2303,11 +2303,11 @@
                                            id="create_telecaller_task_checkbox"
                                            style="width: 18px; height: 18px; margin-right: 10px; cursor: pointer;">
                                     <label for="create_telecaller_task_checkbox" style="font-size: 14px; font-weight: 500; color: #333; cursor: pointer; margin: 0;">
-                                        Create calling task for telecaller also
+                                        Create calling task for Sales Executive also
                                     </label>
                                 </div>
                                 <small style="display: block; color: #666; font-size: 12px; margin-left: 28px; margin-top: 4px;">
-                                    This will create a calling task for the original telecaller who provided this lead
+                                    This will create a calling task for the original Sales Executive who provided this lead
                                 </small>
                             </div>
                         </div>

@@ -29,7 +29,7 @@
         </div>
     </div>
 
-    <!-- Target Progress Section (for Telecallers) -->
+    <!-- Target Progress Section (for Sales Executives) -->
     <div id="target-progress-section" class="bg-white rounded-xl shadow-sm border border-[#E5DED4] p-6 mb-6 hidden">
         <h2 class="text-xl font-semibold text-brand-primary mb-4">Monthly Targets Progress</h2>
         <div id="target-progress-content">
@@ -327,7 +327,7 @@
                 const teamContent = document.getElementById('team-targets-content');
                 if (teamSection && teamContent) {
                     teamSection.classList.remove('hidden');
-                    teamContent.innerHTML = '<table><thead><tr><th>Telecaller</th><th>Prospects Extract</th><th>Prospects Verified</th><th>Calls</th></tr></thead><tbody>' +
+                    teamContent.innerHTML = '<table><thead><tr><th>Sales Executive</th><th>Prospects Extract</th><th>Prospects Verified</th><th>Calls</th></tr></thead><tbody>' +
                         data.team_targets.map(member => {
                             const p = member.progress;
                             return `<tr>

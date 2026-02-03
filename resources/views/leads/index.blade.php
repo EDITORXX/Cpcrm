@@ -450,7 +450,7 @@
                         const prospect = lead.prospects[0];
                         if (prospect.telecaller && prospect.telecaller.name) {
                             assignedUser = prospect.telecaller.name;
-                            assignedUserRole = prospect.telecaller.role ? prospect.telecaller.role.name : 'Telecaller';
+                            assignedUserRole = prospect.telecaller.role ? prospect.telecaller.role.name : 'Sales Executive';
                         } else if (lead.active_assignments && lead.active_assignments.length > 0) {
                             // Fallback to active assignment if telecaller
                             const assignment = lead.active_assignments[0];

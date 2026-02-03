@@ -1,0 +1,44 @@
+========================================
+CMD Commands - Copy Paste Karein
+========================================
+
+Step 1: CMD Open Karein
+------------------------
+Windows + R
+Type: cmd
+Press Enter
+
+Step 2: Flutter App Directory Mein Jayen
+----------------------------------------
+cd "c:\Users\vivek\Pictures\Laravel crm fully functional\flutter_telecaller_app"
+
+Step 3: PATH Set Karein
+------------------------
+set PATH=%PATH%;C:\flutter\bin
+
+Step 4: ANDROID_HOME Set Karein
+--------------------------------
+set ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk
+
+Step 5: Clean Build
+------------------
+flutter clean
+
+Step 6: Dependencies Install
+-----------------------------
+flutter pub get
+
+Step 7: APK Build (3-5 minutes lag sakta hai)
+-----------------------------------------------
+flutter build apk --release
+
+IMPORTANT: Build process 3-5 minutes le sakta hai.
+Please wait, window close mat karein.
+
+
+========================================
+Ya Ek Hi Batch File Run Karein
+========================================
+
+BUILD_APK_CMD.bat file par double-click karein
+Sab automatically ho jayega!

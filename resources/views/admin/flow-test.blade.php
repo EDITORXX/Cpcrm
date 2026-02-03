@@ -2,7 +2,7 @@
 
 @section('title', 'Flow Testing & Validation - Base CRM')
 @section('page-title', 'Complete Flow Testing & Validation')
-@section('page-subtitle', 'Test all CRM flows from Telecaller to Closer')
+@section('page-subtitle', 'Test all CRM flows from Sales Executive to Closer')
 
 @push('styles')
 <style>
@@ -238,7 +238,7 @@
                 <option value="hr_manager">HR Manager</option>
                 <option value="finance_manager">Finance Manager</option>
                 <option value="sales_manager">Sales Manager</option>
-                <option value="sales_executive">Sales Executive (Telecaller)</option>
+                <option value="sales_executive">Sales Executive</option>
             </select>
             
             <label style="font-weight: 500;">Select User:</label>

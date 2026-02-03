@@ -44,9 +44,9 @@
                 <h1>Target Management</h1>
                 <p style="color: #666; margin-top: 5px;">
                     @if(auth()->user()->isSalesHead())
-                        Set targets for Sales Executives and Sales Managers. Telecaller targets are view-only.
+                        Set targets for Sales Executives and Sales Managers. Sales Executive targets are view-only.
                     @else
-                        Set and manage monthly targets for Telecallers, Sales Executives, and Sales Managers
+                        Set and manage monthly targets for Sales Executives and Sales Managers
                     @endif
                 </p>
             </div>
@@ -110,7 +110,7 @@
                                                 Logic 2: Individual + Team
                                             @endif
                                             @if($target->manager_junior_scope)
-                                                ({{ $target->manager_junior_scope === 'executives_only' ? 'Executives Only' : 'Executives + Telecallers' }})
+                                                ({{ $target->manager_junior_scope === 'executives_only' ? 'Executives Only' : 'Executives + Sales Executives' }})
                                             @endif
                                         </small>
                                     @endif

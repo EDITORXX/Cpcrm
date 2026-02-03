@@ -129,7 +129,7 @@
             <div class="form-group" id="incentive-per-visit-field" style="display: none;">
                 <label>Incentive per Visit (₹)</label>
                 <input type="number" name="incentive_per_visit" id="incentive_per_visit" step="0.01" min="0" value="{{ old('incentive_per_visit', $existingTarget->incentive_per_visit ?? '') }}" placeholder="0.00">
-                <small style="color: #666;">Incentive amount per site visit for Telecallers</small>
+                <small style="color: #666;">Incentive amount per site visit for Sales Executives</small>
             </div>
 
             <!-- Manager Target Calculation Logic (Only for Sales Managers) -->
@@ -161,7 +161,7 @@
                             Executives Only
                         </option>
                         <option value="executives_and_telecallers" {{ old('manager_junior_scope', $existingTarget->manager_junior_scope ?? '') == 'executives_and_telecallers' ? 'selected' : '' }}>
-                            Executives + Telecallers
+                            Executives + Sales Executives
                         </option>
                     </select>
                     <small style="color: #666;">Select which juniors to include in target calculation</small>

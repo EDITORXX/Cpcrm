@@ -302,7 +302,7 @@
                     </div>
                 </div>
                 <h3 class="text-lg font-semibold text-gray-900 mb-2">Lead Assignment</h3>
-                <p class="text-sm text-gray-500 mb-4">Manage lead assignments and telecaller configurations</p>
+                <p class="text-sm text-gray-500 mb-4">Manage lead assignments and sales executive configurations</p>
                 @php
                     try {
                         $telecallerCount = \App\Models\User::whereHas('role', function($q) {
@@ -316,9 +316,9 @@
                 @endphp
                 <div class="flex items-center mb-4">
                     @if($leadAssignmentActive)
-                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{{ $telecallerCount }} Telecallers</span>
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{{ $telecallerCount }} Sales Executives</span>
                     @else
-                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">No Telecallers</span>
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">No Sales Executives</span>
                     @endif
                 </div>
                 <button onclick="event.stopPropagation(); window.location.href='{{ route('lead-assignment.index') }}'" 

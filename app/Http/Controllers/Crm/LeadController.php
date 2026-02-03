@@ -39,6 +39,7 @@ class LeadController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:20',
+            'assigned_to' => 'nullable|exists:users,id',
         ]);
 
         DB::beginTransaction();
@@ -47,13 +48,27 @@ class LeadController extends Controller
             $validated['status'] = 'new';
             $validated['source'] = 'crm_manual'; // Mark as manually created by CRM
 
-            $lead = Lead::create($validated);
+            $lead = Lead::create([
+                'name' => $validated['name'],
+                'phone' => $validated['phone'],
+                'created_by' => $validated['created_by'],
+                'status' => $validated['status'],
+                'source' => $validated['source'],
+            ]);
+
+            if (!empty($validated['assigned_to'])) {
+                $this->assignLead($lead, (int) $validated['assigned_to'], $request->user()->id);
+            }
 
             DB::commit();
 
+            $successMessage = $request->filled('assigned_to')
+                ? "Lead '{$lead->name}' created successfully and assigned. A calling task has been created for the assigned user. Please fill the detailed requirements below."
+                : "Lead '{$lead->name}' created successfully. Please fill the detailed requirements below.";
+
             return redirect()
                 ->route('leads.edit', $lead->id)
-                ->with('success', "Lead '{$lead->name}' created successfully. Please fill the detailed requirements below.");
+                ->with('success', $successMessage);
 
         } catch (\Exception $e) {
             DB::rollBack();

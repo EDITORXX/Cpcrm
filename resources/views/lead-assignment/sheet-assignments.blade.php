@@ -44,7 +44,7 @@
 
                 @if($sheet->linkedTelecaller)
                     <div class="mb-2">
-                        <span class="text-sm text-gray-600">Linked Telecaller:</span>
+                        <span class="text-sm text-gray-600">Linked Sales Executive:</span>
                         <span class="font-medium text-gray-900">{{ $sheet->linkedTelecaller->name }}</span>
                     </div>
                 @endif

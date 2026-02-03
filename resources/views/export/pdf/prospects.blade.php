@@ -55,7 +55,7 @@
                 <th>Purpose</th>
                 <th>Status</th>
                 <th>Created Date</th>
-                <th>Telecaller</th>
+                <th>Sales Executive</th>
                 <th>Manager</th>
             </tr>
         </thead>

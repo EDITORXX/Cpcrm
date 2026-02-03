@@ -1096,22 +1096,18 @@
 
 @push('scripts')
 <script>
-    // Prevent duplicate declaration - use window object or check before declaring
+    // Use window only to avoid duplicate declaration when layout (e.g. telecaller) already defines API_BASE_URL
     if (typeof window.API_BASE_URL === 'undefined') {
         window.API_BASE_URL = '{{ url("/api") }}';
     }
     if (typeof window.API_TOKEN === 'undefined') {
         window.API_TOKEN = '{{ auth()->check() ? (session("api_token") ?? auth()->user()->createToken("web-token")->plainTextToken) : "" }}';
     }
-    // Use window object for consistency
-    const API_BASE_URL = window.API_BASE_URL;
-    const API_TOKEN = window.API_TOKEN;
-    const LEAD_ID = {{ $lead->id }};
-    const LEAD_INTERESTED_PROJECTS = @json($uniqueProjectNames ?? []);
     if (typeof window.USER_ROLE === 'undefined') {
         window.USER_ROLE = '{{ $user->role->slug ?? "" }}';
     }
-    const USER_ROLE = window.USER_ROLE;
+    const LEAD_ID = {{ $lead->id }};
+    const LEAD_INTERESTED_PROJECTS = @json($uniqueProjectNames ?? []);
 
     // Modal open/close functions
     function openCallModal() {
@@ -1273,9 +1269,9 @@
         
         // Fetch meeting history to auto-suggest sequence
         try {
-            const response = await fetch(`${API_BASE_URL}/sales-manager/leads/${LEAD_ID}/meeting-history`, {
+            const response = await fetch(`${window.API_BASE_URL}/sales-manager/leads/${LEAD_ID}/meeting-history`, {
                 headers: {
-                    'Authorization': `Bearer ${API_TOKEN}`,
+                    'Authorization': `Bearer ${window.API_TOKEN}`,
                     'Accept': 'application/json',
                 }
             });
@@ -1361,10 +1357,10 @@
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/call-logs`, {
+            const response = await fetch(`${window.API_BASE_URL}/call-logs`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${API_TOKEN}`,
+                    'Authorization': `Bearer ${window.API_TOKEN}`,
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
@@ -1409,10 +1405,10 @@
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/follow-ups`, {
+            const response = await fetch(`${window.API_BASE_URL}/follow-ups`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${API_TOKEN}`,
+                    'Authorization': `Bearer ${window.API_TOKEN}`,
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
@@ -1457,10 +1453,10 @@
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/site-visits`, {
+            const response = await fetch(`${window.API_BASE_URL}/site-visits`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${API_TOKEN}`,
+                    'Authorization': `Bearer ${window.API_TOKEN}`,
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
@@ -1525,10 +1521,10 @@
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/sales-manager/meetings/quick-schedule-with-reminder`, {
+            const response = await fetch(`${window.API_BASE_URL}/sales-manager/meetings/quick-schedule-with-reminder`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${API_TOKEN}`,
+                    'Authorization': `Bearer ${window.API_TOKEN}`,
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
@@ -1585,17 +1581,17 @@
         try {
             // Determine the correct API endpoint based on user role
             let endpoint;
-            if (USER_ROLE === 'telecaller') {
-                endpoint = `${API_BASE_URL}/telecaller/tasks/schedule-call`;
+            if (window.USER_ROLE === 'telecaller') {
+                endpoint = `${window.API_BASE_URL}/telecaller/tasks/schedule-call`;
             } else {
                 // For sales managers, sales executives, and others, use sales-manager endpoint
-                endpoint = `${API_BASE_URL}/sales-manager/tasks/schedule-call`;
+                endpoint = `${window.API_BASE_URL}/sales-manager/tasks/schedule-call`;
             }
             
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${API_TOKEN}`,
+                    'Authorization': `Bearer ${window.API_TOKEN}`,
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
@@ -1621,9 +1617,9 @@
                 
                 // Determine task route based on user role
                 let taskRoute = '#';
-                if (USER_ROLE === 'telecaller') {
+                if (window.USER_ROLE === 'telecaller') {
                     taskRoute = '{{ route("telecaller.tasks") }}';
-                } else if (USER_ROLE === 'sales_manager' || USER_ROLE === 'sales_executive') {
+                } else if (window.USER_ROLE === 'sales_manager' || window.USER_ROLE === 'sales_executive') {
                     @php
                         try {
                             $tasksRoute = route('sales-manager.tasks');

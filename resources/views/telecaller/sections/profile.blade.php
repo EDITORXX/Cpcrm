@@ -1,6 +1,6 @@
 @extends('telecaller.layout')
 
-@section('title', 'Profile - Telecaller')
+@section('title', 'Profile - Sales Executive')
 @section('page-title', 'Profile')
 
 @push('styles')

@@ -1,6 +1,6 @@
 @extends('telecaller.layout')
 
-@section('title', 'Dashboard - Telecaller')
+@section('title', 'Dashboard - Sales Executive')
 @section('page-title', 'Dashboard')
 
 @push('styles')

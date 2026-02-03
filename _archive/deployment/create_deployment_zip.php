@@ -8,9 +8,11 @@
  * Node_modules exclude hoga - wo server pe install hoga (agar frontend build karna hai).
  */
 
-$rootPath = __DIR__;
+// Script _archive/deployment/ me hai, project root 2 level up
+$scriptDir = __DIR__;
+$rootPath = dirname($scriptDir, 2);
 $zipFileName = 'crm_deployment_' . date('Y-m-d_His') . '.zip';
-$zipPath = $rootPath . '/' . $zipFileName;
+$zipPath = $scriptDir . DIRECTORY_SEPARATOR . $zipFileName;
 
 // Files aur folders jo include karne hain
 $includePaths = [

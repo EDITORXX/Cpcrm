@@ -284,9 +284,9 @@
         </div>
     </div>
 
-    <!-- Telecaller Performance -->
+    <!-- Sales Executive Performance -->
     <div class="section-card">
-        <div class="section-title">Telecaller Performance</div>
+        <div class="section-title">Sales Executive Performance</div>
         <div id="telecaller-performance-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <p class="text-[#B3B5B4]">Loading...</p>
         </div>
@@ -467,7 +467,7 @@
             </div>
             <div class="text-center p-4 bg-[#F7F6F3] rounded-lg">
                 <div class="text-2xl font-bold text-brand-primary" id="users-telecaller">0</div>
-                <div class="text-sm text-[#B3B5B4] mt-1">Telecaller</div>
+                <div class="text-sm text-[#B3B5B4] mt-1">Sales Executive</div>
             </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1251,7 +1251,7 @@
         
         if (!telecallersData || !Array.isArray(telecallersData) || telecallersData.length === 0) {
             if (container) {
-                container.innerHTML = '<p class="text-[#B3B5B4]">No telecaller performance data available</p>';
+                container.innerHTML = '<p class="text-[#B3B5B4]">No sales executive performance data available</p>';
             }
             return;
         }

@@ -219,7 +219,16 @@ class LeadController extends Controller
 
             // Assign lead if user selected (CRM and non-CRM); auto-creates calling task for assignee
             if ($request->filled('assigned_to')) {
-                $this->assignLead($lead, (int) $request->assigned_to, $user->id);
+                try {
+                    $this->assignLead($lead, (int) $request->assigned_to, $user->id);
+                } catch (\Exception $e) {
+                    // Pusher/broadcast errors (e.g. 404 when not configured) must not fail lead creation
+                    if (str_contains($e->getMessage(), 'Pusher') || str_contains($e->getMessage(), 'broadcast')) {
+                        \Illuminate\Support\Facades\Log::warning('Lead assignment broadcast failed; lead and assignment saved.', ['error' => $e->getMessage()]);
+                    } else {
+                        throw $e;
+                    }
+                }
             }
 
             DB::commit();

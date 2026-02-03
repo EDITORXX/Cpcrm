@@ -84,7 +84,7 @@
             <div class="stat-value" id="active-executives">0</div>
         </div>
         <div class="stat-card">
-            <div class="stat-label">Active Telecallers</div>
+            <div class="stat-label">Active Sales Executives</div>
             <div class="stat-value" id="active-telecallers">0</div>
         </div>
         <div class="stat-card">
@@ -154,14 +154,14 @@
         </div>
     </div>
 
-    <!-- Telecallers Performance -->
+    <!-- Sales Executives Performance -->
     <div class="performance-table mb-6 hidden" id="telecallers-performance-section">
-        <div class="table-header">Telecallers Performance</div>
+        <div class="table-header">Sales Executives Performance</div>
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telecaller</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sales Executive</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Manager</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Leads</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Qualified</th>

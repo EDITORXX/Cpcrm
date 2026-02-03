@@ -208,7 +208,7 @@
         <div class="space-y-4">
             @if($prospect->remark)
             <div>
-                <span class="detail-label">Telecaller Remark</span>
+                <span class="detail-label">Sales Executive Remark</span>
                 <p class="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm text-gray-700">
                     {{ $prospect->remark }}
                 </p>

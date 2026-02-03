@@ -63,6 +63,19 @@
                 </div>
             </div>
 
+            <div class="form-group" style="margin-top: 20px;">
+                <label for="assigned_to">Assign To User (Optional)</label>
+                <select name="assigned_to" id="assigned_to">
+                    <option value="">— Do not assign —</option>
+                    @foreach($users as $user)
+                        <option value="{{ $user->id }}" {{ old('assigned_to') == $user->id ? 'selected' : '' }}>
+                            {{ $user->name }} ({{ $user->role->name ?? $user->role->slug ?? '—' }})
+                        </option>
+                    @endforeach
+                </select>
+                <p style="font-size: 14px; color: #666; margin-top: 8px;">Assign now to create a calling task for the user immediately.</p>
+            </div>
+
             <div style="margin-top: 30px; display: flex; gap: 10px;">
                 <button type="submit" class="btn btn-primary">Create Lead</button>
                 <a href="{{ route('crm.automation.index') }}" class="btn btn-secondary">Cancel</a>

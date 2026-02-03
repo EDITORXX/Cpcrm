@@ -1,0 +1,44 @@
+========================================
+PowerShell Commands - Copy Paste Karein
+========================================
+
+Step 1: Stuck Processes Kill Karein
+-------------------------------------
+taskkill /F /IM java.exe /T
+
+Step 2: App Directory Mein Jayen
+---------------------------------
+cd "c:\Users\vivek\Pictures\Laravel crm fully functional\flutter_telecaller_app"
+
+Step 3: PATH Set Karein (PowerShell Syntax)
+--------------------------------------------
+$env:PATH += ";C:\flutter\bin"
+
+Step 4: ANDROID_HOME Set Karein
+--------------------------------
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+
+Step 5: Gradle Cache Clear (Optional)
+--------------------------------------
+Remove-Item -Path "$env:USERPROFILE\.gradle\caches" -Recurse -Force -ErrorAction SilentlyContinue
+
+Step 6: Flutter Clean
+---------------------
+flutter clean
+
+Step 7: Dependencies Install
+-----------------------------
+flutter pub get
+
+Step 8: APK Build (3-5 minutes)
+---------------------------------
+flutter build apk --release
+
+
+========================================
+Ya Ek Hi Command (All-in-One)
+========================================
+
+$env:PATH += ";C:\flutter\bin"; $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"; cd "c:\Users\vivek\Pictures\Laravel crm fully functional\flutter_telecaller_app"; flutter clean; flutter pub get; flutter build apk --release
+
+IMPORTANT: Build 3-5 minutes le sakta hai. Wait karein!

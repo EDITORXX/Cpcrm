@@ -234,7 +234,7 @@ class TelecallerController extends Controller
             [$startDate, $endDate] = $this->getDateRange($dateRange, $startDate, $endDate);
             
             $query = Prospect::where('telecaller_id', $telecallerId)
-                ->with(['lead', 'manager', 'verifiedBy', 'telecaller']);
+                ->with(['lead', 'manager.role', 'verifiedBy', 'telecaller']);
 
             // Filter by verification status
             if ($status && $status !== 'all') {
@@ -278,6 +278,8 @@ class TelecallerController extends Controller
             $prospects = $query->paginate($perPage);
 
             $formattedProspects = $prospects->map(function($prospect) {
+                $manager = $prospect->manager;
+                $verifierLevel = $manager ? $manager->getDisplayRoleName() : 'Not Assigned';
                 return [
                     'id' => $prospect->id,
                     'lead_id' => $prospect->lead_id,
@@ -290,8 +292,9 @@ class TelecallerController extends Controller
                     'possession' => $prospect->possession,
                     'remark' => $prospect->remark,
                     'verification_status' => $prospect->verification_status,
-                    'manager_name' => $prospect->manager->name ?? 'Not Assigned',
+                    'manager_name' => $manager->name ?? 'Not Assigned',
                     'manager_id' => $prospect->manager_id,
+                    'verifier_level' => $verifierLevel,
                     'verified_by_name' => $prospect->verifiedBy->name ?? null,
                     'verified_at' => $prospect->verified_at ? $prospect->verified_at->format('Y-m-d H:i:s') : null,
                     'rejection_reason' => $prospect->rejection_reason,
@@ -301,7 +304,7 @@ class TelecallerController extends Controller
                 ];
             });
 
-            return response()->json([
+            $response = [
                 'success' => true,
                 'data' => $formattedProspects->values()->all(),
                 'pagination' => [
@@ -310,7 +313,42 @@ class TelecallerController extends Controller
                     'total' => $prospects->total(),
                     'last_page' => $prospects->lastPage(),
                 ],
-            ]);
+            ];
+
+            if (in_array($status, ['pending', 'all'])) {
+                $summaryQuery = Prospect::where('telecaller_id', $telecallerId)
+                    ->whereIn('verification_status', ['pending', 'pending_verification']);
+                if ($startDate && $endDate) {
+                    if ($status === 'pending') {
+                        $summaryQuery->whereBetween('created_at', [$startDate, $endDate]);
+                    } else {
+                        $summaryQuery->where(function($q) use ($startDate, $endDate) {
+                            $q->whereBetween('created_at', [$startDate, $endDate])
+                              ->orWhereBetween('verified_at', [$startDate, $endDate]);
+                        });
+                    }
+                }
+                $verifierCounts = $summaryQuery
+                    ->selectRaw('COALESCE(assigned_manager, manager_id) as verifier_id, count(*) as count')
+                    ->groupBy('verifier_id')
+                    ->get();
+                $verifierIds = $verifierCounts->pluck('verifier_id')->filter()->unique()->values()->all();
+                $users = $verifierIds ? User::with('role')->whereIn('id', $verifierIds)->get()->keyBy('id') : collect();
+                $pendingByVerifier = [];
+                foreach ($verifierCounts as $row) {
+                    $userId = $row->verifier_id;
+                    $user = $userId ? $users->get($userId) : null;
+                    $pendingByVerifier[] = [
+                        'user_id' => $userId,
+                        'name' => $user ? $user->name : 'Not Assigned',
+                        'role_display' => $user ? $user->getDisplayRoleName() : 'Not Assigned',
+                        'count' => (int) $row->count,
+                    ];
+                }
+                $response['pending_summary'] = $pendingByVerifier;
+            }
+
+            return response()->json($response);
         } catch (\Exception $e) {
             \Log::error('Get Prospects Error', ['error' => $e->getMessage()]);
             return response()->json([
@@ -567,7 +605,7 @@ class TelecallerController extends Controller
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
-                    'role' => $user->role->name ?? 'Telecaller',
+                    'role' => $user->role->name ?? 'Sales Executive',
                 ];
             });
 
@@ -577,22 +615,30 @@ class TelecallerController extends Controller
     }
 
     /**
-     * Get tasks with filters (pending, completed, rescheduled, all)
+     * Get tasks with filters (pending, completed, rescheduled, all).
+     * Returns both TelecallerTask and Task (phone_call) for the user so sales_manager/assistant_sales_manager tasks also show.
      */
     public function getTasks(Request $request)
     {
         try {
             $telecallerId = $request->user()->id;
             $status = $request->input('status', 'pending'); // pending, completed, rescheduled, all
-            $taskType = $request->input('task_type', ''); // calling, follow_up, cnp_retry
+            $taskType = $request->input('task_type', ''); // calling, follow_up, cnp_retry, all
+            $dateRange = $request->input('date_range', 'today');
+            $startDate = $request->input('start_date');
+            $endDate = $request->input('end_date');
+            $perPage = (int) $request->get('per_page', 50);
+            $page = max(1, (int) $request->get('page', 1));
 
             \Log::info('Telecaller getTasks - Starting', [
                 'telecaller_id' => $telecallerId,
                 'status_filter' => $status,
                 'task_type_filter' => $taskType,
+                'date_range' => $dateRange,
             ]);
 
-            $query = TelecallerTask::where('assigned_to', $telecallerId)
+            // ---- TelecallerTask query ----
+            $ttQuery = TelecallerTask::where('assigned_to', $telecallerId)
                 ->with(['lead' => function($q) {
                     $q->with(['activeAssignments' => function($q2) {
                         $q2->with(['assignedTo' => function($q3) {
@@ -600,47 +646,50 @@ class TelecallerController extends Controller
                         }]);
                     }]);
                 }, 'assignedTo', 'createdBy']);
-                
-            // Debug: Log total tasks before filters
-            $totalTasksBeforeFilter = (clone $query)->count();
-            \Log::info('Telecaller getTasks - Total tasks before filters', [
-                'telecaller_id' => $telecallerId,
-                'total_tasks' => $totalTasksBeforeFilter,
-            ]);
 
-            // Filter by status
+            $this->applyTaskDateFilter($ttQuery, $dateRange, $startDate, $endDate, 'scheduled_at');
             if ($status && $status !== 'all') {
-                $query->where('status', $status);
+                $ttQuery->where('status', $status);
             }
-
-            // Filter by task type
-            if ($taskType) {
+            if ($taskType && $taskType !== 'all') {
                 if ($taskType === 'call_again') {
-                    // Call Again tasks are stored with outcome='rescheduled'
-                    $query->where('outcome', 'rescheduled');
+                    $ttQuery->where('outcome', 'rescheduled');
                 } else {
-                    $query->where('task_type', $taskType);
+                    $ttQuery->where('task_type', $taskType);
                 }
             }
 
-            $perPage = $request->get('per_page', 50);
-            // Sort: Overdue tasks first (oldest first), then upcoming tasks
-            $tasks = $query->orderByRaw('CASE WHEN scheduled_at < NOW() THEN 0 ELSE 1 END')
+            $telecallerTasks = $ttQuery->orderByRaw('CASE WHEN scheduled_at < NOW() THEN 0 ELSE 1 END')
                 ->orderBy('scheduled_at', 'asc')
-                ->paginate($perPage);
-                
-            \Log::info('Telecaller getTasks - Tasks found', [
-                'telecaller_id' => $telecallerId,
-                'tasks_count' => $tasks->count(),
-                'total' => $tasks->total(),
-                'status_filter' => $status,
-            ]);
+                ->limit(200)
+                ->get();
 
-            $formattedTasks = $tasks->map(function($task) {
+            // ---- Task (phone_call) query for sales_manager / assistant_sales_manager ----
+            $taskQuery = Task::where('assigned_to', $telecallerId)
+                ->where('type', 'phone_call')
+                ->with(['lead' => function($q) {
+                    $q->with(['activeAssignments' => function($q2) {
+                        $q2->with(['assignedTo' => function($q3) {
+                            $q3->with('manager');
+                        }]);
+                    }]);
+                }, 'assignedTo', 'createdBy']);
+
+            $this->applyTaskDateFilter($taskQuery, $dateRange, $startDate, $endDate, 'scheduled_at');
+            if ($status && $status !== 'all') {
+                $taskQuery->where('status', $status);
+            }
+
+            $managerTasks = $taskQuery->orderByRaw('CASE WHEN scheduled_at < NOW() THEN 0 ELSE 1 END')
+                ->orderBy('scheduled_at', 'asc')
+                ->limit(200)
+                ->get();
+
+            // Format TelecallerTask (id as-is)
+            $ttFormatted = $telecallerTasks->map(function ($task) {
                 $lead = $task->lead;
                 $assignment = $lead ? $lead->activeAssignments->first() : null;
                 $manager = $assignment?->assignedTo?->manager ?? null;
-                
                 return [
                     'id' => $task->id,
                     'lead_id' => $task->lead_id,
@@ -659,14 +708,53 @@ class TelecallerController extends Controller
                 ];
             });
 
+            // Format Task (composite id mt_{id})
+            $mtFormatted = $managerTasks->map(function ($task) {
+                $lead = $task->lead;
+                $assignment = $lead ? $lead->activeAssignments->first() : null;
+                $manager = $assignment?->assignedTo?->manager ?? null;
+                return [
+                    'id' => 'mt_' . $task->id,
+                    'lead_id' => $task->lead_id,
+                    'lead_name' => $lead->name ?? '-',
+                    'lead_phone' => $lead->phone ?? '-',
+                    'lead_email' => $lead->email ?? null,
+                    'manager_name' => $manager->name ?? 'Not Assigned',
+                    'manager_id' => $manager->id ?? null,
+                    'task_type' => 'calling',
+                    'meeting_id' => null,
+                    'status' => $task->status,
+                    'scheduled_at' => $task->scheduled_at ? $task->scheduled_at->format('Y-m-d H:i:s') : null,
+                    'completed_at' => $task->completed_at ? $task->completed_at->format('Y-m-d H:i:s') : null,
+                    'outcome' => null,
+                    'notes' => $task->notes,
+                ];
+            });
+
+            $merged = $ttFormatted->concat($mtFormatted)->values();
+            $sorted = $merged->sortBy(function ($t) {
+                $s = $t['scheduled_at'] ?? '';
+                return $s ? strtotime($s) : 0;
+            })->values();
+            $total = $sorted->count();
+            $offset = ($page - 1) * $perPage;
+            $paginated = $sorted->slice($offset, $perPage)->values()->all();
+            $lastPage = $perPage > 0 ? (int) ceil($total / $perPage) : 1;
+
+            \Log::info('Telecaller getTasks - Tasks found', [
+                'telecaller_id' => $telecallerId,
+                'total' => $total,
+                'status_filter' => $status,
+            ]);
+
             return response()->json([
                 'success' => true,
-                'data' => $formattedTasks->values()->all(),
+                'data' => $paginated,
                 'pagination' => [
-                    'current_page' => $tasks->currentPage(),
-                    'per_page' => $tasks->perPage(),
-                    'total' => $tasks->total(),
-                    'last_page' => $tasks->lastPage(),
+                    'current_page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                    'last_page' => $lastPage,
                 ],
             ]);
         } catch (\Exception $e) {
@@ -677,6 +765,47 @@ class TelecallerController extends Controller
                 'data' => [],
             ], 500);
         }
+    }
+
+    /**
+     * Apply date range filter to a query (shared by TelecallerTask and Task).
+     */
+    private function applyTaskDateFilter($query, string $dateRange, $startDate, $endDate, string $column = 'scheduled_at'): void
+    {
+        if (!$dateRange || $dateRange === 'all') {
+            return;
+        }
+        [$rangeStart, $rangeEnd] = $this->getDateRange($dateRange, $startDate, $endDate);
+        if (in_array($dateRange, ['this_month', 'this_week', 'today'], true)) {
+            $query->whereRaw("DATE({$column}) BETWEEN ? AND ?", [
+                $rangeStart->format('Y-m-d'),
+                $rangeEnd->format('Y-m-d'),
+            ]);
+        } else {
+            $query->whereBetween($column, [$rangeStart, $rangeEnd]);
+        }
+    }
+
+    /**
+     * Resolve task id (numeric or composite mt_{id}) to TelecallerTask or Task for the given user.
+     * Returns ['telecaller_task' => TelecallerTask|null, 'task' => Task|null] - exactly one non-null when found.
+     */
+    private function resolveTaskForUser($taskIdOrComposite, int $userId): array
+    {
+        if (is_string($taskIdOrComposite) && str_starts_with($taskIdOrComposite, 'mt_')) {
+            $id = (int) substr($taskIdOrComposite, 3);
+            if ($id <= 0) {
+                return [null, null];
+            }
+            $task = Task::with('lead')->where('id', $id)->where('assigned_to', $userId)->first();
+            return [null, $task];
+        }
+        $id = (int) $taskIdOrComposite;
+        if ($id <= 0) {
+            return [null, null];
+        }
+        $telecallerTask = TelecallerTask::with('lead')->where('id', $id)->where('assigned_to', $userId)->first();
+        return [$telecallerTask, null];
     }
 
     /**
@@ -710,23 +839,33 @@ class TelecallerController extends Controller
     }
 
     /**
-     * Initiate call from task
+     * Initiate call from task (TelecallerTask or Task mt_)
      */
     public function initiateCall(Request $request, $task)
     {
-        // Resolve TelecallerTask manually since route uses {task} parameter
-        $telecallerTask = TelecallerTask::find($task);
+        [$telecallerTask, $managerTask] = $this->resolveTaskForUser($task, $request->user()->id);
         
+        if ($managerTask) {
+            if ($managerTask->status !== 'pending') {
+                return response()->json(['error' => 'Task is not in pending status'], 400);
+            }
+            $managerTask->update(['status' => 'in_progress']);
+            $assignment = CrmAssignment::where('lead_id', $managerTask->lead_id)
+                ->where('assigned_to', $managerTask->assigned_to)
+                ->first();
+            return response()->json([
+                'success' => true,
+                'message' => 'Call initiated',
+                'task' => $managerTask->fresh(['lead']),
+                'assignment_id' => $assignment ? $assignment->id : null,
+            ]);
+        }
+
         if (!$telecallerTask) {
             return response()->json([
                 'error' => 'Task not found',
                 'message' => 'Resource not found.',
             ], 404);
-        }
-        
-        // Verify task belongs to user
-        if ($telecallerTask->assigned_to !== $request->user()->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
         }
 
         if ($telecallerTask->status !== 'pending') {
@@ -739,7 +878,6 @@ class TelecallerController extends Controller
             'status' => 'in_progress',
         ]);
 
-        // Get CrmAssignment if exists
         $assignment = CrmAssignment::where('lead_id', $telecallerTask->lead_id)
             ->where('assigned_to', $telecallerTask->assigned_to)
             ->first();
@@ -753,13 +891,34 @@ class TelecallerController extends Controller
     }
 
     /**
-     * Handle call outcome from task
+     * Handle call outcome from task (TelecallerTask or Task mt_)
      */
     public function callOutcome(Request $request, $task)
     {
-        // Resolve TelecallerTask manually since route uses {task} parameter
-        $telecallerTask = TelecallerTask::find($task);
-        
+        [$telecallerTask, $managerTask] = $this->resolveTaskForUser($task, $request->user()->id);
+
+        if ($managerTask) {
+            $request->validate([
+                'outcome' => 'required|in:interested,not_interested,cnp,call_later,broker',
+            ]);
+            if (!in_array($managerTask->status, ['pending', 'in_progress'])) {
+                return response()->json(['error' => 'Task must be pending or in progress'], 400);
+            }
+            if ($managerTask->status === 'pending') {
+                $managerTask->update(['status' => 'in_progress']);
+            }
+            $managerTask->update([
+                'status' => 'completed',
+                'completed_at' => now(),
+                'notes' => ($managerTask->notes ? $managerTask->notes . "\n" : '') . 'Outcome: ' . $request->outcome,
+            ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Task completed',
+                'task' => $managerTask->fresh(['lead']),
+            ]);
+        }
+
         if (!$telecallerTask) {
             return response()->json([
                 'error' => 'Task not found',
@@ -767,7 +926,6 @@ class TelecallerController extends Controller
             ], 404);
         }
         
-        // Verify task belongs to user
         if ($telecallerTask->assigned_to !== $request->user()->id) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
@@ -793,10 +951,23 @@ class TelecallerController extends Controller
             $telecallerTask->update(['status' => 'in_progress']);
         }
 
-        // Get CrmAssignment
+        // Get or create CrmAssignment (e.g. when lead was assigned via CRM and only Task/TelecallerTask was created)
+        $lead = Lead::find($telecallerTask->lead_id);
         $assignment = CrmAssignment::where('lead_id', $telecallerTask->lead_id)
             ->where('assigned_to', $telecallerId)
             ->first();
+
+        if (!$assignment && $lead) {
+            $assignment = CrmAssignment::create([
+                'lead_id' => $telecallerTask->lead_id,
+                'customer_name' => $lead->name,
+                'phone' => $lead->phone,
+                'assigned_to' => $telecallerId,
+                'assigned_by' => $telecallerTask->created_by ?? $telecallerId,
+                'assigned_at' => $telecallerTask->created_at ?? now(),
+                'call_status' => 'pending',
+            ]);
+        }
 
         if (!$assignment) {
             return response()->json([
@@ -824,7 +995,9 @@ class TelecallerController extends Controller
                     }
                     
                     // Update lead status to connected
-                    $lead = Lead::find($telecallerTask->lead_id);
+                    if (!$lead) {
+                        $lead = Lead::find($telecallerTask->lead_id);
+                    }
                     if ($lead) {
                         $lead->updateStatusIfAllowed('connected');
                     }
@@ -963,7 +1136,7 @@ class TelecallerController extends Controller
                 'email' => $user->email,
                 'phone' => $user->phone,
                 'profile_picture' => $user->profile_picture_url,
-                'role' => $user->role->name ?? 'Telecaller',
+                'role' => $user->role->name ?? 'Sales Executive',
                 'manager' => $user->manager ? $user->manager->name : null,
                 'created_at' => $user->created_at ? $user->created_at->format('d M Y') : '-',
             ],
@@ -1013,7 +1186,7 @@ class TelecallerController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone,
-                'role' => $user->role->name ?? 'Telecaller',
+                'role' => $user->role->name ?? 'Sales Executive',
                 'manager' => $user->manager ? $user->manager->name : 'Not Assigned',
                 'created_at' => $user->created_at ? $user->created_at->format('d M Y') : '-',
             ],
@@ -1140,31 +1313,32 @@ class TelecallerController extends Controller
     {
         try {
             $telecallerId = $request->user()->id;
-            
+            $dateRange = $request->input('date_range', 'today');
+            $startDate = $request->input('start_date');
+            $endDate = $request->input('end_date');
+            [$rangeStart, $rangeEnd] = $this->getDateRange($dateRange, $startDate, $endDate);
+
             \Log::info('Telecaller getLeads called', [
                 'telecaller_id' => $telecallerId,
                 'request_params' => $request->all(),
             ]);
-            
+
             // First, let's check if there are any assignments for this telecaller
             $assignmentCount = DB::table('lead_assignments')
                 ->where('assigned_to', $telecallerId)
                 ->where('is_active', true)
                 ->count();
-            
+
             \Log::info('Assignment count for telecaller', [
                 'telecaller_id' => $telecallerId,
                 'assignment_count' => $assignmentCount,
             ]);
-            
-            // Query leads with active assignments to this telecaller
-            // Use assignments relationship directly and filter in whereHas
-            $query = Lead::whereHas('assignments', function($q) use ($telecallerId) {
+
+            // Query leads with active assignments to this telecaller within date range (assigned_at)
+            $query = Lead::whereHas('assignments', function($q) use ($telecallerId, $rangeStart, $rangeEnd) {
                 $q->where('assigned_to', $telecallerId)
-                  ->where('is_active', true);
-            })
-            ->whereHas('prospects', function($q) {
-                $q->where('verification_status', 'verified');
+                  ->where('is_active', true)
+                  ->whereBetween('assigned_at', [$rangeStart, $rangeEnd]);
             })
             ->with(['assignments' => function($q) use ($telecallerId) {
                 $q->where('assigned_to', $telecallerId)
@@ -1251,7 +1425,7 @@ class TelecallerController extends Controller
     }
 
     /**
-     * Record call outcome for TelecallerTask
+     * Record call outcome for TelecallerTask or Task (mt_)
      */
     public function recordOutcome(Request $request, $taskId)
     {
@@ -1269,11 +1443,30 @@ class TelecallerController extends Controller
                 'retry_minutes.max' => 'Retry time cannot be more than 1 week in the future',
             ]);
 
-            $task = TelecallerTask::where('id', $taskId)
-                ->where('assigned_to', $telecallerId)
-                ->with(['lead', 'assignedTo'])
-                ->firstOrFail();
+            [$telecallerTask, $managerTask] = $this->resolveTaskForUser($taskId, $telecallerId);
+            if ($managerTask) {
+                $managerTask->update([
+                    'status' => 'completed',
+                    'completed_at' => now(),
+                    'notes' => ($managerTask->notes ? $managerTask->notes . "\n" : '') . 'Outcome: ' . $request->outcome . ($request->notes ? "\n" . $request->notes : ''),
+                ]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Task completed',
+                    'task' => $managerTask->fresh(['lead']),
+                ]);
+            }
 
+            $task = $telecallerTask;
+            if (!$task) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Task not found',
+                    'message' => 'Resource not found.',
+                ], 404);
+            }
+
+            $task = $task->load(['lead', 'assignedTo']);
             $outcome = $request->outcome;
             $lead = $task->lead;
 
@@ -1761,7 +1954,7 @@ class TelecallerController extends Controller
     }
 
     /**
-     * Get lead form data for modal when telecaller marks interested
+     * Get lead form data for modal when telecaller marks interested (TelecallerTask or Task mt_)
      */
     public function getLeadFormForModal(Request $request, $task)
     {
@@ -1769,11 +1962,11 @@ class TelecallerController extends Controller
             $telecallerId = $request->user()->id;
             \Log::info('getLeadFormForModal called', ['task_id' => $task, 'telecaller_id' => $telecallerId]);
             
-            // Resolve TelecallerTask manually since route uses {task} parameter
-            $telecallerTask = TelecallerTask::find($task);
+            [$telecallerTask, $managerTask] = $this->resolveTaskForUser($task, $telecallerId);
+            $taskModel = $telecallerTask ?? $managerTask;
             
-            if (!$telecallerTask) {
-                \Log::warning('TelecallerTask not found', ['task_id' => $task]);
+            if (!$taskModel) {
+                \Log::warning('Task not found', ['task_id' => $task]);
                 return response()->json([
                     'success' => false,
                     'error' => 'Task not found',
@@ -1781,18 +1974,9 @@ class TelecallerController extends Controller
                 ], 404);
             }
             
-            // Verify task belongs to user
-            if ($telecallerTask->assigned_to !== $telecallerId) {
-                \Log::warning('Unauthorized access to task', ['task_id' => $task, 'task_assigned_to' => $telecallerTask->assigned_to, 'user_id' => $telecallerId]);
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Unauthorized access to this task',
-                ], 403);
-            }
-            
-            $lead = $telecallerTask->lead;
+            $lead = $taskModel->lead;
             if (!$lead) {
-                \Log::warning('Lead not found for task', ['task_id' => $task, 'lead_id' => $telecallerTask->lead_id]);
+                \Log::warning('Lead not found for task', ['task_id' => $task, 'lead_id' => $taskModel->lead_id]);
                 return response()->json([
                     'success' => false,
                     'error' => 'Lead not found for this task',
@@ -1840,7 +2024,7 @@ class TelecallerController extends Controller
                 'lead_name' => $lead->name,
                 'lead_phone' => $lead->phone,
                 'lead_email' => $lead->email,
-                'task_id' => $telecallerTask->id,
+                'task_id' => $taskModel instanceof Task ? 'mt_' . $taskModel->id : $taskModel->id,
                 'form_values' => $existingValues,
                 'form_fields' => $visibleFields, // Now guaranteed to be array
             ]);
@@ -1860,17 +2044,17 @@ class TelecallerController extends Controller
     }
 
     /**
-     * Submit lead form for verification (create prospect and send to manager)
+     * Submit lead form for verification (create prospect and send to manager) (TelecallerTask or Task mt_)
      */
     public function submitLeadFormForVerification(Request $request, $taskId)
     {
         try {
             $telecallerId = $request->user()->id;
             
-            // Resolve TelecallerTask
-            $telecallerTask = TelecallerTask::find($taskId);
+            [$telecallerTask, $managerTask] = $this->resolveTaskForUser($taskId, $telecallerId);
+            $taskModel = $telecallerTask ?? $managerTask;
             
-            if (!$telecallerTask) {
+            if (!$taskModel) {
                 return response()->json([
                     'success' => false,
                     'error' => 'Task not found',
@@ -1878,12 +2062,7 @@ class TelecallerController extends Controller
                 ], 404);
             }
             
-            // Verify task belongs to user
-            if ($telecallerTask->assigned_to !== $telecallerId) {
-                return response()->json(['error' => 'Unauthorized'], 403);
-            }
-            
-            $lead = $telecallerTask->lead;
+            $lead = $taskModel->lead;
             if (!$lead) {
                 return response()->json([
                     'success' => false,
@@ -2093,16 +2272,19 @@ class TelecallerController extends Controller
                     'lead_id' => $lead->id,
                 ]);
                 
-                // Complete the TelecallerTask - this will remove it from pending/in_progress lists
-                $telecallerTask->update([
+                // Complete the task (TelecallerTask or Task) - remove from pending/in_progress lists
+                $updateData = [
                     'status' => 'completed',
                     'completed_at' => now(),
-                    'outcome' => 'interested',
-                    'notes' => 'Sent for verification via centralized form',
-                ]);
+                    'notes' => ($taskModel->notes ? $taskModel->notes . "\n" : '') . 'Sent for verification via centralized form',
+                ];
+                if ($taskModel instanceof TelecallerTask) {
+                    $updateData['outcome'] = 'interested';
+                }
+                $taskModel->update($updateData);
                 
-                \Log::info('TelecallerTask completed after form submission', [
-                    'task_id' => $telecallerTask->id,
+                \Log::info('Task completed after form submission', [
+                    'task_id' => $taskModel instanceof Task ? 'mt_' . $taskModel->id : $taskModel->id,
                     'lead_id' => $lead->id,
                     'telecaller_id' => $telecallerId,
                     'prospect_id' => $prospect->id,
@@ -2125,7 +2307,7 @@ class TelecallerController extends Controller
                     'message' => 'Lead requirements saved and prospect sent for manager verification',
                     'prospect' => $prospect->load('manager', 'telecaller'),
                     'lead_id' => $lead->id,
-                    'task_id' => $telecallerTask->id,
+                    'task_id' => $taskModel instanceof Task ? 'mt_' . $taskModel->id : $taskModel->id,
                     'task_status' => 'completed', // Indicate task is now completed
                     'task_completed' => true, // Flag for frontend to refresh list
                 ], 200);

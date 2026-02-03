@@ -148,6 +148,7 @@ class CreateTelecallerTask
                         'old_values' => null,
                         'new_values' => [
                             'task_id' => $task->id,
+                            'task_model' => 'Task',
                             'task_type' => 'phone_call',
                             'assigned_to' => $assignedUser->id,
                             'assigned_to_name' => $assignedUser->name,
@@ -207,6 +208,7 @@ class CreateTelecallerTask
                         'old_values' => null,
                         'new_values' => [
                             'task_id' => $task->id,
+                            'task_model' => 'TelecallerTask',
                             'task_type' => 'calling',
                             'assigned_to' => $assignedUser->id,
                             'assigned_to_name' => $assignedUser->name,

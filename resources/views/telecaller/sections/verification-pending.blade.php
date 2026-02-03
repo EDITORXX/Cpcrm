@@ -1,6 +1,6 @@
 @extends('telecaller.layout')
 
-@section('title', 'Verification Pending - Telecaller')
+@section('title', 'Verification Pending - Sales Executive')
 @section('page-title', 'Verification Pending')
 
 @push('styles')
@@ -301,6 +301,8 @@
             </div>
         </div>
 
+        <div id="pendingSummaryStrip" class="pending-summary-strip" style="display: none; margin-bottom: 16px; padding: 12px 16px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; font-size: 14px; color: #063A1C;"></div>
+
         <div id="prospectsContent" class="prospects-grid">
             <div class="loading-state">
                 <i class="fas fa-spinner fa-spin"></i>
@@ -449,6 +451,20 @@
         }
 
         const prospects = result.data || [];
+        const pendingSummary = result.pending_summary || [];
+
+        const summaryStrip = document.getElementById('pendingSummaryStrip');
+        if (summaryStrip) {
+            if (pendingSummary.length > 0 && (currentStatus === 'pending' || currentStatus === 'all')) {
+                const parts = pendingSummary.map(function(item) {
+                    return item.name + ' (' + item.role_display + '): ' + item.count;
+                });
+                summaryStrip.textContent = 'Pending at: ' + parts.join(' | ');
+                summaryStrip.style.display = 'block';
+            } else {
+                summaryStrip.style.display = 'none';
+            }
+        }
 
         if (prospects.length === 0) {
             contentDiv.innerHTML = `
@@ -518,10 +534,10 @@
                         ` : ''}
                     </div>
                     <div class="prospect-footer">
-                        ${prospect.verification_status === 'pending' ? `
+                        ${(prospect.verification_status === 'pending' || prospect.verification_status === 'pending_verification') ? `
                             <div class="prospect-footer-row">
-                                <span><i class="fas fa-user-tie"></i> Sent to:</span>
-                                <span style="font-weight: 600;">${prospect.manager_name || 'Not Assigned'}</span>
+                                <span><i class="fas fa-user-tie"></i> Pending at:</span>
+                                <span style="font-weight: 600;">${prospect.manager_name || 'Not Assigned'} (${prospect.verifier_level || 'Not Assigned'})</span>
                             </div>
                             <div class="prospect-footer-row">
                                 <span><i class="fas fa-calendar"></i> Sent on:</span>

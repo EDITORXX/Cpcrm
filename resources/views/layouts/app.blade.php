@@ -587,7 +587,7 @@
                     @elseif(auth()->user()->isSalesManager())
                         Sales Manager
                     @elseif(auth()->user()->isTelecaller())
-                        Telecaller
+                        Sales Executive
                     @else
                         {{ auth()->user()->getDisplayRoleName() ?? 'User' }}
                     @endif

@@ -427,7 +427,7 @@
             
             <div class="doc-tabs">
                 <button class="doc-tab active" onclick="switchFlow('flow1')">
-                    <i class="fas fa-user-tie mr-2"></i>Telecaller → Closer
+                    <i class="fas fa-user-tie mr-2"></i>Sales Executive → Closer
                 </button>
                 <button class="doc-tab" onclick="switchFlow('flow2')">
                     <i class="fas fa-user-shield mr-2"></i>Manager's Lead → Closer
@@ -438,16 +438,16 @@
             </div>
 
             <div class="doc-content">
-                <!-- Flow 1: Telecaller Prospect to Closer -->
+                <!-- Flow 1: Sales Executive Prospect to Closer -->
                 <div id="flow1" class="flow-content active">
-                    <h3 class="flow-title">Flow 1: Telecaller Prospect to Closer</h3>
+                    <h3 class="flow-title">Flow 1: Sales Executive Prospect to Closer</h3>
                     
                     <div class="flow-diagram">
                         <div class="flow-diagram-title">Visual Flow</div>
                         <div style="text-align: center; line-height: 2;">
                             <span class="flow-box">CRM/Admin</span>
                             <span class="flow-arrow">→</span>
-                            <span class="flow-box">Telecaller</span>
+                            <span class="flow-box">Sales Executive</span>
                             <span class="flow-arrow">→</span>
                             <span class="flow-box">Prospect</span>
                             <span class="flow-arrow">→</span>
@@ -467,15 +467,15 @@
                         <div class="step-header">
                             <div style="display: flex; align-items: center;">
                                 <span class="step-number">1</span>
-                                <span class="step-title">CRM/Admin Assigns Leads to Telecaller</span>
+                                <span class="step-title">CRM/Admin Assigns Leads to Sales Executive</span>
                             </div>
                             <i class="fas fa-chevron-down step-icon"></i>
                         </div>
                         <div class="step-details">
                             <div class="step-info">
                                 <strong>Who:</strong> <span class="role-badge">CRM</span> <span class="role-badge">Admin</span><br>
-                                <strong>Action:</strong> Assign leads from the system to telecallers for calling.<br>
-                                <strong>Result:</strong> Telecaller receives leads in their dashboard.
+                                <strong>Action:</strong> Assign leads from the system to sales executives for calling.<br>
+                                <strong>Result:</strong> Sales Executive receives leads in their dashboard.
                             </div>
                         </div>
                     </div>
@@ -484,14 +484,14 @@
                         <div class="step-header">
                             <div style="display: flex; align-items: center;">
                                 <span class="step-number">2</span>
-                                <span class="step-title">Telecaller Calls and Extracts Prospect</span>
+                                <span class="step-title">Sales Executive Calls and Extracts Prospect</span>
                             </div>
                             <i class="fas fa-chevron-down step-icon"></i>
                         </div>
                         <div class="step-details">
                             <div class="step-info">
-                                <strong>Who:</strong> <span class="role-badge">Telecaller</span><br>
-                                <strong>Action:</strong> Telecaller calls the lead, collects information, and creates a prospect if the lead is interested.<br>
+                                <strong>Who:</strong> <span class="role-badge">Sales Executive</span><br>
+                                <strong>Action:</strong> Sales Executive calls the lead, collects information, and creates a prospect if the lead is interested.<br>
                                 <strong>Result:</strong> Prospect is created with customer details and marked as "Pending Verification".
                             </div>
                         </div>
@@ -525,13 +525,13 @@
                         <div class="step-details">
                             <div class="step-info">
                                 <strong>Who:</strong> <span class="role-badge">Sales Manager</span><br>
-                                <strong>Action:</strong> Manager reviews the prospect and either verifies or rejects it. Only the telecaller's direct manager can verify.<br>
+                                <strong>Action:</strong> Manager reviews the prospect and either verifies or rejects it. Only the sales executive's direct manager can verify.<br>
                                 <strong>Result:</strong> 
                                 <span class="badge badge-verified">Verified</span> - Prospect moves forward
                                 <span class="badge badge-dead">Rejected</span> - Prospect is rejected
                             </div>
                             <div class="highlight-box">
-                                <strong>Important:</strong> CRM/Admin can only VIEW prospects, they cannot verify them. Only the telecaller's manager can verify.
+                                <strong>Important:</strong> CRM/Admin can only VIEW prospects, they cannot verify them. Only the sales executive's manager can verify.
                             </div>
                         </div>
                     </div>
@@ -775,11 +775,11 @@
                         <div class="step-details">
                             <div class="step-info">
                                 <strong>Who:</strong> <span class="role-badge">Sales Manager</span><br>
-                                <strong>Action:</strong> Manager can create their own lead directly without going through telecaller prospect flow.<br>
+                                <strong>Action:</strong> Manager can create their own lead directly without going through sales executive prospect flow.<br>
                                 <strong>Result:</strong> Lead is created and appears in manager's leads list.
                             </div>
                             <div class="highlight-box">
-                                <strong>Difference:</strong> This flow skips the telecaller prospect and manager verification steps. Manager goes directly to scheduling meeting.
+                                <strong>Difference:</strong> This flow skips the sales executive prospect and manager verification steps. Manager goes directly to scheduling meeting.
                             </div>
                         </div>
                     </div>

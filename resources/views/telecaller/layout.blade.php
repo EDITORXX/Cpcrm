@@ -709,16 +709,20 @@
                 <i class="fas fa-times"></i>
             </button>
         </div>
+        @php
+            $dateParams = array_filter(request()->only(['date_range', 'start_date', 'end_date']));
+            $dateQuery = !empty($dateParams) ? '?' . http_build_query($dateParams) : '';
+        @endphp
         <nav style="padding: 0 20px;">
-            <a href="{{ route('telecaller.dashboard') }}" class="sidebar-link {{ request()->routeIs('telecaller.dashboard') ? 'active' : '' }}" style="display: flex; align-items: center; padding: 12px 16px; margin-bottom: 8px; border-radius: 8px; text-decoration: none; color: {{ request()->routeIs('telecaller.dashboard') ? '#205A44' : '#063A1C' }}; transition: all 0.3s; {{ request()->routeIs('telecaller.dashboard') ? 'background: #F7F6F3; font-weight: 500;' : '' }}">
+            <a href="{{ route('telecaller.dashboard') }}{{ $dateQuery }}" class="sidebar-link {{ request()->routeIs('telecaller.dashboard') ? 'active' : '' }}" style="display: flex; align-items: center; padding: 12px 16px; margin-bottom: 8px; border-radius: 8px; text-decoration: none; color: {{ request()->routeIs('telecaller.dashboard') ? '#205A44' : '#063A1C' }}; transition: all 0.3s; {{ request()->routeIs('telecaller.dashboard') ? 'background: #F7F6F3; font-weight: 500;' : '' }}">
                 <i class="fas fa-home" style="margin-right: 10px; width: 20px;"></i>
                 Dashboard
             </a>
-            <a href="{{ route('telecaller.tasks') }}" class="sidebar-link {{ request()->routeIs('telecaller.tasks') ? 'active' : '' }}" style="display: flex; align-items: center; padding: 12px 16px; margin-bottom: 8px; border-radius: 8px; text-decoration: none; color: {{ request()->routeIs('telecaller.tasks') ? '#205A44' : '#063A1C' }}; transition: all 0.3s; {{ request()->routeIs('telecaller.tasks') ? 'background: #F7F6F3; font-weight: 500;' : '' }}">
+            <a href="{{ route('telecaller.tasks') }}{{ $dateQuery }}" class="sidebar-link {{ request()->routeIs('telecaller.tasks') ? 'active' : '' }}" style="display: flex; align-items: center; padding: 12px 16px; margin-bottom: 8px; border-radius: 8px; text-decoration: none; color: {{ request()->routeIs('telecaller.tasks') ? '#205A44' : '#063A1C' }}; transition: all 0.3s; {{ request()->routeIs('telecaller.tasks') ? 'background: #F7F6F3; font-weight: 500;' : '' }}">
                 <i class="fas fa-tasks" style="margin-right: 10px; width: 20px;"></i>
                 Task
             </a>
-            <a href="{{ route('telecaller.leads') }}" class="sidebar-link {{ request()->routeIs('telecaller.leads') ? 'active' : '' }}" style="display: flex; align-items: center; padding: 12px 16px; margin-bottom: 8px; border-radius: 8px; text-decoration: none; color: {{ request()->routeIs('telecaller.leads') ? '#205A44' : '#063A1C' }}; transition: all 0.3s; {{ request()->routeIs('telecaller.leads') ? 'background: #F7F6F3; font-weight: 500;' : '' }}">
+            <a href="{{ route('telecaller.leads') }}{{ $dateQuery }}" class="sidebar-link {{ request()->routeIs('telecaller.leads') ? 'active' : '' }}" style="display: flex; align-items: center; padding: 12px 16px; margin-bottom: 8px; border-radius: 8px; text-decoration: none; color: {{ request()->routeIs('telecaller.leads') ? '#205A44' : '#063A1C' }}; transition: all 0.3s; {{ request()->routeIs('telecaller.leads') ? 'background: #F7F6F3; font-weight: 500;' : '' }}">
                 <i class="fas fa-user-friends" style="margin-right: 10px; width: 20px;"></i>
                 Lead
             </a>
@@ -749,10 +753,11 @@
                         <span class="header-user-role-mobile" style="display: none;">{{ auth()->user()->getDisplayRoleName() ?? 'User' }}</span>
                         <!-- Date Range Selector - Mobile (replaces role) -->
                         <div class="header-date-range-selector-mobile" id="headerDateRangeSelectorMobile" style="display: none;">
-                            <select id="headerDateRangeSelectMobile" onchange="handleHeaderDateRangeChange()" style="padding: 2px 5px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 10px; background: white; color: #063A1C; cursor: pointer; outline: none; width: 100%; max-width: 120px; height: 24px; margin-top: 4px;">
+                            <select id="headerDateRangeSelectMobile" onchange="handleHeaderDateRangeChange(event)" style="padding: 2px 5px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 10px; background: white; color: #063A1C; cursor: pointer; outline: none; width: 100%; max-width: 120px; height: 24px; margin-top: 4px;">
                                 <option value="today" {{ (request()->get('date_range') ?? 'today') === 'today' ? 'selected' : '' }}>Today</option>
                                 <option value="this_week" {{ request()->get('date_range') === 'this_week' ? 'selected' : '' }}>This Week</option>
                                 <option value="this_month" {{ request()->get('date_range') === 'this_month' ? 'selected' : '' }}>This Month</option>
+                                <option value="all" {{ request()->get('date_range') === 'all' ? 'selected' : '' }}>All</option>
                                 <option value="custom" {{ request()->get('date_range') === 'custom' ? 'selected' : '' }}>Custom</option>
                             </select>
                             <div class="header-custom-date-inputs-mobile" id="headerCustomDateInputsMobile" style="display: {{ request()->get('date_range') === 'custom' ? 'flex' : 'none' }}; gap: 3px; margin-top: 3px; flex-direction: column;">
@@ -773,10 +778,11 @@
                         </div>
                         <!-- Date Range Selector - Small, below clock (only on dashboard) -->
                         <div class="header-date-range-selector" id="headerDateRangeSelector" style="display: none;">
-                            <select id="headerDateRangeSelect" onchange="handleHeaderDateRangeChange()" style="padding: 2px 5px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 10px; background: white; color: #063A1C; cursor: pointer; outline: none; width: 80px; max-width: 80px; height: 24px;">
+                            <select id="headerDateRangeSelect" onchange="handleHeaderDateRangeChange(event)" style="padding: 2px 5px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 10px; background: white; color: #063A1C; cursor: pointer; outline: none; width: 80px; max-width: 80px; height: 24px;">
                                 <option value="today" {{ (request()->get('date_range') ?? 'today') === 'today' ? 'selected' : '' }}>Today</option>
                                 <option value="this_week" {{ request()->get('date_range') === 'this_week' ? 'selected' : '' }}>This Week</option>
                                 <option value="this_month" {{ request()->get('date_range') === 'this_month' ? 'selected' : '' }}>This Month</option>
+                                <option value="all" {{ request()->get('date_range') === 'all' ? 'selected' : '' }}>All</option>
                                 <option value="custom" {{ request()->get('date_range') === 'custom' ? 'selected' : '' }}>Custom</option>
                             </select>
                             <div class="header-custom-date-inputs" id="headerCustomDateInputs" style="display: {{ request()->get('date_range') === 'custom' ? 'flex' : 'none' }}; gap: 3px; margin-top: 3px; flex-direction: column;">
@@ -820,15 +826,15 @@
 
     <!-- Mobile Footer Navigation -->
     <nav id="mobileFooterNav">
-        <a href="{{ route('telecaller.dashboard') }}" class="footer-nav-link {{ request()->routeIs('telecaller.dashboard') ? 'active' : '' }}">
+        <a href="{{ route('telecaller.dashboard') }}{{ $dateQuery ?? '' }}" class="footer-nav-link {{ request()->routeIs('telecaller.dashboard') ? 'active' : '' }}">
             <i class="fas fa-home"></i>
             <span>Dashboard</span>
         </a>
-        <a href="{{ route('telecaller.tasks') }}" class="footer-nav-link {{ request()->routeIs('telecaller.tasks*') ? 'active' : '' }}">
+        <a href="{{ route('telecaller.tasks') }}{{ $dateQuery ?? '' }}" class="footer-nav-link {{ request()->routeIs('telecaller.tasks*') ? 'active' : '' }}">
             <i class="fas fa-tasks"></i>
             <span>Tasks</span>
         </a>
-        <a href="{{ route('telecaller.leads') }}" class="footer-nav-link {{ request()->routeIs('telecaller.leads*') ? 'active' : '' }}">
+        <a href="{{ route('telecaller.leads') }}{{ $dateQuery ?? '' }}" class="footer-nav-link {{ request()->routeIs('telecaller.leads*') ? 'active' : '' }}">
             <i class="fas fa-user-friends"></i>
             <span>Leads</span>
         </a>
@@ -1164,15 +1170,15 @@
         updateClock();
         setInterval(updateClock, 1000);
 
-        // Show date range selector only on dashboard page
-        if (window.location.pathname.includes('/telecaller/dashboard')) {
-            // Show desktop version (below clock)
+        // Show date range selector on dashboard, tasks, and leads pages (so date filter is preserved when switching)
+        const showDateSelector = window.location.pathname.includes('/telecaller/dashboard') ||
+            window.location.pathname.includes('/telecaller/tasks') ||
+            window.location.pathname.includes('/telecaller/leads');
+        if (showDateSelector) {
             const dateRangeSelector = document.getElementById('headerDateRangeSelector');
             if (dateRangeSelector && window.innerWidth >= 768) {
                 dateRangeSelector.style.display = 'block';
             }
-            
-            // Show mobile version (in header user info area)
             const dateRangeSelectorMobile = document.getElementById('headerDateRangeSelectorMobile');
             if (dateRangeSelectorMobile && window.innerWidth < 768) {
                 dateRangeSelectorMobile.style.display = 'block';
@@ -1181,16 +1187,16 @@
         
         // Handle window resize
         window.addEventListener('resize', function() {
-            if (window.location.pathname.includes('/telecaller/dashboard')) {
+            const showDateSelector = window.location.pathname.includes('/telecaller/dashboard') ||
+                window.location.pathname.includes('/telecaller/tasks') ||
+                window.location.pathname.includes('/telecaller/leads');
+            if (showDateSelector) {
                 const dateRangeSelector = document.getElementById('headerDateRangeSelector');
                 const dateRangeSelectorMobile = document.getElementById('headerDateRangeSelectorMobile');
-                
                 if (window.innerWidth >= 768) {
-                    // Desktop: show below clock, hide in user info
                     if (dateRangeSelector) dateRangeSelector.style.display = 'block';
                     if (dateRangeSelectorMobile) dateRangeSelectorMobile.style.display = 'none';
                 } else {
-                    // Mobile: show in user info, hide below clock
                     if (dateRangeSelector) dateRangeSelector.style.display = 'none';
                     if (dateRangeSelectorMobile) dateRangeSelectorMobile.style.display = 'block';
                 }
@@ -1198,9 +1204,9 @@
         });
 
         // Handle header date range change (works for both desktop and mobile)
-        function handleHeaderDateRangeChange() {
-            // Check which selector was used (desktop or mobile)
-            const select = document.getElementById('headerDateRangeSelect') || document.getElementById('headerDateRangeSelectMobile');
+        function handleHeaderDateRangeChange(ev) {
+            // Use the select that was actually changed (so mobile/desktop value is correct after refresh)
+            const select = (ev && ev.target && ev.target.id) ? ev.target : (document.getElementById('headerDateRangeSelect') || document.getElementById('headerDateRangeSelectMobile'));
             const customInputs = document.getElementById('headerCustomDateInputs') || document.getElementById('headerCustomDateInputsMobile');
             const dateRange = select.value;
 

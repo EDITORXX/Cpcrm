@@ -773,7 +773,7 @@
                         placeholder="Enter the reason for rejecting this prospect..."
                         required
                     ></textarea>
-                    <p class="text-xs text-gray-500 mt-1">This reason will be shown to the telecaller.</p>
+                    <p class="text-xs text-gray-500 mt-1">This reason will be shown to the sales executive.</p>
                 </div>
             </div>
         `;

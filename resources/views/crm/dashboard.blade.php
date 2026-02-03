@@ -134,12 +134,12 @@
         </div>
     </div>
 
-    <!-- Telecaller Performance Section -->
+    <!-- Sales Executive Performance Section -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">Telecaller Performance</h5>
+                    <h5 class="mb-0">Sales Executive Performance</h5>
                 </div>
                 <div class="card-body">
                     <div class="row" id="telecaller-stats-container">

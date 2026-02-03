@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Telecaller Daily Limits - Base CRM')
-@section('page-title', 'Telecaller Daily Limits')
-@section('page-subtitle', 'Manage daily assignment limits for telecallers')
+@section('title', 'Sales Executive Daily Limits - Base CRM')
+@section('page-title', 'Sales Executive Daily Limits')
+@section('page-subtitle', 'Manage daily assignment limits for sales executives')
 
 @section('header-actions')
     <a href="{{ route('lead-assignment.index') }}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 text-sm font-medium">
@@ -16,7 +16,7 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telecaller</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sales Executive</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Overall Daily Limit</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Assigned Today</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Available</th>

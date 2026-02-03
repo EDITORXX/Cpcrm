@@ -75,7 +75,7 @@
                     </label>
                     <label class="flex items-center">
                         <input type="checkbox" name="target_roles[]" value="telecaller" class="mr-2">
-                        <span>Telecaller</span>
+                        <span>Sales Executive</span>
                     </label>
                 </div>
             </div>

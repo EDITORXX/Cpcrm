@@ -40,8 +40,11 @@ class LeadActivityService
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $taskIdsFromActivityLog = collect();
+        $telecallerTaskIdsFromActivityLog = collect();
+
         foreach ($activityLogs as $log) {
-            $activities->push([
+            $entry = [
                 'type' => $this->getActivityType($log->action),
                 'title' => $this->getActivityTitle($log),
                 'description' => $log->description ?? $this->getActivityDescription($log),
@@ -54,7 +57,22 @@ class LeadActivityService
                     'new_values' => $log->new_values,
                     'action' => $log->action,
                 ],
-            ]);
+            ];
+            $activities->push($entry);
+
+            // Track task_ids already in timeline (from ActivityLog) to avoid duplicate in step 9
+            if ($log->action === 'task_created' && $log->new_values && isset($log->new_values['task_id'])) {
+                $taskId = $log->new_values['task_id'];
+                $model = $log->new_values['task_model'] ?? null;
+                if ($model === 'Task') {
+                    $taskIdsFromActivityLog->push($taskId);
+                } elseif ($model === 'TelecallerTask') {
+                    $telecallerTaskIdsFromActivityLog->push($taskId);
+                } else {
+                    $taskIdsFromActivityLog->push($taskId);
+                    $telecallerTaskIdsFromActivityLog->push($taskId);
+                }
+            }
         }
 
         // 3. Lead Assignments
@@ -269,18 +287,20 @@ class LeadActivityService
             }
         }
 
-        // 9. Tasks Created (for this lead)
-        // Check both Task and TelecallerTask models
+        // 9. Tasks Created (for this lead) – skip if already in timeline from ActivityLog (step 2)
         $tasks = \App\Models\Task::where('lead_id', $lead->id)
             ->with(['assignedTo', 'creator'])
             ->orderBy('created_at', 'desc')
             ->get();
-            
+
         foreach ($tasks as $task) {
+            if ($taskIdsFromActivityLog->contains($task->id)) {
+                continue;
+            }
             $activities->push([
                 'type' => 'task_created',
                 'title' => 'Calling Task Created',
-                'description' => "Calling task created for {$lead->name}" . 
+                'description' => "Calling task created for {$lead->name}" .
                     ($task->assignedTo ? " (Assigned to {$task->assignedTo->name})" : ''),
                 'user' => $task->creator,
                 'timestamp' => $task->created_at,
@@ -294,20 +314,22 @@ class LeadActivityService
                 ],
             ]);
         }
-        
-        // Also check TelecallerTask
+
         $telecallerTasks = \App\Models\TelecallerTask::where('lead_id', $lead->id)
             ->with(['assignedTo', 'createdBy'])
             ->orderBy('created_at', 'desc')
             ->get();
-            
+
         foreach ($telecallerTasks as $task) {
+            if ($telecallerTaskIdsFromActivityLog->contains($task->id)) {
+                continue;
+            }
             $activities->push([
                 'type' => 'task_created',
                 'title' => 'Calling Task Created',
-                'description' => "Calling task created for {$lead->name}" . 
+                'description' => "Calling task created for {$lead->name}" .
                     ($task->assignedTo ? " (Assigned to {$task->assignedTo->name})" : ''),
-                'user' => $task->createdBy ?? $task->assignedTo, // Use creator if available, otherwise assigned user
+                'user' => $task->createdBy ?? $task->assignedTo,
                 'timestamp' => $task->created_at,
                 'icon' => 'fa-phone',
                 'color' => '#3b82f6', // blue

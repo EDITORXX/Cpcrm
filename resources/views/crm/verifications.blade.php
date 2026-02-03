@@ -807,7 +807,7 @@
                             </div>
                             <div class="card-detail-row">
                                 <i class="fas fa-user" style="color: #6b7280; width: 20px;"></i>
-                                <span style="color: #374151;">Telecaller: ${prospect.telecaller?.name || prospect.createdBy?.name || 'N/A'}</span>
+                                <span style="color: #374151;">Sales Executive: ${prospect.telecaller?.name || prospect.createdBy?.name || 'N/A'}</span>
                             </div>
                             <div class="card-detail-row">
                                 <i class="fas fa-user-tie" style="color: #6b7280; width: 20px;"></i>
@@ -1681,7 +1681,7 @@
             <div class="details-section">
                 <h4><i class="fas fa-users mr-2"></i>Team Information</h4>
                 <div class="detail-row">
-                    <div class="detail-label">Created By (Telecaller):</div>
+                    <div class="detail-label">Created By (Sales Executive):</div>
                     <div class="detail-value">${prospect.telecaller?.name || prospect.createdBy?.name || 'N/A'}</div>
                 </div>
                 <div class="detail-row">
@@ -1702,7 +1702,7 @@
 
             ${prospect.remark ? `
             <div class="details-section">
-                <h4><i class="fas fa-comment mr-2"></i>Telecaller Remark</h4>
+                <h4><i class="fas fa-comment mr-2"></i>Sales Executive Remark</h4>
                 <div class="detail-value" style="white-space: pre-wrap; padding: 12px; background: #f9fafb; border-radius: 8px;">${prospect.remark}</div>
             </div>
             ` : ''}

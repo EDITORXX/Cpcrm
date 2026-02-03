@@ -189,6 +189,22 @@ class SiteVisitController extends Controller
         $validated['status'] = 'scheduled';
         $validated['verification_status'] = 'pending';
 
+        // Prevent duplicate: same lead must not have another active site visit (scheduled/pending, not completed, not dead)
+        if (!empty($validated['lead_id'])) {
+            $hasActiveVisit = SiteVisit::where('lead_id', $validated['lead_id'])
+                ->where('status', '!=', 'completed')
+                ->where(function ($q) {
+                    $q->whereNull('is_dead')->orWhere('is_dead', false);
+                })
+                ->exists();
+            if ($hasActiveVisit) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This customer already has an active site visit (scheduled or pending). Complete, reschedule, or mark that visit as dead before creating a new one.',
+                ], 422);
+            }
+        }
+
         // Handle photo uploads
         if ($request->hasFile('photos')) {
             $photoPaths = [];

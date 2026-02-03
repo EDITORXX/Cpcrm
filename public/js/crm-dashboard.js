@@ -122,7 +122,7 @@ async function loadTelecallerStats() {
         
         // Always show cards even if data is empty (shouldn't happen, but handle it)
         if (!data || data.length === 0) {
-            container.innerHTML = '<p class="text-muted text-center py-4">No telecallers found.</p>';
+            container.innerHTML = '<p class="text-muted text-center py-4">No sales executives found.</p>';
             return;
         }
         
@@ -177,7 +177,7 @@ async function loadTelecallerStats() {
         }).join('');
     } catch (error) {
         console.error('Error loading telecaller stats:', error);
-        container.innerHTML = '<p class="text-danger text-center py-4">Error: ' + (error.message || 'Failed to load telecaller stats') + '</p>';
+        container.innerHTML = '<p class="text-danger text-center py-4">Error: ' + (error.message || 'Failed to load sales executive stats') + '</p>';
     }
 }
 
@@ -480,7 +480,7 @@ function updateTelecallerDropdowns(telecallers) {
         const select = document.getElementById(selectId);
         if (select) {
             const currentValue = select.value;
-            select.innerHTML = '<option value="">Select Telecaller...</option>' + 
+            select.innerHTML = '<option value="">Select Sales Executive...</option>' + 
                 telecallers.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
             select.value = currentValue;
         }

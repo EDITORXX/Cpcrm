@@ -1,6 +1,6 @@
 @extends('telecaller.layout')
 
-@section('title', 'Leads - Telecaller')
+@section('title', 'Leads - Sales Executive')
 @section('page-title', 'Leads')
 
 @push('styles')
@@ -697,7 +697,15 @@
         const search = searchInput ? searchInput.value : '';
         const status = statusFilter ? statusFilter.value : '';
 
-        let endpoint = `/leads?per_page=50&page=${page}`;
+        // Read date_range from URL (header dropdown) so Today filter shows only today's leads
+        const urlParams = new URLSearchParams(window.location.search);
+        const dateRange = urlParams.get('date_range') || 'today';
+        const startDate = urlParams.get('start_date') || '';
+        const endDate = urlParams.get('end_date') || '';
+
+        let endpoint = `/leads?per_page=50&page=${page}&date_range=${encodeURIComponent(dateRange)}`;
+        if (startDate) endpoint += `&start_date=${encodeURIComponent(startDate)}`;
+        if (endDate) endpoint += `&end_date=${encodeURIComponent(endDate)}`;
         if (search) {
             endpoint += `&search=${encodeURIComponent(search)}`;
         }

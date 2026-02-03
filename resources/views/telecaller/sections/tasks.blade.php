@@ -1,6 +1,6 @@
 @extends('telecaller.layout')
 
-@section('title', 'Tasks - Telecaller')
+@section('title', 'Tasks - Sales Executive')
 @section('page-title', 'Tasks')
 
 @push('styles')
@@ -73,7 +73,9 @@
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
-        align-items: center !important;
+        align-items: stretch !important;
+        justify-content: flex-end !important;
+        gap: 12px !important;
     }
     
     .form-cancel-btn,
@@ -210,6 +212,7 @@
             flex-wrap: nowrap !important;
             justify-content: space-between !important;
             gap: 8px !important;
+            align-items: stretch !important;
             width: 100% !important;
         }
         
@@ -1069,6 +1072,7 @@
                     <option value="all">All</option>
                 </select>
                 <select id="taskTypeFilterDropdown" class="task-filter-select" style="flex: 1; width: 50%;">
+                    <option value="all">All</option>
                     <option value="calling">Calling</option>
                     <option value="pre_meeting_reminder">Meeting</option>
                     <option value="follow_up">Follow Up</option>
@@ -1613,7 +1617,15 @@
         applyListView();
         contentDiv.innerHTML = '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Loading tasks...</p></div>';
 
-        let endpoint = `/tasks?status=${status}&per_page=50`;
+        // Read date_range from URL (header dropdown) so Today filter shows only today's tasks
+        const urlParams = new URLSearchParams(window.location.search);
+        const dateRange = urlParams.get('date_range') || 'today';
+        const startDate = urlParams.get('start_date') || '';
+        const endDate = urlParams.get('end_date') || '';
+
+        let endpoint = `/tasks?status=${status}&per_page=50&date_range=${encodeURIComponent(dateRange)}`;
+        if (startDate) endpoint += `&start_date=${encodeURIComponent(startDate)}`;
+        if (endDate) endpoint += `&end_date=${encodeURIComponent(endDate)}`;
         // Add task_type filter if provided
         if (taskType && taskType !== 'all' && taskType !== null) {
             endpoint += `&task_type=${taskType}`;
@@ -1759,11 +1771,11 @@
                 button.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    const taskId = parseInt(this.getAttribute('data-task-id'));
+                    const taskId = this.getAttribute('data-task-id'); // may be numeric or composite e.g. mt_123
                     const phoneNumber = this.getAttribute('data-phone') || '';
                     
                     // Find task data from stored array
-                    const taskData = currentTasksArray.find(t => t.id === taskId) || {
+                    const taskData = currentTasksArray.find(t => t.id == taskId || String(t.id) === taskId) || {
                         id: taskId,
                         lead_phone: phoneNumber,
                         lead_name: 'Lead',
@@ -2791,9 +2803,9 @@
         // Add click handlers to cards
         kanbanBoard.querySelectorAll('.kanban-task-card .btn-call-task').forEach(btn => {
             btn.addEventListener('click', function() {
-                const taskId = parseInt(this.getAttribute('data-task-id'));
+                const taskId = this.getAttribute('data-task-id'); // may be numeric or composite e.g. mt_123
                 const phoneNumber = this.getAttribute('data-phone') || '';
-                const taskData = tasks.find(t => t.id === taskId);
+                const taskData = tasks.find(t => t.id == taskId || String(t.id) === taskId);
                 if (taskData) {
                     initiateCall(taskId, phoneNumber, taskData);
                 }
@@ -3018,20 +3030,7 @@
                 const taskType = this.value;
                 filterTaskType(taskType, e);
             });
-            // Set default to 'calling' if currentTaskType is 'all' or null
-            if (currentTaskType === 'all' || !currentTaskType) {
-                currentTaskType = 'calling';
-            }
-            typeFilterDropdown.value = currentTaskType;
-        }
-        
-        // Set default task type for mobile (first option: 'calling')
-        if (window.innerWidth <= 768 && (!currentTaskType || currentTaskType === 'all')) {
-            currentTaskType = 'calling';
-            const typeFilterDropdown = document.getElementById('taskTypeFilterDropdown');
-            if (typeFilterDropdown) {
-                typeFilterDropdown.value = 'calling';
-            }
+            typeFilterDropdown.value = (currentTaskType && currentTaskType !== 'all') ? currentTaskType : 'all';
         }
         
         // Initialize toggle button state
@@ -3209,7 +3208,7 @@
                 </div>
                 
                 <div style="margin-bottom: 24px;">
-                    <h3 style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">Telecaller Fields</h3>
+                    <h3 style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">Sales Executive Fields</h3>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
         `;
         
@@ -3260,7 +3259,7 @@
                     </div>
                 </div>
                 
-                <div class="form-buttons-container" style="display: flex; flex-direction: row; justify-content: flex-end; align-items: center; gap: 12px; padding-top: 20px; border-top: 1px solid #e0e0e0; margin-top: 24px; width: 100%;">
+                <div class="form-buttons-container" style="display: flex; flex-direction: row; justify-content: flex-end; align-items: stretch; gap: 12px; padding-top: 20px; border-top: 1px solid #e0e0e0; margin-top: 24px; width: 100%;">
                     <button type="button" 
                             onclick="closeLeadRequirementFormModal()" 
                             class="form-cancel-btn"
@@ -3496,4 +3495,3 @@
 })();
 </script>
 @endpush
-

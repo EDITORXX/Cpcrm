@@ -2,7 +2,7 @@
 
 @section('title', 'Unassigned Leads - Base CRM')
 @section('page-title', 'Unassigned Leads')
-@section('page-subtitle', 'Assign leads to telecallers, sales managers, or sales executives')
+@section('page-subtitle', 'Assign leads to sales executives, sales managers, or sales executives')
 
 @section('header-actions')
     <a href="{{ route('lead-assignment.index') }}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 text-sm font-medium">
