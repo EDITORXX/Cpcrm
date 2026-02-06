@@ -24,9 +24,13 @@
         }
         .role-admin { background: #fef3c7; color: #92400e; }
         .role-crm { background: #dbeafe; color: #1e40af; }
+        .role-hr_manager { background: #e9d5ff; color: #6b21a8; }
+        .role-finance_manager { background: #fce7f3; color: #9f1239; }
         .role-sales_manager { background: #d1fae5; color: #065f46; }
-        .role-telecaller { background: #e0e7ff; color: #3730a3; }
-        .role-sales_executive { background: #fce7f3; color: #9f1239; }
+        .role-senior_manager { background: #fed7aa; color: #9a3412; }
+        .role-assistant_sales_manager { background: #ccfbf1; color: #115e59; }
+        .role-sales_executive { background: #e0e7ff; color: #3730a3; }
+        .role-telecaller { background: #fef9c3; color: #854d0e; }
         .loading {
             display: inline-block;
             width: 20px;

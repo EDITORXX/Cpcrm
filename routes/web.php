@@ -227,13 +227,21 @@ Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::get('/logout', [LoginController::class, 'logout'])->name('logout.get'); // Fallback for expired sessions
 
-// Public Telecaller Routes (no auth required)
-Route::get('/telecaller/dashboard', [\App\Http\Controllers\TelecallerController::class, 'dashboard'])->name('telecaller.dashboard');
-Route::get('/telecaller/tasks', [\App\Http\Controllers\TelecallerController::class, 'tasks'])->name('telecaller.tasks');
-Route::get('/telecaller/leads', [\App\Http\Controllers\TelecallerController::class, 'leads'])->name('telecaller.leads');
-Route::get('/telecaller/reports', [\App\Http\Controllers\TelecallerController::class, 'reports'])->name('telecaller.reports');
-Route::get('/telecaller/verification-pending', [\App\Http\Controllers\TelecallerController::class, 'verificationPending'])->name('telecaller.verification-pending');
-Route::get('/telecaller/profile', [\App\Http\Controllers\TelecallerController::class, 'profile'])->name('telecaller.profile');
+// Sales Executive Routes (no auth required)
+Route::get('/sales-executive/dashboard', [\App\Http\Controllers\SalesExecutiveController::class, 'dashboard'])->name('sales-executive.dashboard');
+Route::get('/sales-executive/tasks', [\App\Http\Controllers\SalesExecutiveController::class, 'tasks'])->name('sales-executive.tasks');
+Route::get('/sales-executive/leads', [\App\Http\Controllers\SalesExecutiveController::class, 'leads'])->name('sales-executive.leads');
+Route::get('/sales-executive/reports', [\App\Http\Controllers\SalesExecutiveController::class, 'reports'])->name('sales-executive.reports');
+Route::get('/sales-executive/verification-pending', [\App\Http\Controllers\SalesExecutiveController::class, 'verificationPending'])->name('sales-executive.verification-pending');
+Route::get('/sales-executive/profile', [\App\Http\Controllers\SalesExecutiveController::class, 'profile'])->name('sales-executive.profile');
+
+// Backward compatibility - redirect old telecaller routes to sales-executive
+Route::get('/telecaller/dashboard', function() { return redirect()->route('sales-executive.dashboard'); });
+Route::get('/telecaller/tasks', function() { return redirect()->route('sales-executive.tasks'); });
+Route::get('/telecaller/leads', function() { return redirect()->route('sales-executive.leads'); });
+Route::get('/telecaller/reports', function() { return redirect()->route('sales-executive.reports'); });
+Route::get('/telecaller/verification-pending', function() { return redirect()->route('sales-executive.verification-pending'); });
+Route::get('/telecaller/profile', function() { return redirect()->route('sales-executive.profile'); });
 
 // Sales Head Routes (protected)
 Route::middleware(['auth'])->prefix('sales-head')->name('sales-head.')->group(function () {
@@ -271,8 +279,8 @@ Route::middleware(['auth'])->group(function () {
             $user->load('role');
         }
         
-        if ($user->isTelecaller()) {
-            return redirect()->route('telecaller.dashboard');
+        if ($user->isTelecaller() || $user->isSalesExecutive()) {
+            return redirect()->route('sales-executive.dashboard');
         }
         if ($user->isSalesHead()) {
             return redirect()->route('sales-head.dashboard');
