@@ -8,7 +8,7 @@
     <meta name="description" content="Professional CRM platform designed for real estate companies. Manage leads, track prospects, schedule meetings, verify site visits, and close deals efficiently.">
 
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#205A44">
+    <meta name="theme-color" content="#0F5132">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -30,14 +30,15 @@
                     },
                     colors: {
                         brand: {
-                            950: '#041F0E',
-                            900: '#063A1C',
-                            800: '#0E4A2B',
-                            700: '#205A44',
-                            600: '#2D7759',
-                            500: '#3A946E',
-                            100: '#E6F4ED',
-                            50:  '#F3FAF6'
+                            950: '#032107',
+                            900: '#0B3D0F',
+                            800: '#0F5132',
+                            700: '#166534',
+                            600: '#15803d',
+                            500: '#16a34a',
+                            400: '#22c55e',
+                            100: '#dcfce7',
+                            50:  '#f0fdf4'
                         }
                     }
                 }
@@ -49,10 +50,10 @@
     <style>
         .gradient-mesh {
             background:
-                radial-gradient(at 0% 0%, rgba(32, 90, 68, 0.25) 0px, transparent 50%),
-                radial-gradient(at 100% 0%, rgba(6, 58, 28, 0.2) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(32, 90, 68, 0.15) 0px, transparent 50%),
-                radial-gradient(at 0% 100%, rgba(6, 58, 28, 0.1) 0px, transparent 50%);
+                radial-gradient(at 0% 0%, rgba(22, 101, 52, 0.28) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(15, 81, 50, 0.22) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(22, 101, 52, 0.18) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(11, 61, 15, 0.12) 0px, transparent 50%);
         }
         .hover-lift {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -116,13 +117,13 @@
                 <!-- Left: Headline -->
                 <div class="lg:col-span-7">
                     <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-xs font-bold mb-6">
-                        <span class="h-2 w-2 rounded-full bg-green-400 animate-pulse"></span>
+                        <span class="h-2 w-2 rounded-full bg-brand-500 animate-pulse"></span>
                         Production Ready
                     </div>
 
                     <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.1] tracking-tight">
                         Complete CRM Platform for
-                        <span class="bg-gradient-to-r from-green-300 to-emerald-200 bg-clip-text text-transparent">Real Estate Teams</span>
+                        <span class="bg-gradient-to-r from-brand-500 to-brand-400 bg-clip-text text-transparent">Real Estate Teams</span>
                     </h1>
                     
                     <p class="mt-6 text-lg text-slate-300 leading-relaxed max-w-2xl">
@@ -155,15 +156,15 @@
                     <!-- Trust Badges -->
                     <div class="mt-10 flex flex-wrap items-center gap-6 text-sm">
                         <div class="flex items-center gap-2 text-slate-400">
-                            <i class="fa-solid fa-check-circle text-green-400"></i>
+                            <i class="fa-solid fa-check-circle text-brand-500"></i>
                             <span>PWA Enabled</span>
                         </div>
                         <div class="flex items-center gap-2 text-slate-400">
-                            <i class="fa-solid fa-check-circle text-green-400"></i>
+                            <i class="fa-solid fa-check-circle text-brand-500"></i>
                             <span>Meta Integration</span>
                         </div>
                         <div class="flex items-center gap-2 text-slate-400">
-                            <i class="fa-solid fa-check-circle text-green-400"></i>
+                            <i class="fa-solid fa-check-circle text-brand-500"></i>
                             <span>WhatsApp Ready</span>
                         </div>
                     </div>
@@ -175,7 +176,7 @@
                         <div class="p-8">
                             <div class="flex items-start justify-between mb-6">
                                 <div>
-                                    <div class="text-xs font-bold text-emerald-300 uppercase tracking-wider">Platform Overview</div>
+                                    <div class="text-xs font-bold text-brand-400 uppercase tracking-wider">Platform Overview</div>
                                     <h3 class="mt-2 text-2xl font-black">End-to-End Sales Management</h3>
                                 </div>
                                 <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-brand-700 to-brand-900 flex items-center justify-center shadow-lg">
@@ -185,8 +186,8 @@
 
                             <div class="space-y-4">
                                 <div class="flex items-start gap-3">
-                                    <div class="mt-1 h-6 w-6 rounded-lg bg-emerald-400/20 flex items-center justify-center flex-shrink-0">
-                                        <i class="fa-solid fa-users-gear text-emerald-300 text-xs"></i>
+                                    <div class="mt-1 h-6 w-6 rounded-lg bg-brand-500/20 flex items-center justify-center flex-shrink-0">
+                                        <i class="fa-solid fa-users-gear text-brand-400 text-xs"></i>
                                     </div>
                                     <div>
                                         <div class="font-bold text-sm">Lead Management</div>
@@ -251,7 +252,7 @@
                         <div class="px-8 py-5 bg-slate-900/80 backdrop-blur">
                             <div class="flex items-center justify-between gap-4">
                                 <div class="text-sm text-slate-400">Need help with setup?</div>
-                                <a href="#faq" class="text-sm font-bold text-emerald-300 hover:text-emerald-200 transition">View FAQ →</a>
+                                <a href="#faq" class="text-sm font-bold text-brand-500 hover:text-brand-400 transition">View FAQ →</a>
                             </div>
                         </div>
                     </div>
@@ -264,7 +265,7 @@
     <section id="features" class="py-20 bg-slate-900">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center max-w-3xl mx-auto mb-16">
-                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-700/20 border border-brand-700/30 text-xs font-bold text-emerald-300 mb-4">
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-700/20 border border-brand-700/30 text-xs font-bold text-brand-400 mb-4">
                     <i class="fa-solid fa-sparkles"></i>
                     CORE CAPABILITIES
                 </div>
@@ -294,7 +295,7 @@
                     <div class="hover-lift rounded-2xl bg-slate-800/50 backdrop-blur border border-slate-700/50 p-6 hover:bg-slate-800/70 hover:border-brand-700/50 transition">
                         <div class="flex items-start gap-4">
                             <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-brand-700/20 to-brand-900/20 border border-brand-700/30 flex items-center justify-center flex-shrink-0">
-                                <i class="fa-solid {{ $f['icon'] }} text-emerald-300 text-xl"></i>
+                                <i class="fa-solid {{ $f['icon'] }} text-brand-500 text-xl"></i>
                             </div>
                             <div>
                                 <h3 class="font-bold text-base">{{ $f['title'] }}</h3>
@@ -471,8 +472,8 @@
                 <!-- Flow 1 -->
                 <div class="rounded-2xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 p-6">
                     <div class="flex items-start gap-3 mb-6">
-                        <div class="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                            <i class="fa-solid fa-route text-emerald-400"></i>
+                        <div class="h-10 w-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center flex-shrink-0">
+                            <i class="fa-solid fa-route text-brand-500"></i>
                         </div>
                         <div>
                             <h3 class="font-black text-lg">Sales Executive → Closer</h3>
