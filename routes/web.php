@@ -23,8 +23,13 @@ Route::prefix('install')->group(function () {
 });
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('landing');
 });
+
+// Legacy home (backup)
+Route::get('/legacy-home', function () {
+    return view('welcome');
+})->name('legacy.home');
 
 // PWA Test Page
 Route::get('/pwa-test', function () {
