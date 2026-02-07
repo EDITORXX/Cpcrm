@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\GoogleSheetsConfig;
 use App\Models\GoogleSheetsColumnMapping;
 use App\Models\LeadFormField;
+use App\Models\LeadAssignment;
 use App\Services\FieldMappingService;
 use App\Services\GoogleSheetsService;
+use App\Services\LeadAssignmentService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -798,6 +801,187 @@ class MetaSheetController extends Controller
                 'success' => false,
                 'message' => 'Test failed: ' . $e->getMessage(),
             ], 500);
+        }
+    }
+
+    /**
+     * 1-Click Sync Leads from the configured sheet.
+     * Pulls rows from Google Sheet and imports any rows not yet seen in LeadAssignment.
+     */
+    public function sync($id)
+    {
+        $config = GoogleSheetsConfig::with('columnMappings')->findOrFail($id);
+        if ($config->created_by !== auth()->id() || $config->sheet_type !== 'meta_facebook') {
+            abort(403);
+        }
+
+        if (!$config->is_active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Configuration is not active. Please activate it first.',
+            ], 400);
+        }
+
+        $lock = Cache::lock("meta_sheet_sync_{$config->id}", 300);
+        if (!$lock->get()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sync is already running for this sheet. Please wait and try again.',
+            ], 409);
+        }
+
+        try {
+            $sheetId = GoogleSheetsConfig::extractSheetId($config->sheet_id);
+            if (!$sheetId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid sheet ID format.',
+                ], 400);
+            }
+
+            if (!$config->sheet_name) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sheet name is missing.',
+                ], 400);
+            }
+
+            // Fetch full sheet data (A:Z) and process rows from row 2 onwards.
+            $values = $this->sheetsService->fetchSheetData(
+                $sheetId,
+                $config->sheet_name,
+                'A:Z',
+                $config->api_key,
+                $config->service_account_json_path
+            );
+
+            if (empty($values) || count($values) < 2) {
+                $config->update([
+                    'last_sync_at' => now(),
+                    'last_synced_row' => count($values) ?: 1,
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'No data rows found to sync.',
+                    'imported' => 0,
+                    'already_exists' => 0,
+                    'already_synced' => 0,
+                    'missing_required' => 0,
+                    'errors' => 0,
+                    'total_rows' => max(count($values) - 1, 0),
+                ]);
+            }
+
+            // Reuse existing lead creation logic (same as Meta test) so behavior matches Apps Script ingestion.
+            $apiController = new \App\Http\Controllers\Api\GoogleSheetsLeadController(
+                app(\App\Services\FieldMappingService::class),
+                app(\App\Services\LeadAssignmentService::class)
+            );
+
+            $imported = 0;
+            $alreadyExists = 0;
+            $alreadySynced = 0;
+            $missingRequired = 0;
+            $errors = 0;
+            $processed = 0;
+
+            // Iterate data rows (skip header at index 0)
+            for ($i = 1; $i < count($values); $i++) {
+                $rowNumber = $i + 1; // 1-based row number in sheet
+                $row = $values[$i] ?? [];
+
+                // Skip empty rows
+                if (empty(array_filter($row, fn ($v) => trim((string) $v) !== ''))) {
+                    continue;
+                }
+
+                // Skip if we already linked this row to a lead (prevents re-sync)
+                if (LeadAssignment::where('sheet_config_id', $config->id)->where('sheet_row_number', $rowNumber)->exists()) {
+                    $alreadySynced++;
+                    continue;
+                }
+
+                $payload = [
+                    'sheet_id' => $sheetId,
+                    'sheet_row_number' => $rowNumber,
+                    'sheet_type' => $config->sheet_type,
+                ];
+
+                foreach ($config->columnMappings as $mapping) {
+                    if (empty($mapping->lead_field_key) || empty($mapping->sheet_column)) {
+                        continue;
+                    }
+                    $colIndex = GoogleSheetsConfig::columnLetterToIndex($mapping->sheet_column);
+                    $value = trim((string) ($row[$colIndex] ?? ''));
+                    if ($value !== '') {
+                        $payload[$mapping->lead_field_key] = $value;
+                    }
+                }
+
+                // Name + phone are mandatory for import
+                if (empty($payload['name']) || empty($payload['phone'])) {
+                    $missingRequired++;
+                    continue;
+                }
+
+                try {
+                    $request = \Illuminate\Http\Request::create('/api/google-sheets/leads', 'POST', $payload);
+                    $request->headers->set('Content-Type', 'application/json');
+                    $request->headers->set('Accept', 'application/json');
+
+                    $response = $apiController->store($request);
+                    $result = json_decode($response->getContent(), true);
+
+                    if (($result['status'] ?? null) === 'ok') {
+                        $processed++;
+                        if (($result['message'] ?? '') === 'Lead created successfully') {
+                            $imported++;
+                        } else {
+                            // Includes: "Lead already exists"
+                            $alreadyExists++;
+                        }
+                    } else {
+                        $errors++;
+                    }
+                } catch (\Exception $e) {
+                    $errors++;
+                    Log::error('Meta sheet sync row failed', [
+                        'config_id' => $config->id,
+                        'row_number' => $rowNumber,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            $config->update([
+                'last_sync_at' => now(),
+                'last_synced_row' => count($values),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Sync completed.',
+                'imported' => $imported,
+                'already_exists' => $alreadyExists,
+                'already_synced' => $alreadySynced,
+                'missing_required' => $missingRequired,
+                'errors' => $errors,
+                'processed' => $processed,
+                'total_rows' => max(count($values) - 1, 0),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Meta sheet sync failed', [
+                'config_id' => $config->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Sync failed: ' . $e->getMessage(),
+            ], 500);
+        } finally {
+            optional($lock)->release();
         }
     }
 

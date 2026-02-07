@@ -451,6 +451,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/save-draft/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'saveDraft'])->name('save-draft');
             Route::get('/generate-script/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'generateScript'])->name('generate-script');
             Route::post('/test/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'test'])->name('test');
+            Route::post('/sync/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'sync'])->name('sync');
             Route::post('/toggle/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'toggle'])->name('toggle');
         });
         

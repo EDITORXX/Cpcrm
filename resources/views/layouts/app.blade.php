@@ -527,6 +527,11 @@
                 display: none !important;
             }
         }
+
+        /* Hide sidebar toggle button (requested) */
+        #sidebarToggle {
+            display: none !important;
+        }
         
         /* Sidebar Tooltip Styles */
         .sidebar-tooltip {

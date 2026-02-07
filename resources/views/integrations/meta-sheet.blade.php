@@ -32,6 +32,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sheet Name</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mappings</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Sync</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
@@ -64,6 +65,9 @@
                                         <span class="text-gray-400">Not mapped yet</span>
                                     @endif
                                 </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ $config->last_sync_at ? $config->last_sync_at->diffForHumans() : 'Never' }}
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <div class="flex space-x-2">
                                         @if($config->is_draft)
@@ -75,6 +79,9 @@
                                         @else
                                             <button onclick="testIntegration({{ $config->id }})" class="text-indigo-600 hover:text-indigo-900" title="Test Integration">
                                                 <i class="fas fa-vial"></i> Test
+                                            </button>
+                                            <button onclick="syncLeads({{ $config->id }}, this)" class="text-green-700 hover:text-green-900" title="Sync Leads">
+                                                <i class="fas fa-sync-alt"></i> Sync
                                             </button>
                                             <button onclick="toggleIntegration({{ $config->id }})" class="text-yellow-600 hover:text-yellow-900" title="Toggle Status">
                                                 <i class="fas fa-toggle-{{ $config->is_active ? 'on' : 'off' }}"></i>
@@ -138,6 +145,52 @@ function toggleIntegration(id) {
     .catch(error => {
         console.error('Error:', error);
         alert('Failed to toggle integration');
+    });
+}
+
+function syncLeads(id, btnEl) {
+    if (!confirm('Sync leads from this sheet now?')) {
+        return;
+    }
+
+    const originalHtml = btnEl.innerHTML;
+    btnEl.disabled = true;
+    btnEl.classList.add('opacity-50');
+    btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing';
+
+    fetch(`/integrations/meta-sheet/sync/${id}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        },
+    })
+    .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Sync failed');
+        }
+
+        alert(
+            'Sync complete!\n\n' +
+            `New leads synced: ${data.imported}\n` +
+            `Already existed: ${data.already_exists}\n` +
+            `Already synced rows: ${data.already_synced}\n` +
+            `Missing name/phone: ${data.missing_required}\n` +
+            `Errors: ${data.errors}`
+        );
+
+        location.reload();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Sync failed: ' + error.message);
+    })
+    .finally(() => {
+        btnEl.disabled = false;
+        btnEl.classList.remove('opacity-50');
+        btnEl.innerHTML = originalHtml;
     });
 }
 </script>

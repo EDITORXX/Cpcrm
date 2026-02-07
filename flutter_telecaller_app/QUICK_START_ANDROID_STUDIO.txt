@@ -1,0 +1,58 @@
+╔════════════════════════════════════════════════════════════════╗
+║     FLUTTER APK BUILD - ANDROID STUDIO QUICK START            ║
+╚════════════════════════════════════════════════════════════════╝
+
+📍 STEP 1: ANDROID STUDIO OPEN KARO
+   └─ File → Open
+
+📍 STEP 2: ANDROID FOLDER SELECT KARO
+   └─ Path: flutter_telecaller_app\android
+   └─ ⚠️ IMPORTANT: Sirf "android" folder open karo, pura project nahi!
+
+📍 STEP 3: GRADLE SYNC WAIT KARO
+   └─ Bottom-right corner: "Gradle Sync in Progress..."
+   └─ ⏱️ Time: 5-10 minutes
+   └─ ✓ Wait until "BUILD SUCCESSFUL" dikhe
+
+📍 STEP 4: CLEAN PROJECT
+   └─ Menu: Build → Clean Project
+   └─ ⏱️ Wait: 1-2 minutes
+
+📍 STEP 5: BUILD APK
+   └─ Menu: Build → Build Bundle(s) / APK(s) → Build APK(s)
+   └─ ⏱️ Time: 10-15 minutes (first build)
+   └─ ✓ Notification: "APK(s) generated successfully"
+   └─ Click "locate" link to find APK
+
+📍 APK LOCATION:
+   └─ build\app\outputs\flutter-apk\app-release.apk
+
+───────────────────────────────────────────────────────────────
+
+🔧 AGAR ERROR AAYE:
+
+❌ Gradle Sync Failed
+   └─ File → Invalidate Caches → Invalidate and Restart
+
+❌ SDK Not Found
+   └─ File → Project Structure → SDK Location
+   └─ Set: C:\Users\vivek\AppData\Local\Android\sdk
+
+❌ Build Hangs
+   └─ Stop build
+   └─ Terminal: flutter clean
+   └─ Restart Android Studio
+
+───────────────────────────────────────────────────────────────
+
+📖 DETAILED GUIDE:
+   └─ ANDROID_STUDIO_BUILD_GUIDE.md
+
+───────────────────────────────────────────────────────────────
+
+✅ SUCCESS INDICATORS:
+   ✓ "BUILD SUCCESSFUL in Xm Ys"
+   ✓ APK file size: 20-50 MB
+   ✓ No errors in Build output window
+
+═══════════════════════════════════════════════════════════════
