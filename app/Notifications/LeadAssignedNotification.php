@@ -23,7 +23,26 @@ class LeadAssignedNotification extends Notification implements ShouldQueue
 
     public function via($notifiable): array
     {
-        return ['database', 'broadcast'];
+        $channels = ['database', 'broadcast'];
+        if (config('mail.default') && config('mail.from.address')) {
+            $channels[] = 'mail';
+        }
+        return $channels;
+    }
+
+    public function toMail($notifiable): MailMessage
+    {
+        $leadName = $this->lead->name ?? 'Lead';
+        $actionUrl = $notifiable->isTelecaller() || $notifiable->isSalesExecutive()
+            ? url('/telecaller/tasks?status=pending')
+            : url('/leads');
+
+        return (new MailMessage)
+            ->subject('New lead assigned: ' . $leadName)
+            ->line('A new lead has been assigned to you.')
+            ->line('**Lead:** ' . $leadName)
+            ->action('View leads', $actionUrl)
+            ->line('Please call and complete the task.');
     }
 
     public function toArray($notifiable): array

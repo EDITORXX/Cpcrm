@@ -180,13 +180,23 @@
         }
     });
 
-    // Subscribe to user channel for notifications
+    // Subscribe to user channel for notifications (popup is shown by layout; here we only refresh data)
     const userId = {{ auth()->id() ?? 'null' }};
     if (userId) {
         const channel = pusher.subscribe('private-user.' + userId);
         
         channel.bind('lead.assigned', function(data) {
-            showNotification('New lead assigned: ' + data.lead.name);
+            if (typeof showLeadAssignedPopup === 'function') {
+                const lead = data.lead || {};
+                const viewUrl = '{{ (auth()->user() && (auth()->user()->isTelecaller() || auth()->user()->isSalesExecutive())) ? route("telecaller.tasks")."?status=pending" : route("leads.index") }}';
+                showLeadAssignedPopup({
+                    title: 'New lead assigned',
+                    message: 'You have 1 new lead assigned: ' + (lead.name || 'Lead') + '. View leads to see details and call.',
+                    viewUrl: viewUrl,
+                    leadPhone: lead.phone || '',
+                    leadName: lead.name || 'Lead'
+                });
+            }
             loadDashboard();
         });
 
@@ -383,6 +393,30 @@
 
     // Initial load
     loadDashboard();
+
+    // On load: show lead-assigned popup if user has unread new_lead notifications
+    if (token && userId && typeof showLeadAssignedPopup === 'function') {
+        var viewUrlDefault = (document.getElementById('lead-assigned-view-btn') && document.getElementById('lead-assigned-view-btn').getAttribute('href')) || '';
+        axios.get(apiBase + '/notifications/unread', { headers: { 'Authorization': 'Bearer ' + token } })
+            .then(function(res) {
+                if (res.data.data && res.data.data.length) {
+                    var newLead = res.data.data.find(function(n) { return n.type === 'new_lead'; });
+                    if (newLead) {
+                        var data = newLead.data || {};
+                        var count = (data.lead_count || 1);
+                        var name = data.last_lead_name || newLead.message || 'Lead';
+                        showLeadAssignedPopup({
+                            title: count > 1 ? 'You have new leads assigned' : 'New lead assigned',
+                            message: count > 1 ? ('You have ' + count + ' new leads assigned. View leads to see details and call.') : ('You have 1 new lead assigned: ' + name + '. View leads to see details and call.'),
+                            viewUrl: viewUrlDefault,
+                            leadPhone: data.last_lead_phone || (newLead.lead && newLead.lead.phone ? newLead.lead.phone : ''),
+                            leadName: name
+                        });
+                    }
+                }
+            })
+            .catch(function() {});
+    }
 
     // Auto-refresh every 30 seconds
     setInterval(loadDashboard, 30000);

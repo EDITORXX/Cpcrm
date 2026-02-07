@@ -301,6 +301,10 @@ Route::middleware(['auth'])->group(function () {
         }
         return view('dashboard');
     })->name('dashboard');
+
+    // Test: Lead assigned notification (1-click test for popup + email)
+    Route::get('/test/lead-notification', [\App\Http\Controllers\TestLeadNotificationController::class, 'index'])->name('test.lead-notification');
+    Route::post('/test/lead-notification/simulate', [\App\Http\Controllers\TestLeadNotificationController::class, 'simulate'])->name('test.lead-notification.simulate');
     
     // Users Management
     Route::resource('users', \App\Http\Controllers\UserController::class);

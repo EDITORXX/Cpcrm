@@ -1357,6 +1357,89 @@
 
     </script>
     
+    @auth
+    <!-- Lead assigned modal (global, dismissible) -->
+    <div id="lead-assigned-overlay" class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 hidden" aria-hidden="true">
+        <div id="lead-assigned-modal" class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative" role="dialog" aria-labelledby="lead-assigned-title">
+            <button type="button" id="lead-assigned-close-x" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl leading-none" aria-label="Close">&times;</button>
+            <h2 id="lead-assigned-title" class="text-xl font-bold text-gray-900 mb-2">New lead assigned</h2>
+            <p id="lead-assigned-message" class="text-gray-600 mb-6">You have a new lead assigned. View leads to see details and call.</p>
+            <div class="flex flex-wrap gap-3">
+                <a id="lead-assigned-view-btn" href="{{ (auth()->user() && (auth()->user()->isTelecaller() || auth()->user()->isSalesExecutive())) ? route('telecaller.tasks').'?status=pending' : route('leads.index') }}" class="px-4 py-2 rounded-lg font-semibold text-white transition" style="background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));">View leads</a>
+                <a id="lead-assigned-call-btn" href="#" class="px-4 py-2 rounded-lg font-semibold bg-green-600 text-white hover:bg-green-700 transition hidden">Call</a>
+                <button type="button" id="lead-assigned-cancel-btn" class="px-4 py-2 rounded-lg font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <script>
+    (function() {
+        var overlay = document.getElementById('lead-assigned-overlay');
+        var titleEl = document.getElementById('lead-assigned-title');
+        var messageEl = document.getElementById('lead-assigned-message');
+        var viewBtn = document.getElementById('lead-assigned-view-btn');
+        var callBtn = document.getElementById('lead-assigned-call-btn');
+        var viewUrlDefault = viewBtn ? viewBtn.getAttribute('href') : '';
+
+        window.showLeadAssignedPopup = function(options) {
+            var o = options || {};
+            if (titleEl) titleEl.textContent = o.title || 'New lead assigned';
+            if (messageEl) messageEl.textContent = o.message || 'You have a new lead assigned. View leads to see details and call.';
+            if (viewUrlDefault && viewBtn) viewBtn.href = o.viewUrl || viewUrlDefault;
+            if (callBtn) {
+                if (o.leadPhone) {
+                    callBtn.href = 'tel:' + (o.leadPhone + '').replace(/\D/g, '');
+                    callBtn.classList.remove('hidden');
+                } else {
+                    callBtn.classList.add('hidden');
+                }
+            }
+            if (overlay) overlay.classList.remove('hidden');
+        };
+
+        window.closeLeadAssignedModal = function() {
+            if (overlay) overlay.classList.add('hidden');
+        };
+
+        if (document.getElementById('lead-assigned-close-x')) {
+            document.getElementById('lead-assigned-close-x').addEventListener('click', closeLeadAssignedModal);
+        }
+        if (document.getElementById('lead-assigned-cancel-btn')) {
+            document.getElementById('lead-assigned-cancel-btn').addEventListener('click', closeLeadAssignedModal);
+        }
+        if (overlay) {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === overlay) closeLeadAssignedModal();
+            });
+        }
+
+        var uid = document.querySelector('meta[name="user-id"]') && document.querySelector('meta[name="user-id"]').getAttribute('content');
+        var pk = document.querySelector('meta[name="pusher-key"]') && document.querySelector('meta[name="pusher-key"]').getAttribute('content');
+        if (uid && pk && typeof Pusher !== 'undefined') {
+            try {
+                var pusher = new Pusher(pk, {
+                    cluster: (document.querySelector('meta[name="pusher-cluster"]') && document.querySelector('meta[name="pusher-cluster"]').getAttribute('content')) || 'mt1',
+                    encrypted: true,
+                    authEndpoint: '/broadcasting/auth'
+                });
+                var ch = pusher.subscribe('private-user.' + uid);
+                ch.bind('lead.assigned', function(data) {
+                    var lead = data.lead || {};
+                    var name = lead.name || 'Lead';
+                    var phone = lead.phone || '';
+                    showLeadAssignedPopup({
+                        title: 'New lead assigned',
+                        message: 'You have 1 new lead assigned: ' + name + '. View leads to see details and call.',
+                        viewUrl: viewUrlDefault,
+                        leadPhone: phone,
+                        leadName: name
+                    });
+                });
+            } catch (e) { console.warn('Pusher lead-assigned:', e); }
+        }
+    })();
+    </script>
+    @endauth
+
     <!-- Chatbot Assistant Widget -->
     @include('components.chatbot-widget')
     
