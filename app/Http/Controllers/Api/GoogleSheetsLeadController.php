@@ -7,6 +7,7 @@ use App\Models\GoogleSheetsConfig;
 use App\Models\Lead;
 use App\Models\LeadAssignment;
 use App\Events\LeadCreated;
+use App\Services\DuplicateDetectionService;
 use App\Services\FieldMappingService;
 use App\Services\LeadAssignmentService;
 use Illuminate\Http\Request;
@@ -69,6 +70,22 @@ class GoogleSheetsLeadController extends Controller
             $mappedData['source'] = $mappedData['source'] ?? 'google_sheets';
             $mappedData['status'] = 'new';
 
+            // Sanitize/validate phone (avoid importing IDs/timestamps as phone numbers)
+            /** @var DuplicateDetectionService $duplicateService */
+            $duplicateService = app(DuplicateDetectionService::class);
+            $sanitizedPhone = $duplicateService->sanitizePhone((string) $mappedData['phone']);
+            $phoneDigits = preg_replace('/[^0-9]/', '', $sanitizedPhone);
+            if (!$duplicateService->isValidPhone($phoneDigits)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Validation failed',
+                    'errors' => [
+                        'phone' => ['Invalid phone number'],
+                    ],
+                ], 422);
+            }
+            $mappedData['phone'] = $phoneDigits;
+
             // Check for duplicate by phone
             $existingLead = Lead::where('phone', $mappedData['phone'])->first();
             if ($existingLead) {
@@ -79,15 +96,20 @@ class GoogleSheetsLeadController extends Controller
                     ->first();
 
                 if (!$assignment) {
+                    $fallbackAssignedTo = optional($existingLead->activeAssignments()->first())->assigned_to
+                        ?? $config->linked_telecaller_id
+                        ?? $config->created_by;
+
                     LeadAssignment::create([
                         'lead_id' => $existingLead->id,
                         'sheet_config_id' => $config->id,
                         'sheet_row_number' => $request->sheet_row_number,
-                        'assigned_to' => null,
+                        'assigned_to' => $fallbackAssignedTo,
                         'assigned_by' => $config->created_by,
-                        'assignment_type' => 'primary',
+                        // Don't change the lead's real assignment; this is only a sheet-row link
+                        'assignment_type' => 'secondary',
                         'assigned_at' => now(),
-                        'is_active' => true,
+                        'is_active' => false,
                     ]);
                 }
 
@@ -115,37 +137,48 @@ class GoogleSheetsLeadController extends Controller
                 'created_by' => $config->created_by,
             ]);
 
-            // Store sheet reference
-            LeadAssignment::create([
-                'lead_id' => $lead->id,
-                'sheet_config_id' => $config->id,
-                'sheet_row_number' => $request->sheet_row_number,
-                'assigned_to' => null,
-                'assigned_by' => $config->created_by,
-                'assignment_type' => 'primary',
-                'assigned_at' => now(),
-                'is_active' => true,
-            ]);
-
             // Fire LeadCreated event
             event(new LeadCreated($lead));
 
-            // Auto-assign if assignment rule exists
+            // Auto-assign (preferred). If no assignment config is set, fall back to owner.
             $assignedUser = null;
-            if ($config->assignment_rule_id) {
-                try {
-                    // Use assignLead method with sheet config ID
-                    $assignedUserId = $this->leadAssignmentService->assignLead($lead, $config->id, $config->created_by);
-                    if ($assignedUserId) {
-                        $assignedUser = \App\Models\User::find($assignedUserId);
-                    }
-                } catch (\Exception $e) {
-                    Log::error("Failed to auto-assign lead from Google Sheet", [
+            try {
+                // Use assignLead method with sheet config ID
+                $assignedUserId = $this->leadAssignmentService->assignLead($lead, $config->id, $config->created_by);
+                if (!$assignedUserId) {
+                    // Ensure DB constraint is satisfied and row tracking is stored
+                    $assignedUserId = $config->linked_telecaller_id ?? $config->created_by;
+
+                    LeadAssignment::create([
                         'lead_id' => $lead->id,
-                        'config_id' => $config->id,
-                        'error' => $e->getMessage(),
+                        'assigned_to' => $assignedUserId,
+                        'assigned_by' => $config->created_by,
+                        'assignment_type' => 'primary',
+                        'assignment_method' => 'manual',
+                        'assigned_at' => now(),
+                        'is_active' => true,
+                        'sheet_config_id' => $config->id,
+                        'sheet_row_number' => $request->sheet_row_number,
                     ]);
+                } else {
+                    // Add sheet row tracking to the created assignment record
+                    $lead->refresh();
+                    $active = $lead->activeAssignments()->first();
+                    if ($active) {
+                        $active->update([
+                            'sheet_row_number' => $request->sheet_row_number,
+                            'sheet_config_id' => $config->id,
+                        ]);
+                    }
                 }
+
+                $assignedUser = \App\Models\User::find($assignedUserId);
+            } catch (\Exception $e) {
+                Log::error("Failed to auto-assign lead from Google Sheet", [
+                    'lead_id' => $lead->id,
+                    'config_id' => $config->id,
+                    'error' => $e->getMessage(),
+                ]);
             }
 
             Log::info("Lead created from Google Sheet", [

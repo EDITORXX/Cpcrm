@@ -12,6 +12,7 @@ use App\Services\TelecallerLimitService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class LeadAssignmentController extends Controller
 {
@@ -155,6 +156,58 @@ class LeadAssignmentController extends Controller
             'success' => true,
             'message' => "Successfully assigned {$results['success']} leads. {$results['failed']} failed.",
             'results' => $results
+        ]);
+    }
+
+    /**
+     * Delete leads (bulk or single) from Unassigned Leads screen.
+     * Soft-deletes leads so they can be recovered from trash if needed.
+     */
+    public function deleteLeads(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'lead_ids' => 'required|array|min:1',
+            'lead_ids.*' => 'exists:leads,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $leadIds = collect($request->lead_ids)->map(fn ($id) => (int) $id)->unique()->values();
+
+        $deleted = 0;
+        $skipped = 0;
+
+        // Only delete leads that are currently unassigned (safety)
+        $leads = Lead::whereIn('id', $leadIds)
+            ->whereDoesntHave('activeAssignments')
+            ->get();
+
+        foreach ($leads as $lead) {
+            try {
+                $lead->delete(); // soft delete (Lead uses SoftDeletes)
+                $deleted++;
+            } catch (\Exception $e) {
+                $skipped++;
+                Log::error('Failed to delete lead from unassigned screen', [
+                    'lead_id' => $lead->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $requestedCount = $leadIds->count();
+        $skipped += max($requestedCount - $leads->count(), 0); // assigned/not-found-in-query
+
+        return response()->json([
+            'success' => true,
+            'message' => "Deleted {$deleted} lead(s). Skipped {$skipped}.",
+            'deleted' => $deleted,
+            'skipped' => $skipped,
         ]);
     }
 

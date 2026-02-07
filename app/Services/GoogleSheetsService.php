@@ -371,6 +371,17 @@ class GoogleSheetsService
                 ];
             });
 
+        // If mappings include explicit Name/Phone columns (common for Meta/Facebook setup),
+        // prefer those over legacy name_column/phone_column defaults (A/B).
+        $mappedName = $customMappings->first(fn ($m) => ($m['lead_field_key'] ?? null) === 'name');
+        $mappedPhone = $customMappings->first(fn ($m) => ($m['lead_field_key'] ?? null) === 'phone');
+        if ($mappedName && isset($mappedName['column_index'])) {
+            $nameIndex = $mappedName['column_index'];
+        }
+        if ($mappedPhone && isset($mappedPhone['column_index'])) {
+            $phoneIndex = $mappedPhone['column_index'];
+        }
+
         $imported = 0;
         $skipped = 0;
         $errors = [];
@@ -480,6 +491,16 @@ class GoogleSheetsService
                                 ->exists();
                             
                             if ($sourceSheetId) {
+                                $alreadyImported = true;
+                            }
+                        }
+
+                        // Also check LeadAssignment sheet linkage (covers imports done via API / meta sync)
+                        if (!$alreadyImported) {
+                            $linkedViaAssignment = LeadAssignment::where('lead_id', $existingLead->id)
+                                ->where('sheet_config_id', $config->id)
+                                ->exists();
+                            if ($linkedViaAssignment) {
                                 $alreadyImported = true;
                             }
                         }

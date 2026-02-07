@@ -15,6 +15,18 @@ class TargetController extends Controller
 {
     protected $targetService;
 
+    protected function getTargetsRouteBase(Request $request): string
+    {
+        $routeName = $request->route()?->getName() ?? '';
+        if (str_starts_with($routeName, 'crm.targets.')) {
+            return 'crm.targets';
+        }
+        if (str_starts_with($routeName, 'admin.targets.')) {
+            return 'admin.targets';
+        }
+        return $request->user() && $request->user()->isCrm() ? 'crm.targets' : 'admin.targets';
+    }
+
     public function __construct(TargetService $targetService)
     {
         $this->targetService = $targetService;
@@ -122,6 +134,7 @@ class TargetController extends Controller
      */
     public function store(Request $request)
     {
+        $routeBase = $this->getTargetsRouteBase($request);
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
             'month' => 'required|date_format:Y-m',
@@ -175,7 +188,7 @@ class TargetController extends Controller
             );
 
             return redirect()
-                ->route('admin.targets.index', ['month' => $validated['month']])
+                ->route($routeBase . '.index', ['month' => $validated['month']])
                 ->with('success', "Targets set successfully for {$targetUser->name}");
 
         } catch (\Exception $e) {
@@ -192,6 +205,12 @@ class TargetController extends Controller
     {
         $user = $request->user();
         $target = Target::with('user.role')->findOrFail($id);
+        if (!$target->user) {
+            $routeBase = $this->getTargetsRouteBase($request);
+            return redirect()
+                ->route($routeBase . '.index', ['month' => $target->target_month->format('Y-m')])
+                ->withErrors(['error' => 'This target belongs to a deleted/missing user. Please delete the target record.']);
+        }
 
         // Get users based on role
         if ($user->isSalesHead()) {
@@ -223,6 +242,13 @@ class TargetController extends Controller
     public function update(Request $request, $id)
     {
         $target = Target::with('user.role')->findOrFail($id);
+        if (!$target->user) {
+            $routeBase = $this->getTargetsRouteBase($request);
+            return redirect()
+                ->route($routeBase . '.index', ['month' => $target->target_month->format('Y-m')])
+                ->withErrors(['error' => 'Cannot update this target because the user is missing. Please delete the target record.']);
+        }
+        $routeBase = $this->getTargetsRouteBase($request);
 
         $validated = $request->validate([
             'target_prospects_extract' => 'nullable|integer|min:0',
@@ -255,7 +281,7 @@ class TargetController extends Controller
             ]);
 
             return redirect()
-                ->route('admin.targets.index', ['month' => $target->target_month->format('Y-m')])
+                ->route($routeBase . '.index', ['month' => $target->target_month->format('Y-m')])
                 ->with('success', 'Target updated successfully');
 
         } catch (\Exception $e) {
@@ -268,8 +294,9 @@ class TargetController extends Controller
     /**
      * Remove the specified target
      */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
+        $routeBase = $this->getTargetsRouteBase($request);
         $target = Target::findOrFail($id);
         $month = $target->target_month->format('Y-m');
         
@@ -277,7 +304,7 @@ class TargetController extends Controller
             $target->delete();
 
             return redirect()
-                ->route('admin.targets.index', ['month' => $month])
+                ->route($routeBase . '.index', ['month' => $month])
                 ->with('success', 'Target deleted successfully');
 
         } catch (\Exception $e) {
@@ -291,6 +318,7 @@ class TargetController extends Controller
      */
     public function bulkSet(Request $request)
     {
+        $routeBase = $this->getTargetsRouteBase($request);
         $currentUser = $request->user();
         $validated = $request->validate([
             'user_ids' => 'required|array',
@@ -335,7 +363,7 @@ class TargetController extends Controller
             );
 
             return redirect()
-                ->route('admin.targets.index', ['month' => $validated['month']])
+                ->route($routeBase . '.index', ['month' => $validated['month']])
                 ->with('success', 'Targets set successfully for ' . count($validated['user_ids']) . ' users');
 
         } catch (\Exception $e) {

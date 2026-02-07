@@ -94,10 +94,11 @@ class DuplicateDetectionService
     {
         $phone = $this->sanitizePhone($phone);
         
-        // Minimum 10 digits required
+        // E.164 max is 15 digits; require at least 10 (India/local)
         $digits = preg_replace('/[^0-9]/', '', $phone);
         
-        return strlen($digits) >= 10;
+        $len = strlen($digits);
+        return $len >= 10 && $len <= 15;
     }
 }
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\GoogleSheetsConfig;
 use App\Models\GoogleSheetsColumnMapping;
+use App\Models\Lead;
 use App\Models\LeadFormField;
 use App\Models\LeadAssignment;
 use App\Services\FieldMappingService;
@@ -769,7 +770,7 @@ class MetaSheetController extends Controller
 
             // Create a request object with test data
             $request = \Illuminate\Http\Request::create('/api/google-sheets/leads', 'POST', $testData);
-            $request->headers->set('Content-Type', 'application/json');
+            // Don't mark as JSON unless we provide raw JSON body; otherwise Laravel reads empty input.
             $request->headers->set('Accept', 'application/json');
 
             // Call the store method directly
@@ -927,7 +928,7 @@ class MetaSheetController extends Controller
 
                 try {
                     $request = \Illuminate\Http\Request::create('/api/google-sheets/leads', 'POST', $payload);
-                    $request->headers->set('Content-Type', 'application/json');
+                    // Don't mark as JSON unless we provide raw JSON body; otherwise Laravel reads empty input.
                     $request->headers->set('Accept', 'application/json');
 
                     $response = $apiController->store($request);
@@ -1003,6 +1004,81 @@ class MetaSheetController extends Controller
             'success' => true,
             'is_active' => $config->is_active,
         ]);
+    }
+
+    /**
+     * Delete a Meta sheet configuration.
+     * Optionally deletes (soft deletes) leads that were created from this sheet.
+     */
+    public function delete(Request $request, $id)
+    {
+        $config = GoogleSheetsConfig::with('columnMappings')->findOrFail($id);
+        if ($config->created_by !== auth()->id() || $config->sheet_type !== 'meta_facebook') {
+            abort(403);
+        }
+
+        $deleteLeads = $request->boolean('delete_leads', false);
+
+        DB::beginTransaction();
+        try {
+            $deletedLeadsCount = 0;
+            $skippedLeadsCount = 0;
+
+            if ($deleteLeads) {
+                // We only delete leads that are very likely created from THIS sheet:
+                // - linked via LeadAssignment.sheet_config_id
+                // - source = google_sheets
+                // - created_by matches config owner
+                // - created_at >= config.created_at (avoids deleting pre-existing leads linked due to duplicates)
+                $leadIds = LeadAssignment::where('sheet_config_id', $config->id)
+                    ->pluck('lead_id')
+                    ->unique()
+                    ->values();
+
+                if ($leadIds->isNotEmpty()) {
+                    $leads = Lead::whereIn('id', $leadIds)
+                        ->where('source', 'google_sheets')
+                        ->where('created_by', $config->created_by)
+                        ->where('created_at', '>=', $config->created_at)
+                        ->get();
+
+                    foreach ($leads as $lead) {
+                        $lead->delete(); // soft delete
+                        $deletedLeadsCount++;
+
+                        // Remove assignments for deleted leads so they disappear from dashboards immediately.
+                        LeadAssignment::where('lead_id', $lead->id)->delete();
+                    }
+
+                    // Leads linked but not matching our safety filter (usually duplicates / pre-existing leads).
+                    $skippedLeadsCount = max($leadIds->count() - $deletedLeadsCount, 0);
+                }
+            }
+
+            // Delete config (mappings + sheet assignment config will cascade via FK)
+            $config->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Sheet configuration deleted successfully.',
+                'deleted_leads' => $deletedLeadsCount,
+                'skipped_leads' => $skippedLeadsCount,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to delete Meta sheet configuration', [
+                'config_id' => $config->id,
+                'delete_leads' => $deleteLeads,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Delete failed: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

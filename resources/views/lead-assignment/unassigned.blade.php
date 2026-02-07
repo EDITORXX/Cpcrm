@@ -53,6 +53,7 @@
                     @endif
                 </select>
                 <button onclick="bulkAssign()" class="px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d]">Assign Selected</button>
+                <button onclick="bulkDelete()" class="ml-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Delete Selected</button>
             </div>
         </div>
 
@@ -90,7 +91,10 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ ucfirst(str_replace('_', ' ', $lead->source ?? 'N/A')) }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <button onclick="assignSingle({{ $lead->id }})" class="text-indigo-600 hover:text-indigo-900">Assign</button>
+                                <div class="flex gap-3">
+                                    <button type="button" data-lead-id="{{ $lead->id }}" class="js-assign-lead text-indigo-600 hover:text-indigo-900">Assign</button>
+                                    <button type="button" data-lead-id="{{ $lead->id }}" class="js-delete-lead text-red-600 hover:text-red-800">Delete</button>
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -136,6 +140,22 @@
         axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         
         let selectedLeadId = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.js-assign-lead').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const leadId = parseInt(btn.dataset.leadId);
+                    assignSingle(leadId);
+                });
+            });
+
+            document.querySelectorAll('.js-delete-lead').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const leadId = parseInt(btn.dataset.leadId);
+                    deleteSingle(leadId);
+                });
+            });
+        });
 
         function selectAll() {
             document.querySelectorAll('.lead-checkbox').forEach(cb => cb.checked = true);
@@ -196,6 +216,21 @@
             assignLeads(selected, userId);
         }
 
+        function deleteSingle(leadId) {
+            if (!confirm('Delete this lead?')) return;
+            deleteLeads([leadId]);
+        }
+
+        function bulkDelete() {
+            const selected = Array.from(document.querySelectorAll('.lead-checkbox:checked')).map(cb => parseInt(cb.value));
+            if (selected.length === 0) {
+                alert('Please select at least one lead');
+                return;
+            }
+            if (!confirm(`Delete ${selected.length} selected lead(s)?`)) return;
+            deleteLeads(selected);
+        }
+
         function assignLeads(leadIds, telecallerId) {
             axios.post('{{ route("lead-assignment.assign") }}', {
                 lead_ids: leadIds,
@@ -207,6 +242,19 @@
             })
             .catch(error => {
                 alert('Error: ' + (error.response?.data?.message || 'Failed to assign leads'));
+            });
+        }
+
+        function deleteLeads(leadIds) {
+            axios.post('{{ route("lead-assignment.delete") }}', {
+                lead_ids: leadIds
+            })
+            .then(response => {
+                alert(response.data.message);
+                window.location.reload();
+            })
+            .catch(error => {
+                alert('Error: ' + (error.response?.data?.message || 'Failed to delete leads'));
             });
         }
     </script>

@@ -236,12 +236,12 @@ Route::get('/sales-executive/verification-pending', [\App\Http\Controllers\Sales
 Route::get('/sales-executive/profile', [\App\Http\Controllers\SalesExecutiveController::class, 'profile'])->name('sales-executive.profile');
 
 // Backward compatibility - redirect old telecaller routes to sales-executive
-Route::get('/telecaller/dashboard', function() { return redirect()->route('sales-executive.dashboard'); });
-Route::get('/telecaller/tasks', function() { return redirect()->route('sales-executive.tasks'); });
-Route::get('/telecaller/leads', function() { return redirect()->route('sales-executive.leads'); });
-Route::get('/telecaller/reports', function() { return redirect()->route('sales-executive.reports'); });
-Route::get('/telecaller/verification-pending', function() { return redirect()->route('sales-executive.verification-pending'); });
-Route::get('/telecaller/profile', function() { return redirect()->route('sales-executive.profile'); });
+Route::get('/telecaller/dashboard', function() { return redirect()->route('sales-executive.dashboard'); })->name('telecaller.dashboard');
+Route::get('/telecaller/tasks', function() { return redirect()->route('sales-executive.tasks'); })->name('telecaller.tasks');
+Route::get('/telecaller/leads', function() { return redirect()->route('sales-executive.leads'); })->name('telecaller.leads');
+Route::get('/telecaller/reports', function() { return redirect()->route('sales-executive.reports'); })->name('telecaller.reports');
+Route::get('/telecaller/verification-pending', function() { return redirect()->route('sales-executive.verification-pending'); })->name('telecaller.verification-pending');
+Route::get('/telecaller/profile', function() { return redirect()->route('sales-executive.profile'); })->name('telecaller.profile');
 
 // Sales Head Routes (protected)
 Route::middleware(['auth'])->prefix('sales-head')->name('sales-head.')->group(function () {
@@ -339,6 +339,10 @@ Route::middleware(['auth'])->group(function () {
     // Verifications (CRM/Admin/Sales Head)
     Route::middleware(['role:crm,admin,sales_head'])->prefix('crm')->name('crm.')->group(function () {
         Route::get('/verifications', [\App\Http\Controllers\Crm\VerificationController::class, 'index'])->name('verifications');
+
+        // Target Management (CRM/Admin/Sales Head) - CRM-friendly URLs
+        Route::resource('targets', \App\Http\Controllers\Admin\TargetController::class);
+        Route::post('targets/bulk-set', [\App\Http\Controllers\Admin\TargetController::class, 'bulkSet'])->name('targets.bulk-set');
     });
 
     // Finance Manager Routes
@@ -452,6 +456,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/generate-script/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'generateScript'])->name('generate-script');
             Route::post('/test/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'test'])->name('test');
             Route::post('/sync/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'sync'])->name('sync');
+            Route::post('/delete/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'delete'])->name('delete');
             Route::post('/toggle/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'toggle'])->name('toggle');
         });
         
@@ -638,6 +643,7 @@ Route::middleware(['auth', 'role:crm,admin'])->prefix('lead-assignment')->name('
     Route::get('/', [\App\Http\Controllers\LeadAssignmentController::class, 'index'])->name('index');
     Route::get('/unassigned', [\App\Http\Controllers\LeadAssignmentController::class, 'getUnassignedLeads'])->name('unassigned');
     Route::post('/assign', [\App\Http\Controllers\LeadAssignmentController::class, 'assignLeads'])->name('assign');
+    Route::post('/delete', [\App\Http\Controllers\LeadAssignmentController::class, 'deleteLeads'])->name('delete');
     Route::get('/telecaller-stats', [\App\Http\Controllers\LeadAssignmentController::class, 'getTelecallerStats'])->name('telecaller-stats');
     
     // Telecaller Limits

@@ -1,42 +1,35 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Target - Admin</title>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; }
-        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
-        .header { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; color: #333; font-weight: 500; }
-        .form-group input, .form-group select { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 16px; }
-        .form-group input:focus, .form-group select:focus { outline: none; border-color: #205A44; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .btn { padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: 500; text-decoration: none; display: inline-block; }
-        .btn-primary { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
-        .btn-primary:hover { background: linear-gradient(135deg, #15803d 0%, #166534 100%); transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); }
-        .btn-secondary { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
-        .btn-secondary:hover { background: linear-gradient(135deg, #15803d 0%, #166534 100%); transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); }
-        .alert { padding: 12px; border-radius: 5px; margin-bottom: 20px; }
-        .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .section-title { font-size: 18px; font-weight: 600; color: #333; margin: 30px 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #e0e0e0; }
-        .section-title:first-child { margin-top: 0; }
-        .info-box { background: #fff3cd; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #ffc107; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Edit Target</h1>
-            <p style="color: #666; margin-top: 5px;">Edit target for {{ $target->user->name }} - {{ $target->target_month->format('M Y') }}</p>
-        </div>
+@extends('layouts.app')
+
+@section('title', 'Edit Target - Admin')
+@section('page-title', 'Edit Target')
+@section('page-subtitle', 'Edit target for ' . ($target->user->name ?? 'User') . ' - ' . $target->target_month->format('M Y'))
+
+@php
+    $targetsRouteBase = auth()->user()->isCrm() ? 'crm.targets' : 'admin.targets';
+@endphp
+
+@section('header-actions')
+    <a href="{{ route($targetsRouteBase . '.index', ['month' => $month]) }}" class="btn btn-brand-secondary">← Back</a>
+@endsection
+
+@push('styles')
+<style>
+    .targets-page .t-card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); max-width: 900px; }
+    .targets-page .t-alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 12px; border-radius: 8px; margin-bottom: 16px; }
+    .targets-page .t-info { background: #fff3cd; padding: 14px; border-radius: 10px; margin-bottom: 16px; border-left: 4px solid #ffc107; }
+    .targets-page .form-group { margin-bottom: 16px; }
+    .targets-page .form-group label { display: block; margin-bottom: 8px; color: #333; font-weight: 600; }
+    .targets-page .form-group input, .targets-page .form-group select { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; background: white; }
+    .targets-page .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .targets-page .section-title { font-size: 16px; font-weight: 700; color: #111; margin: 22px 0 12px 0; padding-bottom: 10px; border-bottom: 2px solid #f0f0f0; }
+</style>
+@endpush
+
+@section('content')
+    <div class="targets-page">
 
         @if($errors->any())
-            <div class="alert alert-danger">
+            <div class="t-alert-danger">
                 @foreach($errors->all() as $error)
                     <div>{{ $error }}</div>
                 @endforeach
@@ -47,14 +40,14 @@
             $progress = $target->getProgressData();
         @endphp
 
-        <div class="info-box">
+        <div class="t-info">
             <strong>Current Progress:</strong><br>
             Prospects Extract: {{ $progress['prospects_extract']['actual'] }} / {{ $target->target_prospects_extract }} ({{ number_format($progress['prospects_extract']['percentage'], 1) }}%)<br>
             Prospects Verified: {{ $progress['prospects_verified']['actual'] }} / {{ $target->target_prospects_verified }} ({{ number_format($progress['prospects_verified']['percentage'], 1) }}%)<br>
             Calls: {{ $progress['calls']['actual'] }} / {{ $target->target_calls }} ({{ number_format($progress['calls']['percentage'], 1) }}%)
         </div>
 
-        <form method="POST" action="{{ route('admin.targets.update', $target->id) }}" class="card">
+        <form method="POST" action="{{ route($targetsRouteBase . '.update', $target->id) }}" class="t-card">
             @csrf
             @method('PUT')
 
@@ -155,11 +148,10 @@
             </div>
 
             <div style="margin-top: 30px; display: flex; gap: 10px;">
-                <button type="submit" class="btn btn-primary">Update Target</button>
-                <a href="{{ route('admin.targets.index', ['month' => $month]) }}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-brand-primary">Update Target</button>
+                <a href="{{ route($targetsRouteBase . '.index', ['month' => $month]) }}" class="btn btn-brand-secondary">Cancel</a>
             </div>
         </form>
     </div>
-</body>
-</html>
+@endsection
 

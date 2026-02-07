@@ -254,41 +254,55 @@
             transition: all 0.3s;
         }
         
-        /* Icon-only sidebar (all roles) */
-        #sidebar {
+        /* Sidebar nav mode
+           - Default is icon mode (body.nav-icons)
+           - Toggle to text mode (body.nav-text) using localStorage
+        */
+        body.nav-icons #sidebar {
             width: 64px !important;
         }
         
-        #sidebar nav {
+        body.nav-icons #sidebar nav {
             padding: 0 12px !important;
         }
         
-        #sidebar h2,
-        #sidebar p {
+        body.nav-icons #sidebar h2,
+        body.nav-icons #sidebar p {
             display: none !important;
         }
         
-        #sidebar .sidebar-link {
+        body.nav-icons #sidebar .sidebar-link {
             justify-content: center;
             padding: 12px !important;
             font-size: 0 !important;
         }
         
-        #sidebar .sidebar-link i {
+        body.nav-icons #sidebar .sidebar-link i {
             margin-right: 0 !important;
             font-size: 18px;
             width: 20px;
             text-align: center;
         }
         
-        #leadsMenuIcon,
-        #projectsMenuIcon {
+        body.nav-icons #leadsMenuIcon,
+        body.nav-icons #projectsMenuIcon {
             display: none !important;
         }
         
-        #leadsSubMenu,
-        #projectsSubMenu {
+        body.nav-icons #leadsSubMenu,
+        body.nav-icons #projectsSubMenu {
             padding-left: 0 !important;
+        }
+
+        /* Keep main content aligned with sidebar width */
+        body.nav-icons #mainContent {
+            margin-left: 64px !important;
+        }
+        body.nav-text #mainContent {
+            margin-left: 256px !important;
+        }
+        body.sidebar-hidden #mainContent {
+            margin-left: 0 !important;
         }
         .sidebar-link:hover {
             background: #F7F6F3 !important;
@@ -570,7 +584,7 @@
     
     @stack('styles')
 </head>
-<body class="bg-[#F7F6F3] font-sans antialiased @if(auth()->user()->isCrm()) layout-crm @endif" style="margin: 0; padding: 0; overflow: hidden;">
+<body class="bg-[#F7F6F3] font-sans antialiased nav-icons @if(auth()->user()->isCrm()) layout-crm @endif" style="margin: 0; padding: 0; overflow: hidden;">
     <!-- Sidebar Toggle Button - Always visible -->
     <button id="sidebarToggle" class="sidebar-toggle" title="Toggle Sidebar">
         <i class="fas fa-chevron-left sidebar-toggle-icon" id="sidebarToggleIcon"></i>
@@ -610,7 +624,7 @@
                     <i class="fas fa-users" style="margin-right: 10px; width: 20px;"></i>
                     All Users
                 </a>
-                <a href="{{ route('admin.targets.index') }}" class="sidebar-link {{ request()->routeIs('admin.targets.*') ? 'active' : '' }}" data-tooltip="Target Setting" title="Target Setting">
+                <a href="{{ auth()->user()->isCrm() ? route('crm.targets.index') : route('admin.targets.index') }}" class="sidebar-link {{ request()->routeIs('admin.targets.*') || request()->routeIs('crm.targets.*') ? 'active' : '' }}" data-tooltip="Target Setting" title="Target Setting">
                     <i class="fas fa-bullseye" style="margin-right: 10px; width: 20px;"></i>
                     Target Setting
                 </a>
@@ -713,7 +727,7 @@
                 </a>
                 @endif
                 @if(auth()->user()->isAdmin() || auth()->user()->isCrm())
-                <a href="{{ route('admin.targets.index') }}" class="sidebar-link {{ request()->routeIs('admin.targets.*') ? 'active' : '' }}">
+                <a href="{{ auth()->user()->isCrm() ? route('crm.targets.index') : route('admin.targets.index') }}" class="sidebar-link {{ request()->routeIs('admin.targets.*') || request()->routeIs('crm.targets.*') ? 'active' : '' }}">
                     <i class="fas fa-bullseye" style="margin-right: 10px; width: 20px;"></i>
                     Target Setting
                 </a>
@@ -783,7 +797,7 @@
                     <i class="fab fa-whatsapp" style="margin-right: 10px; width: 20px;"></i>
                     WhatsApp Chat
                 </a>
-                @if(!auth()->user()->isAdmin() && !auth()->user()->isTelecaller() && !auth()->user()->isSalesHead())
+                @if(!auth()->user()->isAdmin() && !auth()->user()->isTelecaller() && !auth()->user()->isSalesHead() && !auth()->user()->isCrm())
                 <a href="{{ route('lead-assignment.index') }}" class="sidebar-link {{ request()->routeIs('lead-assignment.*') ? 'active' : '' }}">
                     <i class="fas fa-clipboard" style="margin-right: 10px; width: 20px;"></i>
                     Lead Assignment
@@ -808,10 +822,29 @@
                 </a>
                 @endif
                 @if(auth()->user()->isAdmin() || auth()->user()->isCrm())
-                <a href="{{ route('integrations.index') }}" class="sidebar-link {{ request()->routeIs('integrations.*') ? 'active' : '' }}" data-tooltip="Integration" title="Integration">
+                <a href="{{ route('integrations.index') }}"
+                   class="sidebar-link {{ request()->routeIs('integrations.*') || request()->routeIs('lead-assignment.*') ? 'active' : '' }}"
+                   data-tooltip="Integration"
+                   title="Integration">
                     <i class="fas fa-plug" style="margin-right: 10px; width: 20px;"></i>
                     Integration
                 </a>
+                @if(auth()->user()->isCrm())
+                <a href="{{ route('integrations.meta-sheet.index') }}"
+                   class="sidebar-link {{ request()->routeIs('integrations.meta-sheet.*') ? 'active' : '' }}"
+                   data-tooltip="Meta Sheets"
+                   title="Meta Sheets">
+                    <i class="fab fa-facebook" style="margin-right: 10px; width: 20px;"></i>
+                    Meta Sheets
+                </a>
+                <a href="{{ route('lead-assignment.index') }}"
+                   class="sidebar-link {{ request()->routeIs('lead-assignment.*') ? 'active' : '' }}"
+                   data-tooltip="Lead Assignment"
+                   title="Lead Assignment">
+                    <i class="fas fa-clipboard" style="margin-right: 10px; width: 20px;"></i>
+                    Lead Assignment
+                </a>
+                @endif
                 @endif
                 @if(!auth()->user()->isAdmin() && auth()->user()->canManageUsers() && !auth()->user()->isSalesHead())
                 <a href="{{ route('admin.dead-leads') }}" class="sidebar-link {{ request()->routeIs('admin.dead-leads') ? 'active' : '' }}">
@@ -847,6 +880,10 @@
                         @hasSection('header-actions')
                             @yield('header-actions')
                         @endif
+                        <button type="button" id="navModeToggle" class="btn btn-brand-secondary" title="Toggle navigation (icons/text)" style="padding: 10px 12px; font-size: 14px;">
+                            <i class="fas fa-align-left" style="margin-right: 6px;"></i>
+                            <span id="navModeToggleLabel">Text Nav</span>
+                        </button>
                         <!-- Date/Time Clock (shown for all including CRM) -->
                         <div id="datetimeClock" style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px 12px; font-family: 'Courier New', monospace; font-weight: 600; font-size: 14px; color: #063A1C; min-width: 160px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                             <div id="clockTime" style="font-size: 16px; color: #205A44;">--:--:--</div>
@@ -938,7 +975,7 @@
                 <i class="fas fa-users"></i>
                 <span>Users</span>
             </a>
-            <a href="{{ route('admin.targets.index') }}" class="footer-nav-link {{ request()->routeIs('admin.targets.*') ? 'active' : '' }}">
+            <a href="{{ auth()->user()->isCrm() ? route('crm.targets.index') : route('admin.targets.index') }}" class="footer-nav-link {{ request()->routeIs('admin.targets.*') || request()->routeIs('crm.targets.*') ? 'active' : '' }}">
                 <i class="fas fa-bullseye"></i>
                 <span>Targets</span>
             </a>
@@ -1056,7 +1093,8 @@
                 sidebar.classList.remove('sidebar-hidden');
                 body.classList.remove('sidebar-hidden');
                 if (mainContent) {
-                    mainContent.style.marginLeft = '64px';
+                    const navMode = (localStorage.getItem('crmNavMode') === 'text') ? 'text' : 'icons';
+                    mainContent.style.marginLeft = (navMode === 'text') ? '256px' : '64px';
                 }
                 toggleIcon.classList.remove('fa-chevron-right');
                 toggleIcon.classList.add('fa-chevron-left');
@@ -1078,6 +1116,45 @@
                 }
                 localStorage.setItem('sidebarHidden', 'true');
             }
+        };
+
+        // Navigation mode (Icons <-> Text) - Option A: localStorage
+        const NAV_MODE_KEY = 'crmNavMode';
+
+        function applyNavMode(mode) {
+            const body = document.body;
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const label = document.getElementById('navModeToggleLabel');
+
+            const normalized = (mode === 'text') ? 'text' : 'icons';
+
+            body.classList.toggle('nav-icons', normalized === 'icons');
+            body.classList.toggle('nav-text', normalized === 'text');
+
+            // Keep main content aligned with sidebar width
+            const sidebarHidden = body.classList.contains('sidebar-hidden') || (sidebar && sidebar.classList.contains('sidebar-hidden'));
+            if (mainContent) {
+                if (sidebarHidden) {
+                    mainContent.style.marginLeft = '0';
+                } else {
+                    mainContent.style.marginLeft = (normalized === 'text') ? '256px' : '64px';
+                }
+            }
+
+            // Button label shows the *target* mode
+            if (label) {
+                label.textContent = (normalized === 'icons') ? 'Text Nav' : 'Icon Nav';
+            }
+
+            return normalized;
+        }
+
+        window.toggleNavMode = function() {
+            const current = (localStorage.getItem(NAV_MODE_KEY) === 'text') ? 'text' : 'icons';
+            const next = (current === 'icons') ? 'text' : 'icons';
+            localStorage.setItem(NAV_MODE_KEY, next);
+            applyNavMode(next);
         };
         
         // Initialize sidebar functionality when DOM is ready
@@ -1103,6 +1180,17 @@
                         toggleButton.style.left = '20px';
                     }
                 }
+            }
+
+            // Restore navigation mode (icons/text)
+            const savedNavMode = localStorage.getItem(NAV_MODE_KEY);
+            applyNavMode(savedNavMode);
+            const navModeToggle = document.getElementById('navModeToggle');
+            if (navModeToggle) {
+                navModeToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    window.toggleNavMode();
+                });
             }
             
             // Add event listener to the button
@@ -1138,6 +1226,11 @@
             
             function showTooltip(link, text) {
                 if (!tooltipElement || !tooltipText) return;
+                // Only show tooltips in icon mode
+                if (!document.body.classList.contains('nav-icons')) {
+                    hideTooltip();
+                    return;
+                }
                 
                 tooltipText.textContent = text;
                 tooltipElement.classList.add('show');
@@ -1261,7 +1354,7 @@
                 }
             }
         }
-        
+
     </script>
     
     <!-- Chatbot Assistant Widget -->

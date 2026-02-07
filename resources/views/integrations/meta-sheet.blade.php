@@ -76,15 +76,26 @@
                                                title="Resume Setup">
                                                 <i class="fas fa-play mr-1"></i> Resume
                                             </a>
+                                            <button type="button" class="js-meta-delete text-red-600 hover:text-red-800" data-config-id="{{ $config->id }}" title="Delete Sheet">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
                                         @else
-                                            <button onclick="testIntegration({{ $config->id }})" class="text-indigo-600 hover:text-indigo-900" title="Test Integration">
+                                            <button type="button" class="js-meta-test text-indigo-600 hover:text-indigo-900" data-config-id="{{ $config->id }}" title="Test Integration">
                                                 <i class="fas fa-vial"></i> Test
                                             </button>
-                                            <button onclick="syncLeads({{ $config->id }}, this)" class="text-green-700 hover:text-green-900" title="Sync Leads">
+                                            <a href="{{ route('integrations.meta-sheet.step2', $config->id) }}"
+                                               class="text-blue-600 hover:text-blue-900"
+                                               title="Edit Configuration">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </a>
+                                            <button type="button" class="js-meta-sync text-green-700 hover:text-green-900" data-config-id="{{ $config->id }}" title="Sync Leads">
                                                 <i class="fas fa-sync-alt"></i> Sync
                                             </button>
-                                            <button onclick="toggleIntegration({{ $config->id }})" class="text-yellow-600 hover:text-yellow-900" title="Toggle Status">
+                                            <button type="button" class="js-meta-toggle text-yellow-600 hover:text-yellow-900" data-config-id="{{ $config->id }}" title="Toggle Status">
                                                 <i class="fas fa-toggle-{{ $config->is_active ? 'on' : 'off' }}"></i>
+                                            </button>
+                                            <button type="button" class="js-meta-delete text-red-600 hover:text-red-800" data-config-id="{{ $config->id }}" title="Delete Sheet">
+                                                <i class="fas fa-trash"></i> Delete
                                             </button>
                                         @endif
                                     </div>
@@ -100,6 +111,8 @@
 
 @push('scripts')
 <script>
+const META_SHEET_CSRF_TOKEN = '{{ csrf_token() }}';
+
 function testIntegration(id) {
     if (!confirm('This will send a test lead to CRM. Continue?')) {
         return;
@@ -108,7 +121,7 @@ function testIntegration(id) {
     fetch(`/integrations/meta-sheet/test/${id}`, {
         method: 'POST',
         headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'X-CSRF-TOKEN': META_SHEET_CSRF_TOKEN,
             'Content-Type': 'application/json',
         },
     })
@@ -130,7 +143,7 @@ function toggleIntegration(id) {
     fetch(`/integrations/meta-sheet/toggle/${id}`, {
         method: 'POST',
         headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'X-CSRF-TOKEN': META_SHEET_CSRF_TOKEN,
             'Content-Type': 'application/json',
         },
     })
@@ -161,7 +174,7 @@ function syncLeads(id, btnEl) {
     fetch(`/integrations/meta-sheet/sync/${id}`, {
         method: 'POST',
         headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'X-CSRF-TOKEN': META_SHEET_CSRF_TOKEN,
             'Content-Type': 'application/json',
             'Accept': 'application/json',
         },
@@ -193,6 +206,71 @@ function syncLeads(id, btnEl) {
         btnEl.innerHTML = originalHtml;
     });
 }
+
+function deleteSheetConfig(id) {
+    if (!confirm('Delete this sheet configuration?')) {
+        return;
+    }
+
+    const deleteLeads = confirm('Also delete the leads imported from this sheet?\n\nOK = Yes, delete leads\nCancel = No, keep leads');
+
+    fetch(`/integrations/meta-sheet/delete/${id}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': META_SHEET_CSRF_TOKEN,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify({ delete_leads: deleteLeads ? 1 : 0 }),
+    })
+    .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Delete failed');
+        }
+
+        let msg = 'Deleted successfully.';
+        if (deleteLeads) {
+            msg += `\n\nLeads deleted: ${data.deleted_leads || 0}`;
+            if (typeof data.skipped_leads !== 'undefined') {
+                msg += `\nLeads kept (pre-existing/duplicate): ${data.skipped_leads || 0}`;
+            }
+        }
+
+        alert(msg);
+        location.reload();
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+        alert('Delete failed: ' + error.message);
+    });
+}
+
+// Bind UI actions (avoids inline onclick parsing issues)
+document.addEventListener('click', function (e) {
+    const btn = e.target.closest('button[data-config-id]');
+    if (!btn) return;
+
+    const id = btn.getAttribute('data-config-id');
+    if (!id) return;
+
+    if (btn.classList.contains('js-meta-test')) {
+        testIntegration(id);
+        return;
+    }
+    if (btn.classList.contains('js-meta-sync')) {
+        syncLeads(id, btn);
+        return;
+    }
+    if (btn.classList.contains('js-meta-toggle')) {
+        toggleIntegration(id);
+        return;
+    }
+    if (btn.classList.contains('js-meta-delete')) {
+        deleteSheetConfig(id);
+        return;
+    }
+});
 </script>
 @endpush
 @endsection

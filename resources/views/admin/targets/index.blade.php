@@ -1,79 +1,73 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Target Management - Admin</title>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; }
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-        .header { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
-        .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .btn { padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: 500; text-decoration: none; display: inline-block; }
-        .btn-primary { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
-        .btn-primary:hover { background: linear-gradient(135deg, #15803d 0%, #166534 100%); transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); }
-        .btn-secondary { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
-        .btn-secondary:hover { background: linear-gradient(135deg, #15803d 0%, #166534 100%); transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); }
-        .btn-danger { background: #dc3545; color: white; }
-        .btn-sm { padding: 8px 16px; font-size: 14px; }
-        .alert { padding: 12px; border-radius: 5px; margin-bottom: 20px; }
-        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
-        th { background: #f8f9fa; font-weight: 600; color: #333; }
-        .filter-bar { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; }
-        .filter-bar input, .filter-bar select { padding: 10px; border: 2px solid #e0e0e0; border-radius: 5px; }
-        .progress-bar { width: 100%; height: 20px; background: #e0e0e0; border-radius: 10px; overflow: hidden; margin-top: 5px; }
-        .progress-fill { height: 100%; background: #205A44; transition: width 0.3s; }
-        .progress-fill.warning { background: #ffc107; }
-        .progress-fill.danger { background: #dc3545; }
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
-        .badge-success { background: #d4edda; color: #155724; }
-        .badge-warning { background: #fff3cd; color: #856404; }
-        .badge-danger { background: #f8d7da; color: #721c24; }
-        .badge-info { background: #d1ecf1; color: #0c5460; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div>
-                <h1>Target Management</h1>
-                <p style="color: #666; margin-top: 5px;">
-                    @if(auth()->user()->isSalesHead())
-                        Set targets for Sales Executives and Sales Managers. Sales Executive targets are view-only.
-                    @else
-                        Set and manage monthly targets for Sales Executives and Sales Managers
-                    @endif
-                </p>
-            </div>
-            <a href="{{ route('admin.targets.create') }}" class="btn btn-primary">+ Set New Target</a>
-        </div>
+@extends('layouts.app')
+
+@section('title', 'Target Management - Admin')
+@section('page-title', 'Target Management')
+@section('page-subtitle')
+    @if(auth()->user()->isSalesHead())
+        Set targets for Sales Executives and Sales Managers. Sales Executive targets are view-only.
+    @else
+        Set and manage monthly targets for Sales Executives and Sales Managers
+    @endif
+@endsection
+
+@php
+    $targetsRouteBase = auth()->user()->isCrm() ? 'crm.targets' : 'admin.targets';
+@endphp
+
+@section('header-actions')
+    <a href="{{ route($targetsRouteBase . '.create') }}" class="btn btn-brand-primary">
+        + Set New Target
+    </a>
+@endsection
+
+@push('styles')
+<style>
+    /* Scoped styles so layout navigation/header is not affected */
+    .targets-page .t-card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); }
+    .targets-page .t-filter { background: white; padding: 16px; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); display: flex; gap: 12px; align-items: center; }
+    .targets-page .t-filter input, .targets-page .t-filter select { padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; }
+    .targets-page table { width: 100%; border-collapse: collapse; }
+    .targets-page th, .targets-page td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+    .targets-page th { background: #f8f9fa; font-weight: 600; color: #333; }
+    .targets-page .t-alert { padding: 12px; border-radius: 8px; margin-bottom: 16px; }
+    .targets-page .t-alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .targets-page .t-alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .targets-page .progress-bar { width: 100%; height: 18px; background: #e0e0e0; border-radius: 10px; overflow: hidden; margin-top: 6px; }
+    .targets-page .progress-fill { height: 100%; background: #205A44; transition: width 0.3s; }
+    .targets-page .progress-fill.warning { background: #ffc107; }
+    .targets-page .progress-fill.danger { background: #dc3545; }
+    .targets-page .badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-block; }
+    .targets-page .badge-success { background: #d4edda; color: #155724; }
+    .targets-page .badge-warning { background: #fff3cd; color: #856404; }
+    .targets-page .badge-danger { background: #f8d7da; color: #721c24; }
+    .targets-page .badge-info { background: #d1ecf1; color: #0c5460; }
+</style>
+@endpush
+
+@section('content')
+    <div class="targets-page">
 
         @if(session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
+            <div class="t-alert t-alert-success">{{ session('success') }}</div>
         @endif
 
         @if($errors->any())
-            <div class="alert alert-danger">
+            <div class="t-alert t-alert-danger">
                 @foreach($errors->all() as $error)
                     <div>{{ $error }}</div>
                 @endforeach
             </div>
         @endif
 
-        <div class="filter-bar">
-            <form method="GET" action="{{ route('admin.targets.index') }}" style="display: flex; gap: 15px; align-items: center;">
+        <div class="t-filter">
+            <form method="GET" action="{{ route($targetsRouteBase . '.index') }}" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
                 <label>Month:</label>
                 <input type="month" name="month" value="{{ $month }}" onchange="this.form.submit()">
-                <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+                <button type="submit" class="btn btn-brand-secondary" style="padding: 10px 14px; font-size: 14px;">Filter</button>
             </form>
         </div>
 
-        <div class="card">
+        <div class="t-card">
             @if($targets->count() > 0)
                 <table>
                     <thead>
@@ -93,31 +87,45 @@
                         @foreach($targets as $target)
                             @php
                                 $progress = $target->getProgressData();
+                                $user = $target->user;
+                                $isManager = $user ? $user->isSalesManager() : false;
+                                $isExecutive = $user ? $user->isSalesExecutive() : false;
+                                $isTelecaller = $user ? $user->isTelecaller() : false;
                             @endphp
                             <tr>
                                 <td>
-                                    <strong>{{ $target->user->name }}</strong><br>
-                                    <small style="color: #666;">{{ $target->user->email }}</small><br>
-                                    <span class="badge {{ $target->user->isSalesExecutive() ? 'badge-info' : ($target->user->isSalesManager() ? 'badge-warning' : 'badge-success') }}" style="margin-top: 4px; display: inline-block;">
-                                        {{ $target->user->getDisplayRoleName() }}
-                                    </span>
-                                    @if($target->user->isSalesManager() && $target->manager_target_calculation_logic)
-                                        <br>
-                                        <small style="color: #16a34a; font-weight: 600; margin-top: 4px; display: inline-block;">
-                                            @if($target->manager_target_calculation_logic === 'juniors_sum')
-                                                Logic 1: Juniors Sum
-                                            @else
-                                                Logic 2: Individual + Team
-                                            @endif
-                                            @if($target->manager_junior_scope)
-                                                ({{ $target->manager_junior_scope === 'executives_only' ? 'Executives Only' : 'Executives + Sales Executives' }})
-                                            @endif
-                                        </small>
+                                    @if($user)
+                                        <strong>{{ $user->name }}</strong><br>
+                                        <small style="color: #666;">{{ $user->email }}</small><br>
+                                        <span class="badge {{ $isExecutive ? 'badge-info' : ($isManager ? 'badge-warning' : 'badge-success') }}" style="margin-top: 4px; display: inline-block;">
+                                            {{ $user->getDisplayRoleName() }}
+                                        </span>
+                                        @if($isManager && $target->manager_target_calculation_logic)
+                                            <br>
+                                            <small style="color: #16a34a; font-weight: 600; margin-top: 4px; display: inline-block;">
+                                                @if($target->manager_target_calculation_logic === 'juniors_sum')
+                                                    Logic 1: Juniors Sum
+                                                @else
+                                                    Logic 2: Individual + Team
+                                                @endif
+                                                @if($target->manager_junior_scope)
+                                                    ({{ $target->manager_junior_scope === 'executives_only' ? 'Executives Only' : 'Executives + Sales Executives' }})
+                                                @endif
+                                            </small>
+                                        @endif
+                                    @else
+                                        <strong style="color:#dc3545;">User Deleted</strong><br>
+                                        <small style="color: #666;">N/A</small><br>
+                                        <span class="badge badge-danger" style="margin-top: 4px; display: inline-block;">
+                                            Missing User
+                                        </span>
                                     @endif
                                 </td>
                                 <td><strong>{{ $target->target_month->format('M Y') }}</strong></td>
                                 <td>
-                                    @if($target->user->isSalesManager())
+                                    @if(!$user)
+                                        <span style="color: #999;">-</span>
+                                    @elseif($isManager)
                                         <span style="color: #999;">N/A</span>
                                     @else
                                         <div>{{ $progress['prospects_extract']['actual'] }} / {{ $target->target_prospects_extract }}</div>
@@ -129,7 +137,9 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @if($target->user->isSalesManager())
+                                    @if(!$user)
+                                        <span style="color: #999;">-</span>
+                                    @elseif($isManager)
                                         <span style="color: #999;">N/A</span>
                                     @else
                                         <div>{{ $progress['prospects_verified']['actual'] }} / {{ $target->target_prospects_verified }}</div>
@@ -141,7 +151,9 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @if($target->user->isSalesManager())
+                                    @if(!$user)
+                                        <span style="color: #999;">-</span>
+                                    @elseif($isManager)
                                         <span style="color: #999;">N/A</span>
                                     @else
                                         <div>{{ $progress['calls']['actual'] }} / {{ $target->target_calls }}</div>
@@ -154,7 +166,7 @@
                                 </td>
                                 <td>
                                     @php
-                                        $visitsTarget = $target->user->isSalesManager() && $target->manager_target_calculation_logic 
+                                        $visitsTarget = $isManager && $target->manager_target_calculation_logic 
                                             ? $target->calculateManagerTarget('visits') 
                                             : ($target->target_visits ?? 0);
                                     @endphp
@@ -168,7 +180,7 @@
                                                  style="width: {{ $visitsPercentage }}%"></div>
                                         </div>
                                         <small style="color: #666;">{{ number_format($visitsPercentage, 1) }}%</small>
-                                        @if($target->user->isSalesManager() && $target->manager_target_calculation_logic && $visitsTarget != $target->target_visits)
+                                        @if($isManager && $target->manager_target_calculation_logic && $visitsTarget != $target->target_visits)
                                             <br><small style="color: #16a34a; font-size: 10px;">(Calculated)</small>
                                         @endif
                                     @else
@@ -177,7 +189,7 @@
                                 </td>
                                 <td>
                                     @php
-                                        $meetingsTarget = $target->user->isSalesManager() && $target->manager_target_calculation_logic 
+                                        $meetingsTarget = $isManager && $target->manager_target_calculation_logic 
                                             ? $target->calculateManagerTarget('meetings') 
                                             : ($target->target_meetings ?? 0);
                                     @endphp
@@ -191,7 +203,7 @@
                                                  style="width: {{ $meetingsPercentage }}%"></div>
                                         </div>
                                         <small style="color: #666;">{{ number_format($meetingsPercentage, 1) }}%</small>
-                                        @if($target->user->isSalesManager() && $target->manager_target_calculation_logic && $meetingsTarget != $target->target_meetings)
+                                        @if($isManager && $target->manager_target_calculation_logic && $meetingsTarget != $target->target_meetings)
                                             <br><small style="color: #16a34a; font-size: 10px;">(Calculated)</small>
                                         @endif
                                     @else
@@ -199,7 +211,9 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @if($target->user->isSalesManager() || $target->user->isSalesExecutive())
+                                    @if(!$user)
+                                        <span style="color: #999;">-</span>
+                                    @elseif($isManager || $isExecutive)
                                         @if($target->target_closers > 0)
                                             <div>{{ $progress['closers']['achieved'] }} / {{ $target->target_closers }}</div>
                                             <div class="progress-bar">
@@ -215,16 +229,22 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @if(auth()->user()->isSalesHead() && $target->user->isTelecaller())
+                                    @if(!$user)
+                                        <form method="POST" action="{{ route($targetsRouteBase . '.destroy', $target->id) }}" style="display: inline;" onsubmit="return confirm('User missing. Delete this target record?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-danger" style="padding: 8px 14px; font-size: 14px;">Delete</button>
+                                        </form>
+                                    @elseif(auth()->user()->isSalesHead() && $isTelecaller)
                                         <span style="color: #6b7280; font-size: 14px;">
                                             <i class="fas fa-eye mr-2"></i>View Only
                                         </span>
                                     @else
-                                        <a href="{{ route('admin.targets.edit', $target->id) }}" class="btn btn-secondary btn-sm">Edit</a>
-                                        <form method="POST" action="{{ route('admin.targets.destroy', $target->id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this target?');">
+                                        <a href="{{ route($targetsRouteBase . '.edit', $target->id) }}" class="btn btn-brand-secondary" style="padding: 8px 14px; font-size: 14px;">Edit</a>
+                                        <form method="POST" action="{{ route($targetsRouteBase . '.destroy', $target->id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this target?');">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                            <button type="submit" class="btn btn-danger" style="padding: 8px 14px; font-size: 14px;">Delete</button>
                                         </form>
                                     @endif
                                 </td>
@@ -233,10 +253,9 @@
                     </tbody>
                 </table>
             @else
-                <p style="text-align: center; color: #666; padding: 40px;">No targets found for this month. <a href="{{ route('admin.targets.create', ['month' => $month]) }}">Create one now</a></p>
+                <p style="text-align: center; color: #666; padding: 40px;">No targets found for this month. <a href="{{ route($targetsRouteBase . '.create', ['month' => $month]) }}">Create one now</a></p>
             @endif
         </div>
     </div>
-</body>
-</html>
+@endsection
 
