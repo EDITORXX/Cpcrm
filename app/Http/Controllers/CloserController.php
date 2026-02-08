@@ -42,7 +42,7 @@ class CloserController extends Controller
                 $query->whereRaw('1 = 0');
             }
         } elseif ($user->isSalesManager()) {
-            // Sales Manager sees team's closers
+            // Senior Manager sees team's closers
             $teamMemberIds = $user->teamMembers()->pluck('id');
             if ($teamMemberIds->isNotEmpty()) {
                 $query->whereIn('assigned_to', $teamMemberIds);

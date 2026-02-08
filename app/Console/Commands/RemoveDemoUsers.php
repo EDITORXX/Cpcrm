@@ -16,8 +16,8 @@ class RemoveDemoUsers extends Command
         $demoUsers = [
             'CRM Manager',
             'Sales Head',
-            'Sales Manager 1',
-            'Sales Manager 2',
+            'Senior Manager 1',
+            'Senior Manager 2',
             'Telecaller 1',
             'Telecaller 2',
             'Telecaller 3',

@@ -16,7 +16,7 @@ class UserController extends Controller
         $currentUser = auth()->user();
         $roles = Role::where('is_active', true)->get();
         
-        // Filter roles for CRM users - only allow Telecaller, Sales Executive, Sales Manager
+        // Filter roles for CRM users - only allow Telecaller, Sales Executive, Senior Manager
         if ($currentUser && $currentUser->isCrm() && !$currentUser->isAdmin()) {
             $roles = $roles->filter(function($role) {
                 return in_array($role->slug, [Role::SALES_EXECUTIVE, Role::ASSISTANT_SALES_MANAGER, Role::SALES_MANAGER]);

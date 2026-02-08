@@ -443,9 +443,8 @@ class LeadController extends Controller
             }
 
             // Update tracking flags based on role
-            if ($userRole === 'telecaller') {
+            if ($userRole === 'sales_executive') {
                 $lead->form_filled_by_telecaller = true;
-            } elseif ($userRole === 'sales_executive') {
                 $lead->form_filled_by_executive = true;
             } elseif (in_array($userRole, ['sales_manager', 'sales_head'])) {
                 $lead->form_filled_by_manager = true;
@@ -473,7 +472,6 @@ class LeadController extends Controller
             DB::commit();
 
             $roleMessage = [
-                'telecaller' => 'Basic requirements saved. Lead moved to Executive for review.',
                 'sales_executive' => 'Lead status updated.' . (isset($validated['final_status']) && $validated['final_status'] === 'Follow Up' ? ' Follow-up task created.' : ''),
                 'sales_manager' => 'Lead requirements finalized.',
                 'crm' => 'All lead requirements saved successfully.',
@@ -598,7 +596,7 @@ class LeadController extends Controller
             return false;
         }
 
-        // Sales Manager can see leads from their team's verified prospects
+        // Senior Manager can see leads from their team's verified prospects
         if ($user->isSalesManager()) {
             $teamMemberIds = $user->teamMembers()->pluck('id');
             

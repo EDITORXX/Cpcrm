@@ -101,7 +101,7 @@ class TelecallerLimitController extends Controller
         $telecallerId = $request->input('telecaller_id');
         
         if (!$telecallerId) {
-            $telecallerRoleId = Role::where('slug', Role::TELECALLER)->value('id');
+            $telecallerRoleId = Role::where('slug', Role::SALES_EXECUTIVE)->value('id');
             $telecallers = User::where('role_id', $telecallerRoleId)
                 ->where('is_active', true)
                 ->with(['telecallerDailyLimit', 'telecallerProfile'])

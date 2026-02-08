@@ -481,7 +481,7 @@ class LeadAssignmentService
                     ]);
                 }
             } else {
-                // Non-telecaller users (Sales Manager, Sales Executive, etc.) - only check absent status
+                // Non-telecaller users (Senior Manager, Sales Executive, etc.) - only check absent status
                 // Add user ID multiple times based on percentage
                 $weight = (int) ($pc->percentage * 100);
                 for ($i = 0; $i < $weight; $i++) {

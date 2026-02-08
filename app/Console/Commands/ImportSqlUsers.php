@@ -32,12 +32,12 @@ class ImportSqlUsers extends Command
     protected $roleMapping = [
         'admin' => 'admin',
         'manager' => 'sales_manager', // Will be determined dynamically if user manager
-        'sales_prospector' => 'telecaller',
+        'sales_prospector' => 'sales_executive',
         'crm' => 'crm',
     ];
     
     /**
-     * Store which managers have users (telecallers) under them
+     * Store which managers have users (sales executives) under them
      * Key: old admin ID, Value: boolean
      */
     protected $managerHasUsers = [];
@@ -345,8 +345,8 @@ class ImportSqlUsers extends Command
                 // Determine role based on manager and independence
                 // If user is independent, they are Sales Executive (manager will be Sales Head)
                 // If manager is Sales Head (Omkar = 2 or Alpish = 3), user is Sales Executive
-                // All other users from users table are telecallers
-                $roleSlug = 'telecaller'; // Default
+                // All other users from users table are sales executives
+                $roleSlug = 'sales_executive'; // Default
                 
                 if ($isIndependent === 1) {
                     $roleSlug = 'sales_executive';
@@ -459,20 +459,20 @@ class ImportSqlUsers extends Command
         
         $this->info("Assigning Sales Head to independent users...");
         
-        // Find Sales Head (Sales Manager without users/telecallers under them)
-        // Sales Head is a Sales Manager who doesn't have any telecallers assigned
+        // Find Sales Head (Senior Manager without users/sales executives under them)
+        // Sales Head is a Senior Manager who doesn't have any sales executives assigned
         $salesHead = User::whereHas('role', function($q) {
             $q->where('slug', 'sales_manager');
         })
         ->whereNull('manager_id')
         ->whereDoesntHave('teamMembers', function($q) {
             $q->whereHas('role', function($r) {
-                $r->where('slug', 'telecaller');
+                $r->where('slug', 'sales_executive');
             });
         })
         ->first();
         
-        // If no Sales Head found, get any Sales Manager without manager
+        // If no Sales Head found, get any Senior Manager without manager
         if (!$salesHead) {
             $salesHead = User::whereHas('role', function($q) {
                 $q->where('slug', 'sales_manager');
@@ -591,7 +591,7 @@ class ImportSqlUsers extends Command
                 if (!$username) continue;
                 
                 // Determine role
-                $newRole = 'telecaller'; // Default
+                $newRole = 'sales_executive'; // Default
                 if ($isIndependent === 1) {
                     $newRole = 'sales_executive';
                 } elseif ($managerId === 2 || $managerId === 3) {
@@ -691,8 +691,8 @@ class ImportSqlUsers extends Command
             return $mappedRole;
         }
         
-        // Default to telecaller if role not found
-        return 'telecaller';
+        // Default to sales_executive if role not found
+        return 'sales_executive';
     }
     
     /**
@@ -701,14 +701,14 @@ class ImportSqlUsers extends Command
     protected function getMappedRoleForImport(string $oldRole, int $oldId): string
     {
         if (!isset($this->roleMapping[$oldRole])) {
-            return 'telecaller';
+            return 'sales_executive';
         }
         
         $mappedRole = $this->roleMapping[$oldRole];
         
         // Special handling for managers
         if ($mappedRole === 'sales_manager' && $oldRole === 'manager') {
-            // Check if this manager has users (telecallers) under them
+            // Check if this manager has users (sales executives) under them
             // If yes, they are user manager (sales_executive)
             if (isset($this->managerHasUsers[$oldId]) && $this->managerHasUsers[$oldId]) {
                 return 'sales_executive';

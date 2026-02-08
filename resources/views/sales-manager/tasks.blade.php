@@ -1,6 +1,6 @@
 @extends('sales-manager.layout')
 
-@section('title', 'Tasks - Sales Manager')
+@section('title', 'Tasks - Senior Manager')
 @section('page-title', 'Tasks')
 
 @push('styles')

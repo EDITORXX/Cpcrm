@@ -18,7 +18,7 @@ class LeadFormFieldSeeder extends Seeder
                 'field_key' => 'category',
                 'field_label' => 'Category',
                 'field_type' => 'select',
-                'field_level' => 'telecaller',
+                'field_level' => 'sales_executive',
                 'options' => ['Residential', 'Commercial', 'Both', 'N.A'],
                 'is_required' => true,
                 'display_order' => 1,
@@ -29,7 +29,7 @@ class LeadFormFieldSeeder extends Seeder
                 'field_key' => 'preferred_location',
                 'field_label' => 'Preferred Location',
                 'field_type' => 'select',
-                'field_level' => 'telecaller',
+                'field_level' => 'sales_executive',
                 'options' => [
                     'Inside City',
                     'Sitapur Road',
@@ -55,7 +55,7 @@ class LeadFormFieldSeeder extends Seeder
                 'field_key' => 'type',
                 'field_label' => 'Type',
                 'field_type' => 'select',
-                'field_level' => 'telecaller',
+                'field_level' => 'sales_executive',
                 'options' => ['Plots & Villas', 'Apartments', 'Retail Shops', 'Office Space', 'Studio', 'Farmhouse', 'Agricultural', 'Others', 'N.A'], // Default options
                 'is_required' => true,
                 'dependent_field' => 'category',
@@ -73,7 +73,7 @@ class LeadFormFieldSeeder extends Seeder
                 'field_key' => 'purpose',
                 'field_label' => 'Purpose',
                 'field_type' => 'select',
-                'field_level' => 'telecaller',
+                'field_level' => 'sales_executive',
                 'options' => [
                     'End Use',
                     'Short Term Investment',
@@ -91,7 +91,7 @@ class LeadFormFieldSeeder extends Seeder
                 'field_key' => 'possession',
                 'field_label' => 'Possession',
                 'field_type' => 'select',
-                'field_level' => 'telecaller',
+                'field_level' => 'sales_executive',
                 'options' => [
                     'Under Construction',
                     'Ready To Move',
@@ -108,7 +108,7 @@ class LeadFormFieldSeeder extends Seeder
                 'field_key' => 'budget',
                 'field_label' => 'Budget',
                 'field_type' => 'select',
-                'field_level' => 'telecaller',
+                'field_level' => 'sales_executive',
                 'options' => [
                     'Below 50 Lacs',
                     '50-75 Lacs',

@@ -16,9 +16,9 @@ class TargetSeeder extends Seeder
     public function run(): void
     {
         $salesManagerRole = Role::where('slug', 'sales_manager')->first();
-        $telecallerRole = Role::where('slug', 'telecaller')->first();
+        $salesExecutiveRole = Role::where('slug', 'sales_executive')->first();
 
-        if (!$salesManagerRole || !$telecallerRole) {
+        if (!$salesManagerRole || !$salesExecutiveRole) {
             $this->command->error('Roles not found. Please run RoleSeeder first.');
             return;
         }
@@ -48,31 +48,30 @@ class TargetSeeder extends Seeder
             );
         }
 
-        // Set targets for all Telecallers
-        // For telecallers: 200 calls/month and 15 verified prospects/month
-        $telecallers = User::where('role_id', $telecallerRole->id)
+        // Set targets for all Sales Executives
+        $salesExecutives = User::where('role_id', $salesExecutiveRole->id)
             ->where('is_active', true)
             ->get();
 
-        foreach ($telecallers as $telecaller) {
+        foreach ($salesExecutives as $executive) {
             Target::updateOrCreate(
                 [
-                    'user_id' => $telecaller->id,
+                    'user_id' => $executive->id,
                     'target_month' => $currentMonth,
                 ],
                 [
                     'target_meetings' => 0,
-                    'target_visits' => 8, // 8 visits per month (auto-divided to ~2/week)
+                    'target_visits' => 8,
                     'target_closers' => 0,
-                    'target_prospects_extract' => 0, // Removed, use target_prospects_verified instead
-                    'target_prospects_verified' => 150, // 150 verified prospects per month (auto-divided to ~5/day)
-                    'target_calls' => 6000, // 6000 calls per month (auto-divided to ~200/day)
+                    'target_prospects_extract' => 0,
+                    'target_prospects_verified' => 150,
+                    'target_calls' => 6000,
                 ]
             );
         }
 
         $this->command->info('Default targets created successfully!');
         $this->command->info('Sales Managers: 10 meetings, 10 visits, 5 closers (monthly)');
-        $this->command->info('Telecallers: 6000 calls/month (→ ~200/day), 150 prospects/month (→ ~5/day), 8 visits/month (→ ~2/week)');
+        $this->command->info('Sales Executives: 6000 calls/month, 150 prospects/month, 8 visits/month');
     }
 }

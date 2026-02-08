@@ -318,7 +318,7 @@ class FlowTestService
 
         // Check if user is sales manager
         if (!$user->isSalesManager() && !$user->isSalesHead()) {
-            $errors[] = "User must be Sales Manager or Sales Head to test this stage";
+            $errors[] = "User must be Senior Manager or Sales Head to test this stage";
         }
 
         // Check for verification tasks
@@ -365,7 +365,7 @@ class FlowTestService
 
         // Check if user is sales manager
         if (!$user->isSalesManager() && !$user->isSalesHead()) {
-            $errors[] = "User must be Sales Manager to test this stage";
+            $errors[] = "User must be Senior Manager to test this stage";
         }
 
         // Check for meetings
@@ -452,7 +452,7 @@ class FlowTestService
 
         // Check if user is sales manager
         if (!$user->isSalesManager() && !$user->isSalesHead()) {
-            $errors[] = "User must be Sales Manager to test this stage";
+            $errors[] = "User must be Senior Manager to test this stage";
         }
 
         // Check for site visits
@@ -632,7 +632,7 @@ class FlowTestService
 
         // Check if user can request incentive
         if (!$user->isHrManager() && !$user->isSalesExecutive() && !$user->isSalesManager() && !$user->isAssistantSalesManager()) {
-            $errors[] = "User must be HR Manager, Sales Executive, or Sales Manager to request incentives";
+            $errors[] = "User must be HR Manager, Sales Executive, or Senior Manager to request incentives";
         }
 
         // Check for verified closers

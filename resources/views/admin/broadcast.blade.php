@@ -67,7 +67,7 @@
                     </label>
                     <label class="flex items-center">
                         <input type="checkbox" name="target_roles[]" value="sales_manager" class="mr-2">
-                        <span>Sales Manager</span>
+                        <span>Senior Manager</span>
                     </label>
                     <label class="flex items-center">
                         <input type="checkbox" name="target_roles[]" value="sales_executive" class="mr-2">

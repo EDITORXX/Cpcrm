@@ -48,14 +48,14 @@ class ShowUserDiagram extends Command
             $this->newLine();
         }
         
-        // Display Sales Head (Sales Managers with no manager)
+        // Display Sales Head (Senior Managers with no manager)
         $salesHeads = $users->filter(function($user) {
             return $user->role->slug === 'sales_manager' && $user->manager_id === null;
         });
         
         if ($salesHeads->count() > 0) {
             $this->info('┌─────────────────────────────────────────────────────────────┐');
-            $this->info('│              SALES HEAD (Sales Manager)                      │');
+            $this->info('│              SALES HEAD (Senior Manager)                      │');
             $this->info('├─────────────────────────────────────────────────────────────┤');
             
             foreach ($salesHeads as $salesHead) {
@@ -67,14 +67,14 @@ class ShowUserDiagram extends Command
             $this->newLine();
         }
         
-        // Display other Sales Managers (with managers)
+        // Display other Senior Managers (with managers)
         $otherSalesManagers = $users->filter(function($user) {
             return $user->role->slug === 'sales_manager' && $user->manager_id !== null;
         });
         
         if ($otherSalesManagers->count() > 0) {
             $this->info('┌─────────────────────────────────────────────────────────────┐');
-            $this->info('│              SALES MANAGERS                                  │');
+            $this->info('│              SENIOR MANAGERS                                  │');
             $this->info('├─────────────────────────────────────────────────────────────┤');
             
             foreach ($otherSalesManagers as $manager) {
@@ -100,20 +100,6 @@ class ShowUserDiagram extends Command
             
             $this->info('└─────────────────────────────────────────────────────────────┘');
             $this->newLine();
-        }
-        
-        // Display Telecallers
-        if ($usersByRole->has('telecaller')) {
-            $this->info('┌─────────────────────────────────────────────────────────────┐');
-            $this->info('│                    TELECALLERS                               │');
-            $this->info('├─────────────────────────────────────────────────────────────┤');
-            
-            foreach ($usersByRole->get('telecaller') as $telecaller) {
-                $managerName = $telecaller->manager ? $telecaller->manager->name : 'None';
-                $this->line("│  • {$telecaller->name} (Manager: {$managerName})");
-            }
-            
-            $this->info('└─────────────────────────────────────────────────────────────┘');
         }
         
         // Summary

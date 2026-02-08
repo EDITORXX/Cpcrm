@@ -98,8 +98,11 @@ class AdminDashboardController extends Controller
                 'agents_visits_meetings' => $this->getAgentsVisitsVsMeetings($dateRange),
                 'property_segments' => $this->getPropertySegments($dateRange),
                 'telecaller_performance' => $this->getTelecallerPerformance($dateRange),
+                'leads_pending_response' => $this->getLeadsPendingResponseByUser($dateRange),
+                'average_response_time_by_user' => $this->getAverageResponseTimeByUser($dateRange),
                 'user_visits_meetings' => $this->getUserVisitsMeetingsData($visitsMeetingsFilter),
                 'call_statistics' => $this->getCallStatistics($dateRange),
+                'server_now' => now()->toIso8601String(),
             ];
 
             return response()->json($data);
@@ -227,7 +230,7 @@ class AdminDashboardController extends Controller
                 'crm' => $usersByRole->get('crm', 0),
                 'sales_manager' => $usersByRole->get('sales_manager', 0),
                 'sales_executive' => $usersByRole->get('sales_executive', 0),
-                'telecaller' => $usersByRole->get('telecaller', 0),
+                'telecaller' => $usersByRole->get('sales_executive', 0), // merged into sales_executive
             ],
             'new_this_month' => $newQuery->count(),
             'active_24h' => $active24hQuery->count(),
@@ -421,11 +424,11 @@ class AdminDashboardController extends Controller
     }
 
     /**
-     * Get agents visits vs meetings data for Sales Managers and Sales Executives
+     * Get agents visits vs meetings data for Senior Managers and Sales Executives
      */
     private function getAgentsVisitsVsMeetings(?array $dateRange = null): array
     {
-        // Get Sales Manager and Sales Executive roles
+        // Get Senior Manager and Sales Executive roles
         $salesManagerRole = Role::where('slug', 'sales_manager')->first();
         $salesExecutiveRole = Role::where('slug', 'sales_executive')->first();
 
@@ -433,7 +436,7 @@ class AdminDashboardController extends Controller
             return [];
         }
 
-        // Get all active Sales Managers and Sales Executives
+        // Get all active Senior Managers and Sales Executives
         $agents = User::where('is_active', true)
             ->whereIn('role_id', [$salesManagerRole->id, $salesExecutiveRole->id])
             ->with('role')
@@ -519,15 +522,15 @@ class AdminDashboardController extends Controller
      */
     private function getTelecallerPerformance(?array $dateRange = null): array
     {
-        $telecallerRole = Role::where('slug', 'telecaller')->first();
+        $salesExecutiveRole = Role::where('slug', Role::SALES_EXECUTIVE)->first();
         
-        if (!$telecallerRole) {
-            Log::warning('Telecaller role not found');
+        if (!$salesExecutiveRole) {
+            Log::warning('Sales Executive role not found');
             return [];
         }
 
         $telecallers = User::where('is_active', true)
-            ->where('role_id', $telecallerRole->id)
+            ->where('role_id', $salesExecutiveRole->id)
             ->get();
 
         if ($telecallers->isEmpty()) {
@@ -652,11 +655,199 @@ class AdminDashboardController extends Controller
     }
 
     /**
+     * Get user-wise leads that are allocated but not yet responded (no call outcome).
+     * Same "remaining" logic as getTelecallerPerformance.
+     */
+    private function getLeadsPendingResponseByUser(?array $dateRange = null): array
+    {
+        $salesExecutiveRole = Role::where('slug', Role::SALES_EXECUTIVE)->first();
+        if (!$salesExecutiveRole) {
+            return [];
+        }
+
+        $users = User::where('is_active', true)
+            ->where('role_id', $salesExecutiveRole->id)
+            ->get();
+
+        if ($users->isEmpty()) {
+            return [];
+        }
+
+        $startDate = $dateRange['start_date'] ?? null;
+        $endDate = $dateRange['end_date'] ?? null;
+        $result = [];
+
+        foreach ($users as $user) {
+            $userId = $user->id;
+
+            // Lead IDs where user has already responded (completed task or CrmAssignment with outcome)
+            $leadIdsWithCalls = DB::table('telecaller_tasks')
+                ->where('assigned_to', $userId)
+                ->where('status', 'completed')
+                ->distinct()
+                ->pluck('lead_id')
+                ->merge(
+                    DB::table('crm_assignments')
+                        ->where('assigned_to', $userId)
+                        ->where(function ($q) {
+                            $q->where('cnp_count', '>', 0)
+                                ->orWhere('call_status', '!=', 'pending');
+                        })
+                        ->distinct()
+                        ->pluck('lead_id')
+                )
+                ->unique()
+                ->values();
+
+            $assignmentsQuery = LeadAssignment::where('assigned_to', $userId)
+                ->where('is_active', true)
+                ->with('lead:id,name,phone');
+
+            if ($leadIdsWithCalls->isNotEmpty()) {
+                $assignmentsQuery->whereNotIn('lead_id', $leadIdsWithCalls);
+            }
+            if ($startDate && $endDate) {
+                $assignmentsQuery->whereBetween('assigned_at', [$startDate, $endDate]);
+            }
+
+            $assignments = $assignmentsQuery->orderBy('assigned_at', 'desc')->get();
+
+            if ($assignments->isEmpty()) {
+                continue;
+            }
+
+            $leads = [];
+            foreach ($assignments as $a) {
+                $lead = $a->lead;
+                if (!$lead) {
+                    continue;
+                }
+                $leads[] = [
+                    'lead_id' => $lead->id,
+                    'name' => $lead->name,
+                    'phone' => $lead->phone,
+                    'assigned_at' => $a->assigned_at?->toIso8601String(),
+                ];
+            }
+
+            $result[] = [
+                'user_id' => $userId,
+                'user_name' => $user->name,
+                'pending_count' => count($leads),
+                'leads' => $leads,
+            ];
+        }
+
+        // Sort by pending_count descending
+        usort($result, function ($a, $b) {
+            return $b['pending_count'] - $a['pending_count'];
+        });
+
+        return $result;
+    }
+
+    /**
+     * Get user-wise average lead response time (assign to first response) for the date range.
+     * Only includes Sales Executives who have at least one responded lead in the period.
+     */
+    private function getAverageResponseTimeByUser(?array $dateRange = null): array
+    {
+        $salesExecutiveRole = Role::where('slug', Role::SALES_EXECUTIVE)->first();
+        if (!$salesExecutiveRole) {
+            return [];
+        }
+
+        $users = User::where('is_active', true)
+            ->where('role_id', $salesExecutiveRole->id)
+            ->get();
+
+        if ($users->isEmpty()) {
+            return [];
+        }
+
+        $startDate = $dateRange['start_date'] ?? null;
+        $endDate = $dateRange['end_date'] ?? null;
+        $result = [];
+
+        foreach ($users as $user) {
+            $userId = $user->id;
+
+            $assignmentsQuery = LeadAssignment::where('assigned_to', $userId)
+                ->where('is_active', true);
+
+            if ($startDate && $endDate) {
+                $assignmentsQuery->whereBetween('assigned_at', [$startDate, $endDate]);
+            }
+
+            $assignments = $assignmentsQuery->get();
+            $responseMinutesList = [];
+
+            foreach ($assignments as $a) {
+                $assignedAt = $a->assigned_at;
+                $leadId = $a->lead_id;
+
+                $taskFirst = TelecallerTask::where('lead_id', $leadId)
+                    ->where('assigned_to', $userId)
+                    ->where('status', 'completed')
+                    ->min('completed_at');
+
+                $crmFirst = DB::table('crm_assignments')
+                    ->where('lead_id', $leadId)
+                    ->where('assigned_to', $userId)
+                    ->where(function ($q) {
+                        $q->where('cnp_count', '>', 0)
+                            ->orWhere('call_status', '!=', 'pending');
+                    })
+                    ->selectRaw('MIN(COALESCE(called_at, updated_at)) as first_at')
+                    ->value('first_at');
+
+                $firstResponse = null;
+                if ($taskFirst && $crmFirst) {
+                    $firstResponse = Carbon::parse($taskFirst)->lt(Carbon::parse($crmFirst)) ? $taskFirst : $crmFirst;
+                } elseif ($taskFirst) {
+                    $firstResponse = $taskFirst;
+                } elseif ($crmFirst) {
+                    $firstResponse = $crmFirst;
+                }
+
+                if (!$firstResponse) {
+                    continue;
+                }
+
+                $firstResponseCarbon = Carbon::parse($firstResponse);
+                if ($firstResponseCarbon->lt($assignedAt)) {
+                    continue;
+                }
+
+                $responseMinutesList[] = (int) round($assignedAt->diffInMinutes($firstResponseCarbon));
+            }
+
+            if (count($responseMinutesList) === 0) {
+                continue;
+            }
+
+            $avgMinutes = array_sum($responseMinutesList) / count($responseMinutesList);
+            $result[] = [
+                'user_id' => $userId,
+                'user_name' => $user->name,
+                'avg_response_minutes' => round($avgMinutes, 1),
+                'responded_count' => count($responseMinutesList),
+            ];
+        }
+
+        usort($result, function ($a, $b) {
+            return (int) ($a['avg_response_minutes'] <=> $b['avg_response_minutes']);
+        });
+
+        return $result;
+    }
+
+    /**
      * Get user visits and meetings data with date filters
      */
     private function getUserVisitsMeetingsData(string $filter = 'this_month'): array
     {
-        // Get Sales Manager and Sales Executive roles
+        // Get Senior Manager and Sales Executive roles
         $salesManagerRole = Role::where('slug', 'sales_manager')->first();
         $salesExecutiveRole = Role::where('slug', 'sales_executive')->first();
 
@@ -671,7 +862,7 @@ class AdminDashboardController extends Controller
             ];
         }
 
-        // Get all active Sales Managers and Sales Executives
+        // Get all active Senior Managers and Sales Executives
         $users = User::where('is_active', true)
             ->whereIn('role_id', [$salesManagerRole->id, $salesExecutiveRole->id])
             ->with('role')

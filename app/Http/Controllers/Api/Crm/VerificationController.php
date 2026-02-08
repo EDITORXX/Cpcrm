@@ -97,7 +97,7 @@ class VerificationController extends Controller
 
         $user = $request->user();
 
-        // Only Sales Managers can verify prospects
+        // Only Senior Managers can verify prospects
         if (!$user->isSalesManager()) {
             return response()->json(['message' => 'Forbidden. Only managers can verify prospects.'], 403);
         }
@@ -141,7 +141,7 @@ class VerificationController extends Controller
 
         $user = $request->user();
 
-        // Only Sales Managers can reject prospects
+        // Only Senior Managers can reject prospects
         if (!$user->isSalesManager()) {
             return response()->json(['message' => 'Forbidden. Only managers can reject prospects.'], 403);
         }

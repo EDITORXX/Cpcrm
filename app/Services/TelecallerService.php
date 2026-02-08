@@ -655,7 +655,7 @@ class TelecallerService
         $today = Carbon::today();
 
         $topPerformers = User::whereHas('role', function($q) {
-                $q->where('slug', 'telecaller');
+                $q->where('slug', \App\Models\Role::SALES_EXECUTIVE);
             })
             ->withCount(['crmAssignments as completed_calls' => function($q) use ($today) {
                 $q->whereIn('call_status', ['called_interested', 'called_not_interested', 'completed'])

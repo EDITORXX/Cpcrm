@@ -111,7 +111,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is Sales Head (Sales Manager with no manager or top-level manager)
+     * Check if user is Sales Head (Senior Manager with no manager or top-level manager)
      */
     public function isSalesHead(): bool
     {
@@ -124,7 +124,7 @@ class User extends Authenticatable
             return false;
         }
         
-        // Sales Head is a Sales Manager with no manager (manager_id is null)
+        // Sales Head is a Senior Manager with no manager (manager_id is null)
         return $this->manager_id === null;
     }
 
@@ -218,7 +218,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is Senior Manager
+     * Check if user is Manager (role slug senior_manager)
      */
     public function isSeniorManager(): bool
     {
@@ -259,7 +259,7 @@ class User extends Authenticatable
         if (!$this->relationLoaded('role')) {
             $this->load('role');
         }
-        return $this->role && in_array($this->role->slug, ['telecaller', Role::SALES_EXECUTIVE], true);
+        return $this->role && $this->role->slug === Role::SALES_EXECUTIVE;
     }
 
     /**
@@ -272,7 +272,7 @@ class User extends Authenticatable
             $this->load('role');
         }
         
-        // Sales Head (Sales Manager with no manager) displays as "Associate Director"
+        // Sales Head (Senior Manager with no manager) displays as "Associate Director"
         if ($this->isSalesHead()) {
             return 'Associate Director';
         }

@@ -273,33 +273,23 @@ Route::middleware(['auth'])->prefix('sales-manager')->name('sales-manager.')->gr
 // Protected Routes
 Route::middleware(['auth'])->group(function () {
     
+    // CRM dashboard (Sales Executive Performance): Sale Head ko chhod kar sabko dikhega (CRM bhi dashboard dikhega)
     Route::get('/dashboard', function () {
         $user = auth()->user();
         if (!$user) {
             return redirect()->route('login');
         }
         
-        // Load role relationship if not already loaded
         if (!$user->relationLoaded('role')) {
             $user->load('role');
         }
         
-        if ($user->isTelecaller() || $user->isSalesExecutive()) {
-            return redirect()->route('sales-executive.dashboard');
-        }
+        // Sale Head: apna dashboard
         if ($user->isSalesHead()) {
             return redirect()->route('sales-head.dashboard');
         }
-        if ($user->isSalesManager()) {
-            return redirect()->route('sales-manager.dashboard');
-        }
-        if ($user->isAdmin()) {
-            return redirect()->route('admin.dashboard');
-        }
-        if ($user->isCrm()) {
-            return view('crm.dashboard');
-        }
-        return view('dashboard');
+        // CRM + baaki sab: CRM dashboard open
+        return view('crm.dashboard');
     })->name('dashboard');
 
     // Test: Lead assigned notification (1-click test for popup + email)

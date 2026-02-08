@@ -65,7 +65,7 @@ class LeadFormField extends Model
      */
     public function scopeVisibleToRole($query, string $roleSlug)
     {
-        // Sales Manager/Sales Head/Admin/CRM can see all fields
+        // Senior Manager/Sales Head/Admin/CRM can see all fields
         if (in_array($roleSlug, ['sales_manager', 'sales_head', 'admin', 'crm'])) {
             return $query->active();
         }

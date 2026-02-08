@@ -75,9 +75,9 @@ class MeetingService
                 if ($reminderTime->isFuture()) {
                     $assignedUser = User::with('role')->find($meeting->assigned_to);
                     
-                    // Check if assigned user is Sales Manager - use Task model, otherwise TelecallerTask
+                    // Check if assigned user is Senior Manager - use Task model, otherwise TelecallerTask
                     if ($assignedUser && ($assignedUser->isSalesManager() || $assignedUser->isSalesHead() || $assignedUser->isAssistantSalesManager())) {
-                        // Create Task for Sales Manager/Head/Executive
+                        // Create Task for Senior Manager/Head/Executive
                         // Note: pre_meeting_call_task_id only references TelecallerTask, so we don't set it for Task model
                         $task = \App\Models\Task::create([
                             'lead_id' => $meeting->lead_id,

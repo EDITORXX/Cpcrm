@@ -292,6 +292,41 @@
         </div>
     </div>
 
+    <!-- Leads Allocated (75% No Response Yet + 25% Average Response Time) -->
+    <div class="section-card">
+        <div class="section-title">Leads Allocated</div>
+        <div style="display: flex; gap: 24px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 0; min-height: 0; width: 75%;">
+                <div class="text-sm text-[#B3B5B4] mb-2 font-medium">No Response Yet</div>
+                <p class="text-sm text-[#B3B5B4] mb-4">Users with leads on which no call outcome has been recorded.</p>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #F7F6F3; border-bottom: 2px solid #E5DED4;">
+                                <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-color); width: 40px;"> </th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-color);">User Name</th>
+                                <th style="padding: 12px; text-align: center; font-weight: 600; color: var(--text-color);">Pending Count</th>
+                                <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-color);">Oldest Assign</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leads-pending-response-tbody">
+                            <tr>
+                                <td colspan="4" style="padding: 20px; text-align: center; color: #B3B5B4;">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div style="width: 25%; min-width: 200px;">
+                <div class="text-sm text-[#B3B5B4] mb-2 font-medium">Average Response Time</div>
+                <p class="text-sm text-[#B3B5B4] mb-4">Avg time from assign to first response (this period).</p>
+                <div id="average-response-time-panel" style="min-height: 60px;">
+                    <p class="text-sm text-[#B3B5B4]">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- User Visits & Meetings -->
     <div class="section-card">
         <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
@@ -459,7 +494,7 @@
             </div>
             <div class="text-center p-4 bg-[#F7F6F3] rounded-lg">
                 <div class="text-2xl font-bold text-brand-primary" id="users-sales-manager">0</div>
-                <div class="text-sm text-[#B3B5B4] mt-1">Sales Manager</div>
+                <div class="text-sm text-[#B3B5B4] mt-1">Senior Manager</div>
             </div>
             <div class="text-center p-4 bg-[#F7F6F3] rounded-lg">
                 <div class="text-2xl font-bold text-brand-primary" id="users-sales-executive">0</div>
@@ -853,6 +888,20 @@
         } else {
             console.warn('No telecaller performance data or invalid format');
             renderTelecallerPerformance([]);
+        }
+
+        // Leads Pending Response
+        if (data.leads_pending_response && Array.isArray(data.leads_pending_response)) {
+            renderLeadsPendingResponse(data.leads_pending_response, data.server_now);
+        } else {
+            renderLeadsPendingResponse([], data.server_now);
+        }
+
+        // Average Response Time
+        if (data.average_response_time_by_user && Array.isArray(data.average_response_time_by_user)) {
+            renderAverageResponseTime(data.average_response_time_by_user);
+        } else {
+            renderAverageResponseTime([]);
         }
 
         // Call Statistics
@@ -1301,6 +1350,135 @@
         if (container) {
             container.innerHTML = cardsHtml;
         }
+    }
+
+    function formatAssignedAt(isoString, nowIso) {
+        if (!isoString) return '—';
+        const d = new Date(isoString);
+        if (isNaN(d.getTime())) return isoString;
+        const now = nowIso ? new Date(nowIso) : new Date();
+        const diffMs = now - d;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        if (diffMins < 60) return diffMins <= 1 ? '1m ago' : diffMins + 'm ago';
+        if (diffHours < 24) return diffHours === 1 ? '1h ago' : diffHours + 'h ago';
+        if (diffDays < 7) return diffDays === 1 ? '1d ago' : diffDays + 'd ago';
+        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatAssignedAtFull(isoString) {
+        if (!isoString) return '—';
+        const d = new Date(isoString);
+        if (isNaN(d.getTime())) return isoString;
+        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function maskPhone(phone) {
+        if (!phone || typeof phone !== 'string') return '—';
+        const digits = phone.replace(/\D/g, '');
+        if (digits.length < 4) return '****';
+        return digits.slice(0, 2) + '****' + digits.slice(-4);
+    }
+
+    function formatAvgResponseTime(avgResponseMinutes) {
+        if (avgResponseMinutes == null || isNaN(avgResponseMinutes)) return '—';
+        const m = Math.round(Number(avgResponseMinutes));
+        if (m < 60) return m + ' min';
+        const h = Math.floor(m / 60);
+        const min = m % 60;
+        return min > 0 ? (h + 'h ' + min + 'm') : (h + 'h');
+    }
+
+    function renderAverageResponseTime(list) {
+        const panel = document.getElementById('average-response-time-panel');
+        if (!panel) return;
+        if (!list || list.length === 0) {
+            panel.innerHTML = '<p class="text-sm text-[#B3B5B4]">No data for this period.</p>';
+            return;
+        }
+        let html = '<ul style="list-style: none; padding: 0; margin: 0;">';
+        list.forEach(function(row) {
+            const name = escapeHtml(row.user_name || '');
+            const timeStr = formatAvgResponseTime(row.avg_response_minutes);
+            html += '<li style="padding: 8px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;"><span>' + name + '</span><span style="font-weight: 600; color: var(--text-color);">' + timeStr + '</span></li>';
+        });
+        html += '</ul>';
+        panel.innerHTML = html;
+    }
+
+    function renderLeadsPendingResponse(data, serverNow) {
+        const tbody = document.getElementById('leads-pending-response-tbody');
+        if (!tbody) return;
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="padding: 20px; text-align: center; color: #B3B5B4;">No leads pending response.</td></tr>';
+            return;
+        }
+
+        const leadShowBase = "{{ url('/leads') }}";
+        let html = '';
+        data.forEach((row, index) => {
+            const leads = row.leads || [];
+            const oldestAssignedAt = leads.length > 0
+                ? leads.reduce((min, l) => (!l.assigned_at ? min : (!min || l.assigned_at < min ? l.assigned_at : min)), null)
+                : null;
+            const oldestAssign = oldestAssignedAt ? formatAssignedAt(oldestAssignedAt, serverNow) : '—';
+            const rowId = 'pending-row-' + row.user_id;
+            const detailId = 'pending-detail-' + row.user_id;
+            html += `
+                <tr class="leads-pending-user-row" data-user-id="${row.user_id}" style="background: white; border-bottom: 1px solid #E5DED4; cursor: pointer;" onclick="toggleLeadsPendingDetail('${detailId}', '${rowId}')">
+                    <td style="padding: 12px;"><i class="fas fa-chevron-right leads-pending-chevron" id="chevron-${rowId}" style="color: #B3B5B4;"></i></td>
+                    <td style="padding: 12px; font-weight: 500;">${escapeHtml(row.user_name || '')}</td>
+                    <td style="padding: 12px; text-align: center;">${row.pending_count || 0}</td>
+                    <td style="padding: 12px; color: #666;">${oldestAssign}</td>
+                </tr>
+                <tr id="${detailId}" class="leads-pending-detail-row" style="display: none;">
+                    <td colspan="4" style="padding: 0; border-bottom: 1px solid #E5DED4; background: #FAFAF9;">
+                        <div style="padding: 12px 12px 12px 48px;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid #E5DED4;">
+                                        <th style="padding: 8px 12px; text-align: left; font-weight: 600; color: #666; font-size: 12px;">Lead Name</th>
+                                        <th style="padding: 8px 12px; text-align: left; font-weight: 600; color: #666; font-size: 12px;">Phone</th>
+                                        <th style="padding: 8px 12px; text-align: left; font-weight: 600; color: #666; font-size: 12px;">Assigned At</th>
+                                        <th style="padding: 8px 12px; width: 80px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${(row.leads || []).map(lead => `
+                                        <tr style="border-bottom: 1px solid #eee;">
+                                            <td style="padding: 8px 12px;">${escapeHtml(lead.name || '—')}</td>
+                                            <td style="padding: 8px 12px;">${maskPhone(lead.phone)}</td>
+                                            <td style="padding: 8px 12px;">${formatAssignedAtFull(lead.assigned_at)}</td>
+                                            <td style="padding: 8px 12px;"><a href="${leadShowBase}/${lead.lead_id}" style="color: var(--primary-color); font-size: 12px;">View</a></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+    }
+
+    function toggleLeadsPendingDetail(detailId, rowId) {
+        const detailRow = document.getElementById(detailId);
+        const chevron = document.getElementById('chevron-' + rowId);
+        if (!detailRow || !chevron) return;
+        const isHidden = detailRow.style.display === 'none';
+        detailRow.style.display = isHidden ? 'table-row' : 'none';
+        chevron.className = isHidden ? 'fas fa-chevron-down leads-pending-chevron' : 'fas fa-chevron-right leads-pending-chevron';
+        if (chevron.style) chevron.style.color = '#B3B5B4';
+    }
+
+    function escapeHtml(text) {
+        if (text == null) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     // User Visits & Meetings Functions

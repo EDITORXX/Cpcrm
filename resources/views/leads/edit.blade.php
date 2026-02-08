@@ -47,7 +47,7 @@
 
     @if(auth()->user()->isCrm())
         <div class="mb-6 bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg">
-            <strong>ℹ️ Note:</strong> As a CRM user, you can view and edit <strong>all fields</strong> from all levels (Sales Executive, and Sales Manager). Fill in the complete lead requirements below.
+            <strong>ℹ️ Note:</strong> As a CRM user, you can view and edit <strong>all fields</strong> from all levels (Sales Executive, and Senior Manager). Fill in the complete lead requirements below.
         </div>
     @endif
 

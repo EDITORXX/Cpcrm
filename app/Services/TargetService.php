@@ -98,10 +98,10 @@ class TargetService
 
         $targetMonth = Carbon::parse($month . '-01')->startOfMonth();
 
-        // Get all team members (telecallers and sales executives under this manager)
+        // Get all team members (sales executives under this manager)
         $teamMembers = User::where('manager_id', $managerId)
             ->whereHas('role', function($q) {
-                $q->whereIn('slug', ['telecaller', 'sales_executive']);
+                $q->where('slug', 'sales_executive');
             })
             ->pluck('id');
 

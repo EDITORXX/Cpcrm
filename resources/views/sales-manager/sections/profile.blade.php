@@ -1,6 +1,6 @@
 @extends('sales-manager.layout')
 
-@section('title', 'Profile - Sales Manager')
+@section('title', 'Profile - Senior Manager')
 @section('page-title', 'Profile')
 
 @push('styles')
@@ -425,7 +425,7 @@
                 <input type="file" id="profilePictureInput" accept="image/jpeg,image/jpg,image/png">
             </div>
             <div class="profile-info">
-                <h2 id="profileName">Sales Manager</h2>
+                <h2 id="profileName">Senior Manager</h2>
                 <p id="profileEmail">Loading...</p>
             </div>
         </div>
@@ -634,7 +634,7 @@
             const user = data.user;
 
             // Update header
-            document.getElementById('profileName').textContent = user.name || 'Sales Manager';
+            document.getElementById('profileName').textContent = user.name || 'Senior Manager';
             document.getElementById('profileEmail').textContent = user.email || 'No email';
             document.getElementById('avatarInitial').textContent = (user.name || 'S').charAt(0).toUpperCase();
             

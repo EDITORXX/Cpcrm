@@ -1,6 +1,6 @@
 @extends('sales-manager.layout')
 
-@section('title', 'Meetings - Sales Manager')
+@section('title', 'Meetings - Senior Manager')
 @section('page-title', 'Meetings')
 
 @push('styles')
@@ -1309,7 +1309,7 @@
                         const usersData = await usersResponse.json();
                         telecallers = (usersData.users || []).filter(u => {
                             const role = u.role || {};
-                            return role.slug === 'telecaller' || role.name === 'Telecaller' || (typeof role === 'string' && role.toLowerCase().includes('telecaller'));
+                            return role.slug === 'sales_executive' || role.name === 'Sales Executive' || (typeof role === 'string' && role.toLowerCase().includes('sales executive'));
                         });
                     }
                 } catch (e) {
@@ -1328,7 +1328,7 @@
                         const user = a.assigned_to || a.assignedTo;
                         if (!user) return false;
                         const role = user.role || {};
-                        return role.slug === 'telecaller' || role.name === 'Telecaller' || (typeof role === 'string' && role.toLowerCase().includes('telecaller'));
+                        return role.slug === 'sales_executive' || role.name === 'Sales Executive' || (typeof role === 'string' && role.toLowerCase().includes('sales executive'));
                     });
                     
                     if (assignment) {

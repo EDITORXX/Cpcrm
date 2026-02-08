@@ -36,7 +36,7 @@
 
     <!-- Fields by Level -->
     <div class="space-y-6">
-        @foreach(['telecaller' => 'Sales Executive Level', 'sales_executive' => 'Sales Executive Level', 'sales_manager' => 'Sales Manager Level'] as $level => $levelLabel)
+        @foreach(['telecaller' => 'Sales Executive Level', 'sales_executive' => 'Sales Executive Level', 'sales_manager' => 'Senior Manager Level'] as $level => $levelLabel)
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 class="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
                     {{ $levelLabel }} Fields

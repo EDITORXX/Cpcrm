@@ -45,14 +45,14 @@ class CreateManagerExecutiveTask
                 return;
             }
 
-            // Check if assignee is Sales Manager or Sales Executive
+            // Check if assignee is Senior Manager or Sales Executive
             if (!$assignee->relationLoaded('role')) {
                 $assignee->load('role');
             }
 
             $roleSlug = $assignee->role->slug ?? '';
             if (!in_array($roleSlug, ['sales_manager', 'sales_executive'])) {
-                Log::info("Assignee is not a Sales Manager or Sales Executive, skipping task creation", [
+                Log::info("Assignee is not a Senior Manager or Sales Executive, skipping task creation", [
                     'prospect_id' => $prospect->id,
                     'assignee_id' => $verificationAssigneeId,
                     'role' => $roleSlug,

@@ -31,7 +31,7 @@ class MeetingController extends Controller
         $this->meetingService = $meetingService;
     }
     /**
-     * List all meetings (accessible by Admin, CRM, Sales Head, Sales Manager)
+     * List all meetings (accessible by Admin, CRM, Sales Head, Senior Manager)
      */
     public function index(Request $request)
     {
@@ -65,7 +65,7 @@ class MeetingController extends Controller
             }
             $query->where('is_dead', false);
         } elseif ($user->isSalesManager()) {
-            // Sales Manager sees their own meetings and team meetings (excluding dead)
+            // Senior Manager sees their own meetings and team meetings (excluding dead)
             $teamMemberIds = $user->teamMembers()->pluck('id');
             $query->where(function($q) use ($teamMemberIds, $user) {
                 $q->where('created_by', $user->id);
@@ -651,7 +651,7 @@ class MeetingController extends Controller
     {
         $user = $request->user();
 
-        // Check access - Sales Manager can reschedule their own meetings
+        // Check access - Senior Manager can reschedule their own meetings
         if ($user->isSalesManager() && $meeting->created_by !== $user->id) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
@@ -927,7 +927,7 @@ class MeetingController extends Controller
         // Create telecaller task if telecaller is selected
         if (!empty($validated['telecaller_id'])) {
             $telecaller = User::with('role')->find($validated['telecaller_id']);
-            if ($telecaller && $telecaller->role && $telecaller->role->slug === 'telecaller') {
+            if ($telecaller && $telecaller->role && $telecaller->role->slug === \App\Models\Role::SALES_EXECUTIVE) {
                 $taskScheduledAt = Carbon::parse($validated['scheduled_at'])->subMinutes(30);
                 
                 // If task scheduled time is in the past, set it to 10 minutes from now

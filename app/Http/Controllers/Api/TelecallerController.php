@@ -596,7 +596,7 @@ class TelecallerController extends Controller
     public function getTelecallers(Request $request)
     {
         $telecallers = User::whereHas('role', function($q) {
-                $q->where('slug', 'telecaller');
+                $q->where('slug', \App\Models\Role::SALES_EXECUTIVE);
             })
             ->where('is_active', true)
             ->with('role')
@@ -1991,7 +1991,7 @@ class TelecallerController extends Controller
             
             // Get visible fields for telecaller role (with full config)
             $visibleFields = LeadFormField::active()
-                ->visibleToRole('telecaller')
+                ->visibleToRole('sales_executive')
                 ->orderBy('display_order')
                 ->get()
                 ->map(function($field) {
@@ -2078,7 +2078,7 @@ class TelecallerController extends Controller
             
             // Get visible fields for telecaller role
             $visibleFields = LeadFormField::active()
-                ->visibleToRole('telecaller')
+                ->visibleToRole('sales_executive')
                 ->orderBy('display_order')
                 ->get();
             

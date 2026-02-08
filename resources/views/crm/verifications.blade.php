@@ -395,7 +395,7 @@
         <div style="background: #fef3c7; padding: 12px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f59e0b;">
             <p style="margin: 0; color: #92400e;">
                 <i class="fas fa-info-circle mr-2"></i>
-                <strong>Note:</strong> Prospects can only be verified by their respective Sales Managers. This is a read-only view.
+                <strong>Note:</strong> Prospects can only be verified by their respective Senior Managers. This is a read-only view.
             </p>
         </div>
         <div id="prospectsContainer">

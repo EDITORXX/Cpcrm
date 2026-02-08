@@ -307,7 +307,7 @@ class LeadController extends Controller
             return true;
         }
 
-        // For Sales Managers: allow access to leads that came from their team's verified prospects
+        // For Senior Managers: allow access to leads that came from their team's verified prospects
         if ($user->isSalesManager()) {
             $teamMemberIds = $user->teamMembers()->pluck('id');
             

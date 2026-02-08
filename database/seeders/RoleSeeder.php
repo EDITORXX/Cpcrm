@@ -35,15 +35,15 @@ class RoleSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'name' => 'Sales Manager',
+                'name' => 'Senior Manager',
                 'slug' => 'sales_manager',
                 'description' => 'View all team leads, assign leads to sales executives, track team performance',
                 'is_active' => true,
             ],
             [
-                'name' => 'Senior Manager',
+                'name' => 'Manager',
                 'slug' => 'senior_manager',
-                'description' => 'Senior level manager with extended permissions',
+                'description' => 'Manager with extended permissions in the hierarchy',
                 'is_active' => true,
             ],
             [
@@ -55,13 +55,7 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'Sales Executive',
                 'slug' => 'sales_executive',
-                'description' => 'View assigned leads only, update call status, add call remarks',
-                'is_active' => true,
-            ],
-            [
-                'name' => 'Telecaller',
-                'slug' => 'telecaller',
-                'description' => 'Make calls to leads, update call status, verify leads',
+                'description' => 'View assigned leads only, update call status, add call remarks, verify leads',
                 'is_active' => true,
             ],
         ];

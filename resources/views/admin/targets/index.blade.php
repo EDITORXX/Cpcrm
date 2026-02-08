@@ -4,9 +4,9 @@
 @section('page-title', 'Target Management')
 @section('page-subtitle')
     @if(auth()->user()->isSalesHead())
-        Set targets for Sales Executives and Sales Managers. Sales Executive targets are view-only.
+        Set targets for Sales Executives and Senior Managers. Sales Executive targets are view-only.
     @else
-        Set and manage monthly targets for Sales Executives and Sales Managers
+        Set and manage monthly targets for Sales Executives and Senior Managers
     @endif
 @endsection
 

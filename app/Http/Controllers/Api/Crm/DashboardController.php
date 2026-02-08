@@ -4,8 +4,12 @@ namespace App\Http\Controllers\Api\Crm;
 
 use App\Http\Controllers\Controller;
 use App\Models\CrmAssignment;
+use App\Models\FollowUp;
+use App\Models\Lead;
 use App\Models\LeadAssignment;
+use App\Models\Meeting;
 use App\Models\Prospect;
+use App\Models\SiteVisit;
 use App\Models\TelecallerTask;
 use App\Models\User;
 use App\Models\TelecallerDailyLimit;
@@ -21,19 +25,29 @@ class DashboardController extends Controller
     /**
      * Get date range based on filter type
      */
-    private function getDateRange($dateRange)
+    private function getDateRange($dateRange, ?Request $request = null)
     {
         $today = Carbon::today();
         
         switch ($dateRange) {
             case 'today':
                 return [$today->copy()->startOfDay(), $today->copy()->endOfDay()];
+            case 'yesterday':
+                $yesterday = $today->copy()->subDay();
+                return [$yesterday->startOfDay(), $yesterday->endOfDay()];
             case 'this_week':
                 return [$today->copy()->startOfWeek(), $today->copy()->endOfWeek()];
             case 'this_month':
                 return [$today->copy()->startOfMonth(), $today->copy()->endOfMonth()];
             case 'this_year':
                 return [$today->copy()->startOfYear(), $today->copy()->endOfYear()];
+            case 'custom':
+                if ($request && $request->has('start_date') && $request->has('end_date')) {
+                    $start = Carbon::parse($request->get('start_date'))->startOfDay();
+                    $end = Carbon::parse($request->get('end_date'))->endOfDay();
+                    return [$start, $end];
+                }
+                return [null, null];
             case 'till_date':
             case 'all_time':
             default:
@@ -47,7 +61,7 @@ class DashboardController extends Controller
     public function getStats(Request $request)
     {
         $dateRange = $request->get('date_range', 'all_time');
-        [$startDate, $endDate] = $this->getDateRange($dateRange);
+        [$startDate, $endDate] = $this->getDateRange($dateRange, $request);
 
         // Total Assigned Leads: Count of all active LeadAssignment records
         $totalAssignedQuery = LeadAssignment::where('is_active', true);
@@ -94,133 +108,120 @@ class DashboardController extends Controller
     }
 
     /**
+     * Roles for Sales Executive Performance filter (exclude Admin, CRM)
+     */
+    public function getPerformanceFilterRoles()
+    {
+        $roles = Role::where('is_active', true)
+            ->whereNotIn('slug', [Role::ADMIN, Role::CRM])
+            ->get(['id', 'name', 'slug']);
+        return response()->json($roles);
+    }
+
+    /**
      * Get telecaller performance stats
      */
     public function getTelecallerStats(Request $request)
     {
         try {
-            $dateRange = $request->get('date_range', 'today');
-            [$startDate, $endDate] = $this->getDateRange($dateRange);
-            $isToday = $dateRange === 'today';
+            $dateRange = $request->get('date_range', 'this_month');
+            [$startDate, $endDate] = $this->getDateRange($dateRange, $request);
+            $roleSlug = $request->get('role_slug', 'all');
 
-            // Get all telecallers - always return all, even if no data
-            $telecallers = User::whereHas('role', function($q) {
-                $q->where('slug', Role::SALES_EXECUTIVE);
-            })->get();
+            // Sab users dikhane chahiye except Admin, CRM aur Sale Head
+            $users = User::with('role')
+                ->whereHas('role', function ($q) {
+                    $q->whereNotIn('slug', [Role::ADMIN, Role::CRM]);
+                })
+                ->get()
+                ->filter(function ($user) {
+                    if ($user->role->slug === Role::SALES_MANAGER && $user->manager_id === null) {
+                        return false; // Sale Head - exclude
+                    }
+                    return true;
+                });
 
-            // If no telecallers found, return empty array
-            if ($telecallers->isEmpty()) {
+            // Filter by role if selected
+            if ($roleSlug && $roleSlug !== 'all') {
+                $users = $users->filter(function ($user) use ($roleSlug) {
+                    return $user->role->slug === $roleSlug;
+                });
+            }
+
+            $users = $users->values();
+
+            if ($users->isEmpty()) {
                 return response()->json([]);
             }
 
             $result = [];
 
-            foreach ($telecallers as $telecaller) {
+            foreach ($users as $telecaller) {
                 try {
                     $userId = $telecaller->id;
-                    $profile = TelecallerProfile::firstOrCreate(['user_id' => $userId]);
-                    $dailyLimit = TelecallerDailyLimit::firstOrCreate(['user_id' => $userId]);
 
-                    // Allocated - use LeadAssignment table for actual assigned count
-                    $allocatedQuery = LeadAssignment::where('assigned_to', $userId)
-                        ->where('is_active', true);
+                    // assigned = LeadAssignment count
+                    $assignedQuery = LeadAssignment::where('assigned_to', $userId)->where('is_active', true);
                     if ($startDate && $endDate) {
-                        $allocatedQuery->whereBetween('assigned_at', [$startDate, $endDate]);
+                        $assignedQuery->whereBetween('assigned_at', [$startDate, $endDate]);
                     }
-                    $allocated = $allocatedQuery->count();
+                    $assigned = $assignedQuery->count();
 
-                    // Base query for CrmAssignment stats
-                    $baseQuery = CrmAssignment::where('assigned_to', $userId);
+                    // follow_up = FollowUp by this user (created_by), date on scheduled_at or created_at
+                    $followUpQuery = FollowUp::where('created_by', $userId);
                     if ($startDate && $endDate) {
-                        $baseQuery->whereBetween('assigned_at', [$startDate, $endDate]);
+                        $followUpQuery->where(function ($q) use ($startDate, $endDate) {
+                            $q->whereBetween('scheduled_at', [$startDate, $endDate])
+                                ->orWhereBetween('created_at', [$startDate, $endDate]);
+                        });
                     }
+                    $follow_up = $followUpQuery->count();
 
-                    // Remaining: Leads where call has NOT been made yet
-                    // Count LeadAssignments, excluding leads where:
-                    // - A completed TelecallerTask exists, OR
-                    // - A CrmAssignment exists with call activity (cnp_count > 0 OR call_status != 'pending')
-                    $leadIdsWithCalls = DB::table('telecaller_tasks')
-                        ->where('assigned_to', $userId)
-                        ->where('status', 'completed')
-                        ->distinct()
-                        ->pluck('lead_id')
-                        ->merge(
-                            DB::table('crm_assignments')
-                                ->where('assigned_to', $userId)
-                                ->where(function($q) {
-                                    $q->where('cnp_count', '>', 0)
-                                      ->orWhere('call_status', '!=', 'pending');
-                                })
-                                ->distinct()
-                                ->pluck('lead_id')
-                        )
-                        ->unique()
-                        ->values();
-                    
-                    $remainingQuery = LeadAssignment::where('assigned_to', $userId)
-                        ->where('is_active', true);
-                    
-                    if ($leadIdsWithCalls->isNotEmpty()) {
-                        $remainingQuery->whereNotIn('lead_id', $leadIdsWithCalls);
-                    }
-                    
+                    // meetings = Meeting assigned_to this user
+                    $meetingsQuery = Meeting::where('assigned_to', $userId);
                     if ($startDate && $endDate) {
-                        $remainingQuery->whereBetween('assigned_at', [$startDate, $endDate]);
+                        $meetingsQuery->whereBetween('scheduled_at', [$startDate, $endDate]);
                     }
-                    $remaining = $remainingQuery->count();
+                    $meetings = $meetingsQuery->count();
 
-                    // Called: Count of completed TelecallerTask records (actual calls made)
-                    $calledQuery = TelecallerTask::where('assigned_to', $userId)
-                        ->where('status', 'completed');
+                    // visits = SiteVisit assigned_to this user
+                    $visitsQuery = SiteVisit::where('assigned_to', $userId);
                     if ($startDate && $endDate) {
-                        $calledQuery->whereBetween('completed_at', [$startDate, $endDate]);
+                        $visitsQuery->whereBetween('scheduled_at', [$startDate, $endDate]);
                     }
-                    $called = $calledQuery->count();
+                    $visits = $visitsQuery->count();
 
-                    // Interested: Verified prospects created by this telecaller
-                    $interestedQuery = Prospect::where('telecaller_id', $userId)
-                        ->whereIn('verification_status', ['verified', 'approved']);
+                    // closer = SiteVisit assigned_to, closer_status = verified
+                    $closerQuery = SiteVisit::where('assigned_to', $userId)->where('closer_status', 'verified');
                     if ($startDate && $endDate) {
-                        $interestedQuery->whereBetween('verified_at', [$startDate, $endDate]);
+                        $closerQuery->whereBetween('closer_verified_at', [$startDate, $endDate]);
                     }
-                    $interested = $interestedQuery->count();
+                    $closer = $closerQuery->count();
 
-                    // Not Interested: Sum of called_not_interested in CrmAssignment + rejected prospects
-                    $notInterestedCrm = (clone $baseQuery)
-                        ->where('call_status', 'called_not_interested')
-                        ->count();
-                    
-                    $notInterestedProspectsQuery = Prospect::where('telecaller_id', $userId)
-                        ->where('verification_status', 'rejected');
-                    if ($startDate && $endDate) {
-                        $notInterestedProspectsQuery->whereBetween('verified_at', [$startDate, $endDate]);
-                    }
-                    $notInterestedProspects = $notInterestedProspectsQuery->count();
-                    
-                    $notInterested = $notInterestedCrm + $notInterestedProspects;
+                    // pending_tasks = TelecallerTask assigned_to, status pending or rescheduled
+                    $pendingTasksQuery = TelecallerTask::where('assigned_to', $userId)
+                        ->whereIn('status', ['pending', 'rescheduled']);
+                    $pending_tasks = $pendingTasksQuery->count();
 
-                    // CNP: Pending calls with cnp_count > 0 (call later status)
-                    $cnp = (clone $baseQuery)
-                        ->where('call_status', 'pending')
-                        ->where('cnp_count', '>', 0)
-                        ->count();
+                    // overdue_tasks = same but scheduled_at < now
+                    $overdueTasksQuery = TelecallerTask::where('assigned_to', $userId)
+                        ->whereIn('status', ['pending', 'rescheduled'])
+                        ->where('scheduled_at', '<', now());
+                    $overdue_tasks = $overdueTasksQuery->count();
 
                     $result[] = [
                         'telecaller_id' => $userId,
                         'telecaller_name' => $telecaller->name,
                         'username' => $telecaller->name,
-                        'allocated' => $allocated ?? 0,
-                        'called' => $called ?? 0,
-                        'remaining' => $remaining ?? 0,
-                        'interested' => $interested ?? 0,
-                        'not_interested' => $notInterested ?? 0,
-                        'cnp' => $cnp ?? 0,
-                        'daily_limit' => $dailyLimit->overall_daily_limit ?? 0,
-                        'is_absent' => $profile->isCurrentlyAbsent() ?? false,
-                        'max_pending_leads' => $profile->max_pending_leads ?? 0,
+                        'assigned' => $assigned,
+                        'follow_up' => $follow_up,
+                        'meetings' => $meetings,
+                        'visits' => $visits,
+                        'closer' => $closer,
+                        'pending_tasks' => $pending_tasks,
+                        'overdue_tasks' => $overdue_tasks,
                     ];
                 } catch (\Exception $e) {
-                    // Log error but continue with other telecallers
                     Log::error('Error processing telecaller stats for user ' . $telecaller->id . ': ' . $e->getMessage());
                     continue;
                 }
@@ -234,12 +235,216 @@ class DashboardController extends Controller
     }
 
     /**
+     * Get user-wise leads allocated but not yet responded (no call outcome).
+     * Same "remaining" logic as admin getLeadsPendingResponseByUser.
+     */
+    public function getLeadsPendingResponse(Request $request)
+    {
+        try {
+            $dateRange = $request->get('date_range', 'this_month');
+            [$startDate, $endDate] = $this->getDateRange($dateRange, $request);
+
+            $salesExecutiveRole = Role::where('slug', Role::SALES_EXECUTIVE)->first();
+            if (!$salesExecutiveRole) {
+                return response()->json([]);
+            }
+
+            $users = User::where('is_active', true)
+                ->where('role_id', $salesExecutiveRole->id)
+                ->get();
+
+            if ($users->isEmpty()) {
+                return response()->json([]);
+            }
+
+            $result = [];
+
+            foreach ($users as $user) {
+                $userId = $user->id;
+
+                $leadIdsWithCalls = DB::table('telecaller_tasks')
+                    ->where('assigned_to', $userId)
+                    ->where('status', 'completed')
+                    ->distinct()
+                    ->pluck('lead_id')
+                    ->merge(
+                        DB::table('crm_assignments')
+                            ->where('assigned_to', $userId)
+                            ->where(function ($q) {
+                                $q->where('cnp_count', '>', 0)
+                                    ->orWhere('call_status', '!=', 'pending');
+                            })
+                            ->distinct()
+                            ->pluck('lead_id')
+                    )
+                    ->unique()
+                    ->values();
+
+                $assignmentsQuery = LeadAssignment::where('assigned_to', $userId)
+                    ->where('is_active', true)
+                    ->with('lead:id,name,phone');
+
+                if ($leadIdsWithCalls->isNotEmpty()) {
+                    $assignmentsQuery->whereNotIn('lead_id', $leadIdsWithCalls);
+                }
+                if ($startDate && $endDate) {
+                    $assignmentsQuery->whereBetween('assigned_at', [$startDate, $endDate]);
+                }
+
+                $assignments = $assignmentsQuery->orderBy('assigned_at', 'desc')->get();
+
+                if ($assignments->isEmpty()) {
+                    continue;
+                }
+
+                $leads = [];
+                foreach ($assignments as $a) {
+                    $lead = $a->lead;
+                    if (!$lead) {
+                        continue;
+                    }
+                    $leads[] = [
+                        'lead_id' => $lead->id,
+                        'name' => $lead->name,
+                        'phone' => $lead->phone,
+                        'assigned_at' => $a->assigned_at?->toIso8601String(),
+                    ];
+                }
+
+                $result[] = [
+                    'user_id' => $userId,
+                    'user_name' => $user->name,
+                    'pending_count' => count($leads),
+                    'leads' => $leads,
+                ];
+            }
+
+            usort($result, function ($a, $b) {
+                return $b['pending_count'] - $a['pending_count'];
+            });
+
+            return response()->json([
+                'data' => $result,
+                'server_now' => now()->toIso8601String(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in getLeadsPendingResponse: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get user-wise average lead response time (assign to first response) for the date range.
+     * Same logic as Admin getAverageResponseTimeByUser.
+     */
+    public function getAverageResponseTime(Request $request)
+    {
+        try {
+            $dateRange = $request->get('date_range', 'this_month');
+            [$startDate, $endDate] = $this->getDateRange($dateRange, $request);
+
+            $salesExecutiveRole = Role::where('slug', Role::SALES_EXECUTIVE)->first();
+            if (!$salesExecutiveRole) {
+                return response()->json(['data' => [], 'server_now' => now()->toIso8601String()]);
+            }
+
+            $users = User::where('is_active', true)
+                ->where('role_id', $salesExecutiveRole->id)
+                ->get();
+
+            if ($users->isEmpty()) {
+                return response()->json(['data' => [], 'server_now' => now()->toIso8601String()]);
+            }
+
+            $result = [];
+
+            foreach ($users as $user) {
+                $userId = $user->id;
+
+                $assignmentsQuery = LeadAssignment::where('assigned_to', $userId)
+                    ->where('is_active', true);
+
+                if ($startDate && $endDate) {
+                    $assignmentsQuery->whereBetween('assigned_at', [$startDate, $endDate]);
+                }
+
+                $assignments = $assignmentsQuery->get();
+                $responseMinutesList = [];
+
+                foreach ($assignments as $a) {
+                    $assignedAt = $a->assigned_at;
+                    $leadId = $a->lead_id;
+
+                    $taskFirst = TelecallerTask::where('lead_id', $leadId)
+                        ->where('assigned_to', $userId)
+                        ->where('status', 'completed')
+                        ->min('completed_at');
+
+                    $crmFirst = DB::table('crm_assignments')
+                        ->where('lead_id', $leadId)
+                        ->where('assigned_to', $userId)
+                        ->where(function ($q) {
+                            $q->where('cnp_count', '>', 0)
+                                ->orWhere('call_status', '!=', 'pending');
+                        })
+                        ->selectRaw('MIN(COALESCE(called_at, updated_at)) as first_at')
+                        ->value('first_at');
+
+                    $firstResponse = null;
+                    if ($taskFirst && $crmFirst) {
+                        $firstResponse = Carbon::parse($taskFirst)->lt(Carbon::parse($crmFirst)) ? $taskFirst : $crmFirst;
+                    } elseif ($taskFirst) {
+                        $firstResponse = $taskFirst;
+                    } elseif ($crmFirst) {
+                        $firstResponse = $crmFirst;
+                    }
+
+                    if (!$firstResponse) {
+                        continue;
+                    }
+
+                    $firstResponseCarbon = Carbon::parse($firstResponse);
+                    if ($firstResponseCarbon->lt($assignedAt)) {
+                        continue;
+                    }
+
+                    $responseMinutesList[] = (int) round($assignedAt->diffInMinutes($firstResponseCarbon));
+                }
+
+                if (count($responseMinutesList) === 0) {
+                    continue;
+                }
+
+                $avgMinutes = array_sum($responseMinutesList) / count($responseMinutesList);
+                $result[] = [
+                    'user_id' => $userId,
+                    'user_name' => $user->name,
+                    'avg_response_minutes' => round($avgMinutes, 1),
+                    'responded_count' => count($responseMinutesList),
+                ];
+            }
+
+            usort($result, function ($a, $b) {
+                return (int) ($a['avg_response_minutes'] <=> $b['avg_response_minutes']);
+            });
+
+            return response()->json([
+                'data' => $result,
+                'server_now' => now()->toIso8601String(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in getAverageResponseTime: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Get daily prospects with filters and pagination
      */
     public function getDailyProspects(Request $request)
     {
         $dateRange = $request->get('date_range', 'all_time');
-        [$startDate, $endDate] = $this->getDateRange($dateRange);
+        [$startDate, $endDate] = $this->getDateRange($dateRange, $request);
         
         $query = Prospect::with(['createdBy', 'assignedManager', 'assignment']);
 

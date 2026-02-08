@@ -1,6 +1,6 @@
 @extends('sales-manager.layout')
 
-@section('title', 'Reports - Sales Manager')
+@section('title', 'Reports - Senior Manager')
 @section('page-title', 'Reports')
 
 @section('content')

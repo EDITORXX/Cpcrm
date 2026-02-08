@@ -119,7 +119,7 @@ class TelecallerTaskService
                 $assignedUser = $assignment->assignedTo;
                 
                 // Check if assigned user is a telecaller
-                if ($assignedUser && $assignedUser->role && $assignedUser->role->slug === 'telecaller') {
+                if ($assignedUser && $assignedUser->role && $assignedUser->role->slug === \App\Models\Role::SALES_EXECUTIVE) {
                     $telecaller = $assignedUser;
                 }
             }

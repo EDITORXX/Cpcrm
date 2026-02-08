@@ -3,15 +3,23 @@
 @section('title', 'CRM - Base CRM')
 @section('page-title', 'CRM')
 @section('header-below-title')
-    <label class="form-label small mb-0 fw-bold" for="date-range-filter">Date Range:</label>
-    <select id="date-range-filter" class="form-select form-select-sm" style="max-width: 160px;">
-        <option value="today">Today</option>
-        <option value="this_week">This Week</option>
-        <option value="this_month" selected>This Month</option>
-        <option value="this_year">This Year</option>
-        <option value="till_date">Till Date</option>
-        <option value="all_time">All Time</option>
-    </select>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <label class="form-label small mb-0 fw-bold" for="date-range-filter">Date Range:</label>
+        <select id="date-range-filter" class="form-select form-select-sm" style="max-width: 160px;">
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+            <option value="this_week">This Week</option>
+            <option value="this_month" selected>This Month</option>
+            <option value="this_year">This Year</option>
+            <option value="all_time">All Time</option>
+            <option value="custom">Custom</option>
+        </select>
+        <span id="custom-date-wrap" class="d-none align-middle">
+            <input type="date" id="date-range-start" class="form-control form-control-sm d-inline-block" style="max-width: 140px;" title="From">
+            <span class="mx-1">–</span>
+            <input type="date" id="date-range-end" class="form-control form-control-sm d-inline-block" style="max-width: 140px;" title="To">
+        </span>
+    </div>
 @endsection
 
 @push('styles')
@@ -95,6 +103,60 @@
         background-color: var(--secondary-green);
         border-color: var(--secondary-green);
     }
+    
+    /* Phone / small screen responsive – side blank space na aaye */
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding-left: 0;
+            padding-right: 0;
+            max-width: 100%;
+            width: 100%;
+            overflow-x: hidden;
+        }
+        .container-fluid .row { margin-left: 0; margin-right: 0; }
+        .container-fluid .card { max-width: 100%; }
+        .card-body { padding: 0.75rem; overflow-x: hidden; }
+        .card-header { padding: 0.75rem 1rem; }
+        .card-header h5 { font-size: 1rem; }
+    }
+    
+    /* Sales Executive Performance table: scroll andar, page full width */
+    .crm-perf-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    .crm-perf-table-wrap .table {
+        min-width: 640px;
+        margin-bottom: 0;
+    }
+    .crm-perf-table-wrap .table th,
+    .crm-perf-table-wrap .table td {
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+    @media (max-width: 768px) {
+        .crm-perf-table-wrap .table { font-size: 0.8rem; min-width: 560px; }
+        .crm-perf-table-wrap .table th,
+        .crm-perf-table-wrap .table td { padding: 0.4rem 0.5rem; }
+        .crm-perf-table-wrap .table th:first-child,
+        .crm-perf-table-wrap .table td:first-child {
+            position: sticky;
+            left: 0;
+            background: #fff;
+            z-index: 1;
+            box-shadow: 2px 0 4px rgba(0,0,0,0.06);
+            min-width: 90px;
+            max-width: 120px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .crm-perf-table-wrap .table thead th:first-child { background: #f8f9fa; }
+    }
 </style>
 @endpush
 
@@ -106,46 +168,80 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 
-    <!-- Top Stats Cards (4 Cards) - Phone: 50% x 2 -->
-    <div class="row mb-4" id="stats-cards-container">
-        <div class="col-lg-3 col-md-6 col-6 mb-3">
-            <div class="stats-card stats-card-gradient" data-filter="all">
-                <h6 class="text-white-50 mb-2">Total Assigned Leads</h6>
-                <h2 class="text-white mb-0" id="stat-total-assigned">0</h2>
-            </div>
-        </div>
-        <div class="col-lg-3 col-md-6 col-6 mb-3">
-            <div class="stats-card stats-card-gradient" data-filter="called">
-                <h6 class="text-white-50 mb-2">Called Leads</h6>
-                <h2 class="text-white mb-0" id="stat-called">0</h2>
-            </div>
-        </div>
-        <div class="col-lg-3 col-md-6 col-6 mb-3">
-            <div class="stats-card stats-card-gradient" data-filter="called_not_interested">
-                <h6 class="text-white-50 mb-2">Not Interested</h6>
-                <h2 class="text-white mb-0" id="stat-not-interested">0</h2>
-            </div>
-        </div>
-        <div class="col-lg-3 col-md-6 col-6 mb-3">
-            <div class="stats-card stats-card-gradient" data-filter="called_interested">
-                <h6 class="text-white-50 mb-2">Interested</h6>
-                <h2 class="text-white mb-0" id="stat-interested">0</h2>
-            </div>
-        </div>
-    </div>
-
     <!-- Sales Executive Performance Section -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
                     <h5 class="mb-0">Sales Executive Performance</h5>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <select id="perf-role-filter" class="form-select form-select-sm" style="max-width: 180px;" title="User type">
+                            <option value="all">All</option>
+                        </select>
+                        <select id="perf-date-range" class="form-select form-select-sm" style="max-width: 160px;" title="Date range">
+                            <option value="today">Today</option>
+                            <option value="yesterday">Yesterday</option>
+                            <option value="this_week">This Week</option>
+                            <option value="this_month" selected>This Month</option>
+                            <option value="this_year">This Year</option>
+                            <option value="all_time">All Time</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                        <span id="perf-custom-date-wrap" class="d-none align-middle">
+                            <input type="date" id="perf-date-start" class="form-control form-control-sm d-inline-block" style="max-width: 130px;" title="From">
+                            <span class="mx-1">–</span>
+                            <input type="date" id="perf-date-end" class="form-control form-control-sm d-inline-block" style="max-width: 130px;" title="To">
+                        </span>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="row" id="telecaller-stats-container">
                         <div class="text-center py-4">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leads Allocated (75% No Response Yet + 25% Average Response Time) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Leads Allocated</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-lg-9">
+                            <h6 class="text-muted small mb-1">No Response Yet</h6>
+                            <p class="text-muted small mb-2">Users with leads on which no call outcome has been recorded.</p>
+                            <div class="table-responsive crm-perf-table-wrap">
+                                <table class="table table-bordered table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 40px;"></th>
+                                            <th>User Name</th>
+                                            <th class="text-center">Pending Count</th>
+                                            <th>Oldest Assign</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="leads-pending-response-tbody">
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted py-4">Loading...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-3">
+                            <h6 class="text-muted small mb-1">Average Response Time</h6>
+                            <p class="text-muted small mb-2">Avg time from assign to first response (this period).</p>
+                            <div id="average-response-time-panel" style="min-height: 60px;">
+                                <p class="text-muted small mb-0">Loading...</p>
                             </div>
                         </div>
                     </div>

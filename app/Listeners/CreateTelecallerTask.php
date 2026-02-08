@@ -21,7 +21,7 @@ class CreateTelecallerTask
     }
 
     /**
-     * Handle the event - Auto-create calling task when lead is assigned to telecaller, sales manager, or sales executive
+     * Handle the event - Auto-create calling task when lead is assigned to sales executive, sales manager, or assistant sales manager
      */
     public function handle(LeadAssigned $event): void
     {
@@ -51,7 +51,7 @@ class CreateTelecallerTask
                 return;
             }
 
-            // Check if assigned user has eligible role (telecaller, sales_manager, or sales_executive)
+            // Check if assigned user has eligible role (sales_executive, sales_manager, assistant_sales_manager)
             // EXCLUDE CRM and Admin roles
             $userRole = $assignedUser->role->slug ?? '';
             $eligibleRoles = [\App\Models\Role::SALES_EXECUTIVE, \App\Models\Role::SALES_MANAGER, \App\Models\Role::ASSISTANT_SALES_MANAGER];
@@ -163,7 +163,7 @@ class CreateTelecallerTask
                     ]));
                 }
             } else {
-                // For telecallers, use TelecallerTask
+                // For sales executives, use TelecallerTask
                 $existingTask = TelecallerTask::where('lead_id', $lead->id)
                     ->where('assigned_to', $assignedUser->id)
                     ->where('task_type', 'calling')
@@ -172,7 +172,7 @@ class CreateTelecallerTask
 
                 if (!$existingTask) {
                     try {
-                        // Auto-create calling task for telecallers
+                        // Auto-create calling task for sales executives
                         $task = $this->telecallerTaskService->createCallingTask(
                             $lead,
                             $assignedUser,
@@ -189,7 +189,7 @@ class CreateTelecallerTask
                             'scheduled_at' => $task->scheduled_at ? $task->scheduled_at->format('Y-m-d H:i:s') : 'null',
                         ]);
                     } catch (\Exception $taskError) {
-                        Log::error("❌ Failed to create TelecallerTask for telecaller", [
+                        Log::error("❌ Failed to create TelecallerTask for sales executive", [
                             'lead_id' => $lead->id,
                             'assigned_to' => $assignedUser->id,
                             'error' => $taskError->getMessage(),

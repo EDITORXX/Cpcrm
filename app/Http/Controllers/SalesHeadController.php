@@ -66,7 +66,7 @@ class SalesHeadController extends Controller
                 $allTeamMemberIds = [];
             }
         
-        // Get all Sales Managers under this Sales Head
+        // Get all Senior Managers under this Sales Head
         $salesManagers = User::where('manager_id', $user->id)
             ->whereHas('role', function($q) {
                 $q->where('slug', 'sales_manager');
@@ -82,10 +82,10 @@ class SalesHeadController extends Controller
             ->with(['role', 'manager'])
             ->get();
 
-        // Get all Telecallers
+        // Get all Sales Executives (team)
         $telecallers = User::whereIn('manager_id', array_merge([$user->id], $allTeamMemberIds))
             ->whereHas('role', function($q) {
-                $q->where('slug', 'telecaller');
+                $q->where('slug', \App\Models\Role::SALES_EXECUTIVE);
             })
             ->with(['role', 'manager'])
             ->get();
@@ -131,7 +131,7 @@ class SalesHeadController extends Controller
                 ->count() : 0,
         ];
 
-        // Sales Managers Performance
+        // Senior Managers Performance
         $managersPerformance = $salesManagers->map(function($manager) {
             $managerTeamIds = $manager->getAllTeamMemberIds();
             $managerLeadIds = !empty($managerTeamIds) ? Lead::whereHas('activeAssignments', function ($q) use ($managerTeamIds) {

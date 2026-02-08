@@ -14,34 +14,51 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Initialize dashboard
 function initDashboard() {
-    // Load initial data
-    loadStats();
-    loadTelecallerStats();
+    // Set up event listeners first so perf dropdowns work
+    setupEventListeners();
+    // Load performance filter roles then table
+    loadPerformanceFilterRoles().then(() => loadTelecallerStats());
+    loadLeadsPendingResponse();
+    loadAverageResponseTime();
     loadDailyProspects();
     loadUsers(); // For dropdowns
     loadBlacklist();
     loadPendingVerifications();
     loadImportedLeads();
-    
-    // Set up event listeners
-    setupEventListeners();
 }
 
 // Setup event listeners
 function setupEventListeners() {
-    // Date range filter
-    document.getElementById('date-range-filter')?.addEventListener('change', function() {
-        loadStats();
+    // Page header date range (if present)
+    const dateRangeFilter = document.getElementById('date-range-filter');
+    const customDateWrap = document.getElementById('custom-date-wrap');
+    dateRangeFilter?.addEventListener('change', function() {
+        const isCustom = this.value === 'custom';
+        if (customDateWrap) customDateWrap.classList.toggle('d-none', !isCustom);
+    });
+    if (customDateWrap && dateRangeFilter) {
+        customDateWrap.classList.toggle('d-none', dateRangeFilter.value !== 'custom');
+    }
+    document.getElementById('date-range-start')?.addEventListener('change', () => {});
+    document.getElementById('date-range-end')?.addEventListener('change', () => {});
+
+    // Sales Executive Performance: role + date dropdowns
+    const perfRoleFilter = document.getElementById('perf-role-filter');
+    const perfDateRange = document.getElementById('perf-date-range');
+    const perfCustomWrap = document.getElementById('perf-custom-date-wrap');
+    perfRoleFilter?.addEventListener('change', () => { loadTelecallerStats(); loadLeadsPendingResponse(); loadAverageResponseTime(); });
+    perfDateRange?.addEventListener('change', function() {
+        const isCustom = this.value === 'custom';
+        if (perfCustomWrap) perfCustomWrap.classList.toggle('d-none', !isCustom);
         loadTelecallerStats();
+        loadLeadsPendingResponse();
+        loadAverageResponseTime();
     });
-    
-    // Stats card clicks
-    document.querySelectorAll('.stats-card-gradient').forEach(card => {
-        card.addEventListener('click', function() {
-            const filter = this.dataset.filter;
-            handleStatCardClick(filter);
-        });
-    });
+    if (perfCustomWrap && perfDateRange) {
+        perfCustomWrap.classList.toggle('d-none', perfDateRange.value !== 'custom');
+    }
+    document.getElementById('perf-date-start')?.addEventListener('change', () => { if (perfDateRange?.value === 'custom') { loadTelecallerStats(); loadLeadsPendingResponse(); loadAverageResponseTime(); } });
+    document.getElementById('perf-date-end')?.addEventListener('change', () => { if (perfDateRange?.value === 'custom') { loadTelecallerStats(); loadLeadsPendingResponse(); loadAverageResponseTime(); } });
     
     // Form submissions
     document.getElementById('csv-upload-form')?.addEventListener('submit', handleCsvUpload);
@@ -96,88 +113,240 @@ async function apiRequest(url, options = {}) {
     }
 }
 
-// Load Stats
-async function loadStats() {
+// Load roles for Sales Executive Performance role dropdown
+async function loadPerformanceFilterRoles() {
+    const select = document.getElementById('perf-role-filter');
+    if (!select) return;
+    let roles = [];
     try {
-        const dateRange = document.getElementById('date-range-filter')?.value || 'all_time';
-        const data = await apiRequest(`/dashboard/stats?date_range=${dateRange}`);
-        
-        document.getElementById('stat-total-assigned').textContent = data.total_assigned || 0;
-        document.getElementById('stat-called').textContent = data.called || 0;
-        document.getElementById('stat-not-interested').textContent = data.not_interested || 0;
-        document.getElementById('stat-interested').textContent = data.interested || 0;
-    } catch (error) {
-        console.error('Error loading stats:', error);
+        const data = await apiRequest('/dashboard/filter-roles');
+        roles = Array.isArray(data) ? data : (data && data.data ? data.data : []);
+    } catch (e) {
+        console.warn('filter-roles failed, trying /roles', e);
+        try {
+            const data = await apiRequest('/roles');
+            const raw = Array.isArray(data) ? data : (data && data.data ? data.data : []);
+            roles = raw.filter(r => r.slug && !['admin', 'crm'].includes(r.slug));
+        } catch (e2) {
+            console.error('Error loading performance filter roles:', e2);
+        }
     }
+    const currentValue = select.value;
+    try {
+        const options = (roles || []).map(r => {
+            const slug = (r.slug != null ? r.slug : '').toString().replace(/"/g, '&quot;');
+            const label = (r.name != null ? r.name : r.slug != null ? r.slug : '').toString().replace(/</g, '&lt;').replace(/"/g, '&quot;');
+            return `<option value="${slug}">${label}</option>`;
+        }).join('');
+        select.innerHTML = '<option value="all">All</option>' + options;
+    } catch (err) {
+        console.error('Error building role options:', err);
+    }
+    if (currentValue) select.value = currentValue;
 }
 
-// Load Telecaller Stats
+// Load Telecaller Stats (Sales Executive Performance table)
 async function loadTelecallerStats() {
     const container = document.getElementById('telecaller-stats-container');
     if (!container) return;
     
     try {
-        const dateRange = document.getElementById('date-range-filter')?.value || 'today';
-        const data = await apiRequest(`/dashboard/telecaller-stats?date_range=${dateRange}`);
+        const dateRange = document.getElementById('perf-date-range')?.value || document.getElementById('date-range-filter')?.value || 'this_month';
+        const roleSlug = document.getElementById('perf-role-filter')?.value || 'all';
+        let url = `/dashboard/telecaller-stats?date_range=${encodeURIComponent(dateRange)}&role_slug=${encodeURIComponent(roleSlug)}`;
+        if (dateRange === 'custom') {
+            const start = document.getElementById('perf-date-start')?.value;
+            const end = document.getElementById('perf-date-end')?.value;
+            if (start) url += '&start_date=' + encodeURIComponent(start);
+            if (end) url += '&end_date=' + encodeURIComponent(end);
+        }
+        const data = await apiRequest(url);
         
-        // Always show cards even if data is empty (shouldn't happen, but handle it)
         if (!data || data.length === 0) {
             container.innerHTML = '<p class="text-muted text-center py-4">No sales executives found.</p>';
             return;
         }
         
-        container.innerHTML = data.map(tc => {
-            // Always show 0 if data is missing
-            const allocated = (tc.allocated !== undefined && tc.allocated !== null) ? tc.allocated : 0;
-            const called = (tc.called !== undefined && tc.called !== null) ? tc.called : 0;
-            const remaining = (tc.remaining !== undefined && tc.remaining !== null) ? tc.remaining : 0;
-            const interested = (tc.interested !== undefined && tc.interested !== null) ? tc.interested : 0;
-            const notInterested = (tc.not_interested !== undefined && tc.not_interested !== null) ? tc.not_interested : 0;
-            const cnp = (tc.cnp !== undefined && tc.cnp !== null) ? tc.cnp : 0;
-            
-            return `
-            <div class="col-lg-3 col-md-6 mb-3">
-                <div class="telecaller-card">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <h6 class="mb-0 fw-bold text-white">${tc.telecaller_name || tc.username || 'Unknown'}</h6>
-                        <div>
-                            ${tc.is_absent ? '<span class="badge bg-danger me-1">Absent</span>' : ''}
-                            ${tc.daily_limit && tc.daily_limit > 0 ? `<span class="badge bg-info">Limit: ${tc.daily_limit}</span>` : ''}
-                        </div>
-                    </div>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <small class="text-white-50 d-block">Allocated</small>
-                            <div class="fw-bold text-white">${allocated}</div>
-                        </div>
-                        <div class="col-6">
-                            <small class="text-white-50 d-block">Called</small>
-                            <div class="fw-bold text-white">${called}</div>
-                        </div>
-                        <div class="col-6">
-                            <small class="text-white-50 d-block">Remaining</small>
-                            <div class="fw-bold text-white">${remaining}</div>
-                        </div>
-                        <div class="col-6">
-                            <small class="text-white-50 d-block">Interested</small>
-                            <div class="fw-bold" style="color: #90ee90;">${interested}</div>
-                        </div>
-                        <div class="col-6">
-                            <small class="text-white-50 d-block">Not Interested</small>
-                            <div class="fw-bold" style="color: #ffb3b3;">${notInterested}</div>
-                        </div>
-                        <div class="col-6">
-                            <small class="text-white-50 d-block">CNP</small>
-                            <div class="fw-bold text-white">${cnp}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            `;
-        }).join('');
+        function cell(val) {
+            if (val === undefined || val === null || val === '') return '0';
+            const n = Number(val);
+            return isNaN(n) ? '0' : n;
+        }
+        
+        const thead = `
+            <thead><tr>
+                <th>User</th>
+                <th>assigned</th>
+                <th>Follow up</th>
+                <th>Meeting</th>
+                <th>Visit</th>
+                <th>Closer</th>
+                <th>Pending</th>
+                <th>Overdue</th>
+            </tr></thead>`;
+        const tbody = '<tbody>' + data.map(tc => `
+            <tr>
+                <td>${tc.telecaller_name || tc.username || 'Unknown'}</td>
+                <td>${cell(tc.assigned)}</td>
+                <td>${cell(tc.follow_up)}</td>
+                <td>${cell(tc.meetings)}</td>
+                <td>${cell(tc.visits)}</td>
+                <td>${cell(tc.closer)}</td>
+                <td>${cell(tc.pending_tasks)}</td>
+                <td>${cell(tc.overdue_tasks)}</td>
+            </tr>
+        `).join('') + '</tbody>';
+        
+        container.innerHTML = '<div class="table-responsive crm-perf-table-wrap"><table class="table table-bordered table-hover mb-0 crm-perf-table">' + thead + tbody + '</table></div>';
     } catch (error) {
         console.error('Error loading telecaller stats:', error);
         container.innerHTML = '<p class="text-danger text-center py-4">Error: ' + (error.message || 'Failed to load sales executive stats') + '</p>';
+    }
+}
+
+// Leads Pending Response (no call outcome yet)
+function formatAssignedAtPending(isoString, nowIso) {
+    if (!isoString) return '—';
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return isoString;
+    const now = nowIso ? new Date(nowIso) : new Date();
+    const diffMs = now - d;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    if (diffMins < 60) return diffMins <= 1 ? '1m ago' : diffMins + 'm ago';
+    if (diffHours < 24) return diffHours === 1 ? '1h ago' : diffHours + 'h ago';
+    if (diffDays < 7) return diffDays === 1 ? '1d ago' : diffDays + 'd ago';
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function formatAssignedAtFullPending(isoString) {
+    if (!isoString) return '—';
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return isoString;
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function maskPhonePending(phone) {
+    if (!phone || typeof phone !== 'string') return '—';
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 4) return '****';
+    return digits.slice(0, 2) + '****' + digits.slice(-4);
+}
+
+function escapeHtmlPending(text) {
+    if (text == null) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function toggleLeadsPendingDetail(detailId, rowId) {
+    const detailRow = document.getElementById(detailId);
+    const chevron = document.getElementById('chevron-' + rowId);
+    if (!detailRow || !chevron) return;
+    const isHidden = detailRow.style.display === 'none';
+    detailRow.style.display = isHidden ? 'table-row' : 'none';
+    chevron.className = isHidden ? 'fas fa-chevron-down' : 'fas fa-chevron-right';
+}
+
+function formatAvgResponseTime(avgResponseMinutes) {
+    if (avgResponseMinutes == null || isNaN(avgResponseMinutes)) return '—';
+    var m = Math.round(Number(avgResponseMinutes));
+    if (m < 60) return m + ' min';
+    var h = Math.floor(m / 60);
+    var min = m % 60;
+    return min > 0 ? (h + 'h ' + min + 'm') : (h + 'h');
+}
+
+function renderAverageResponseTime(list) {
+    var panel = document.getElementById('average-response-time-panel');
+    if (!panel) return;
+    if (!list || list.length === 0) {
+        panel.innerHTML = '<p class="text-muted small mb-0">No data for this period.</p>';
+        return;
+    }
+    var html = '<ul class="list-unstyled mb-0">';
+    list.forEach(function(row) {
+        var name = escapeHtmlPending(row.user_name || '');
+        var timeStr = formatAvgResponseTime(row.avg_response_minutes);
+        html += '<li class="d-flex justify-content-between align-items-center py-2 border-bottom"><span>' + name + '</span><span class="fw-semibold">' + timeStr + '</span></li>';
+    });
+    html += '</ul>';
+    panel.innerHTML = html;
+}
+
+async function loadAverageResponseTime() {
+    var panel = document.getElementById('average-response-time-panel');
+    if (!panel) return;
+    try {
+        var dateRange = document.getElementById('perf-date-range')?.value || 'this_month';
+        var url = '/dashboard/average-response-time?date_range=' + encodeURIComponent(dateRange);
+        if (dateRange === 'custom') {
+            var start = document.getElementById('perf-date-start')?.value;
+            var end = document.getElementById('perf-date-end')?.value;
+            if (start) url += '&start_date=' + encodeURIComponent(start);
+            if (end) url += '&end_date=' + encodeURIComponent(end);
+        }
+        var raw = await apiRequest(url);
+        var data = Array.isArray(raw) ? raw : (raw && raw.data ? raw.data : []);
+        renderAverageResponseTime(data);
+    } catch (error) {
+        console.error('Error loading average response time:', error);
+        panel.innerHTML = '<p class="text-muted small mb-0">Error loading data.</p>';
+    }
+}
+
+async function loadLeadsPendingResponse() {
+    const tbody = document.getElementById('leads-pending-response-tbody');
+    if (!tbody) return;
+    try {
+        const dateRange = document.getElementById('perf-date-range')?.value || 'this_month';
+        let url = '/dashboard/leads-pending-response?date_range=' + encodeURIComponent(dateRange);
+        if (dateRange === 'custom') {
+            const start = document.getElementById('perf-date-start')?.value;
+            const end = document.getElementById('perf-date-end')?.value;
+            if (start) url += '&start_date=' + encodeURIComponent(start);
+            if (end) url += '&end_date=' + encodeURIComponent(end);
+        }
+        const raw = await apiRequest(url);
+        const serverNow = raw && raw.server_now ? raw.server_now : null;
+        const data = Array.isArray(raw) ? raw : (raw && raw.data ? raw.data : []);
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">No leads pending response.</td></tr>';
+            return;
+        }
+        const leadShowBase = window.location.origin + '/leads';
+        let html = '';
+        data.forEach(function(row) {
+            const leads = row.leads || [];
+            const oldestAssignedAt = leads.length > 0
+                ? leads.reduce(function(min, l) { return (!l.assigned_at ? min : (!min || l.assigned_at < min ? l.assigned_at : min)); }, null)
+                : null;
+            const oldestAssign = oldestAssignedAt ? formatAssignedAtPending(oldestAssignedAt, serverNow) : '—';
+            const rowId = 'pending-row-' + row.user_id;
+            const detailId = 'pending-detail-' + row.user_id;
+            html += '<tr class="leads-pending-user-row" data-user-id="' + row.user_id + '" style="cursor: pointer;" onclick="toggleLeadsPendingDetail(\'' + detailId + '\', \'' + rowId + '\')">' +
+                '<td><i class="fas fa-chevron-right" id="chevron-' + rowId + '"></i></td>' +
+                '<td>' + escapeHtmlPending(row.user_name || '') + '</td>' +
+                '<td class="text-center">' + (row.pending_count || 0) + '</td>' +
+                '<td>' + oldestAssign + '</td>' +
+                '</tr>' +
+                '<tr id="' + detailId + '" class="leads-pending-detail-row" style="display: none;">' +
+                '<td colspan="4" style="padding: 0; background: #f8f9fa;">' +
+                '<div class="p-3 ps-5">' +
+                '<table class="table table-sm table-bordered mb-0">' +
+                '<thead><tr><th>Lead Name</th><th>Phone</th><th>Assigned At</th><th></th></tr></thead>' +
+                '<tbody>' +
+                (leads.map(function(lead) {
+                    return '<tr><td>' + escapeHtmlPending(lead.name || '—') + '</td><td>' + maskPhonePending(lead.phone) + '</td><td>' + formatAssignedAtFullPending(lead.assigned_at) + '</td><td><a href="' + leadShowBase + '/' + lead.lead_id + '" class="text-primary small">View</a></td></tr>';
+                }).join('')) +
+                '</tbody></table></div></td></tr>';
+        });
+        tbody.innerHTML = html;
+    } catch (error) {
+        console.error('Error loading leads pending response:', error);
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-4">Error loading data.</td></tr>';
     }
 }
 
@@ -608,7 +777,49 @@ async function handleCreateUser(e) {
 
 async function editUser(userId) {
     // Load user data and show edit modal
-    // Implementation needed
+    try {
+        const data = await apiRequest(`/users/${userId}`);
+        document.getElementById('edit-user-id').value = data.id || userId;
+        document.getElementById('edit-user-username').value = data.name || '';
+        document.getElementById('edit-user-email').value = data.email || '';
+        document.getElementById('edit-user-password').value = '';
+        document.getElementById('edit-user-role').value = data.role_id || data.role?.id || '';
+        document.getElementById('edit-user-manager').value = data.manager_id || '';
+        document.getElementById('edit-user-active').checked = data.is_active !== false;
+        const modal = new bootstrap.Modal(document.getElementById('userManagementModal'));
+        modal.show();
+    } catch (err) {
+        console.error('Error loading user:', err);
+        showNotification('Failed to load user', 'danger');
+    }
+}
+
+async function handleUpdateUser(e) {
+    e.preventDefault();
+    const userId = document.getElementById('edit-user-id')?.value;
+    if (!userId) return;
+    try {
+        const formData = {
+            name: document.getElementById('edit-user-username')?.value,
+            email: document.getElementById('edit-user-email')?.value,
+            role_id: document.getElementById('edit-user-role')?.value || null,
+            manager_id: document.getElementById('edit-user-manager')?.value || null,
+            is_active: document.getElementById('edit-user-active')?.checked ?? true,
+        };
+        const password = document.getElementById('edit-user-password')?.value;
+        if (password && password.trim()) formData.password = password.trim();
+        await apiRequest(`/users/${userId}`, {
+            method: 'PUT',
+            body: JSON.stringify(formData),
+        });
+        showNotification('User updated successfully', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('userManagementModal'))?.hide();
+        loadUsersList();
+        loadUsers();
+    } catch (error) {
+        console.error('Error updating user:', error);
+        showNotification(error.message || 'Failed to update user', 'danger');
+    }
 }
 
 async function deleteUser(userId) {
@@ -784,7 +995,6 @@ async function handleAddLead(e) {
         
         showNotification('Lead added successfully', 'success');
         clearAddLeadForm();
-        loadStats();
         loadTelecallerStats();
     } catch (error) {
         console.error('Error adding lead:', error);

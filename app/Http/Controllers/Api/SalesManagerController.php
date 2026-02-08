@@ -41,7 +41,7 @@ class SalesManagerController extends Controller
         $user->load('role', 'manager', 'salesManagerProfile');
         
         // Log for debugging
-        \Log::info('Sales Manager getProfile - User info', [
+        \Log::info('Senior Manager getProfile - User info', [
             'user_id' => $user->id,
             'user_email' => $user->email,
             'user_name' => $user->name,
@@ -54,7 +54,7 @@ class SalesManagerController extends Controller
             ->orderBy('name');
         
         // Log raw query for debugging
-        \Log::info('Sales Manager getProfile - Team members query', [
+        \Log::info('Senior Manager getProfile - Team members query', [
             'manager_id' => $user->id,
             'raw_sql' => $teamMembersQuery->toSql(),
             'bindings' => $teamMembersQuery->getBindings(),
@@ -90,7 +90,7 @@ class SalesManagerController extends Controller
             });
         
         // Log team members found
-        \Log::info('Sales Manager getProfile - Team members found', [
+        \Log::info('Senior Manager getProfile - Team members found', [
             'manager_id' => $user->id,
             'team_members_count' => $teamMembers->count(),
             'team_member_ids' => $teamMembers->pluck('id')->toArray(),
@@ -126,7 +126,7 @@ class SalesManagerController extends Controller
         ->count();
         
         // Log for debugging
-        \Log::info('Sales Manager getProfile - Pending verifications', [
+        \Log::info('Senior Manager getProfile - Pending verifications', [
             'manager_id' => $user->id,
             'manager_email' => $user->email,
             'team_member_ids' => $teamMemberIds->toArray(),
@@ -157,7 +157,7 @@ class SalesManagerController extends Controller
         })->distinct()->count();
         
         // Log for debugging
-        \Log::info('Sales Manager Lead Count Debug', [
+        \Log::info('Senior Manager Lead Count Debug', [
             'user_id' => $user->id,
             'team_member_ids' => $teamMemberIds->toArray(),
             'all_user_ids' => $allUserIds,
@@ -229,7 +229,7 @@ class SalesManagerController extends Controller
             ->count();
 
         // Log for debugging
-        \Log::info('Sales Manager pending tasks count', [
+        \Log::info('Senior Manager pending tasks count', [
             'user_id' => $user->id,
             'pending_tasks_count' => $pendingTasksCount,
             'overdue_tasks_count' => $overdueTasksCount,
@@ -259,7 +259,7 @@ class SalesManagerController extends Controller
                 'email' => $user->email,
                 'phone' => $user->phone,
                 'profile_picture' => $user->profile_picture_url,
-                'role' => $user->role->name ?? 'Sales Manager',
+                'role' => $user->role->name ?? 'Senior Manager',
                 'manager' => $user->manager ? $user->manager->name : null,
                 'created_at' => $user->created_at ? $user->created_at->format('d M Y') : '-',
             ],
@@ -304,7 +304,7 @@ class SalesManagerController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'phone' => $user->phone,
-                'role' => $user->role->name ?? 'Sales Manager',
+                'role' => $user->role->name ?? 'Senior Manager',
                 'manager' => $user->manager ? $user->manager->name : 'Not Assigned',
                 'created_at' => $user->created_at ? $user->created_at->format('d M Y') : '-',
             ],
@@ -523,7 +523,7 @@ class SalesManagerController extends Controller
     }
 
     /**
-     * Get team prospects for Sales Manager (also accessible by Admin, CRM, Sales Head)
+     * Get team prospects for Senior Manager (also accessible by Admin, CRM, Sales Head)
      */
     public function getProspects(Request $request)
     {
@@ -567,7 +567,7 @@ class SalesManagerController extends Controller
                 $query->where('manager_id', $user->id);
             }
         } elseif ($user->isSalesManager()) {
-            // Sales Manager can see prospects from their direct team members
+            // Senior Manager can see prospects from their direct team members
             $teamMemberIds = $user->teamMembers()->pluck('id');
             
             // Build query to show all prospects for this manager:
@@ -604,7 +604,7 @@ class SalesManagerController extends Controller
                 ? Prospect::whereIn('telecaller_id', $teamMemberIds)->count() 
                 : 0;
             
-            \Log::info('Sales Manager prospects query', [
+            \Log::info('Senior Manager prospects query', [
                 'manager_id' => $user->id,
                 'manager_email' => $user->email,
                 'manager_name' => $user->name,
@@ -676,7 +676,7 @@ class SalesManagerController extends Controller
         
         // Log final results for debugging - include sample prospect IDs
         $sampleProspectIds = $prospects->items() ? array_slice(array_map(function($p) { return $p->id; }, $prospects->items()), 0, 5) : [];
-        \Log::info('Sales Manager prospects query result', [
+        \Log::info('Senior Manager prospects query result', [
             'manager_id' => $user->id,
             'manager_email' => $user->email,
             'total_prospects' => $prospects->total(),
@@ -764,7 +764,7 @@ class SalesManagerController extends Controller
             $user = $request->user();
             
             if (!$user) {
-                \Log::warning('Sales Manager getTasks - User not authenticated');
+                \Log::warning('Senior Manager getTasks - User not authenticated');
                 return response()->json([
                     'success' => false,
                     'message' => 'User not authenticated',
@@ -772,7 +772,7 @@ class SalesManagerController extends Controller
                 ], 401);
             }
             
-            \Log::info('Sales Manager getTasks - Starting', [
+            \Log::info('Senior Manager getTasks - Starting', [
                 'user_id' => $user->id,
                 'user_email' => $user->email,
                 'user_name' => $user->name,
@@ -788,7 +788,7 @@ class SalesManagerController extends Controller
                 
             // Debug: Log total tasks before filters
             $totalTasksBeforeFilter = (clone $query)->count();
-            \Log::info('Sales Manager getTasks - Total tasks before filters', [
+            \Log::info('Senior Manager getTasks - Total tasks before filters', [
                 'user_id' => $user->id,
                 'total_tasks' => $totalTasksBeforeFilter,
             ]);
@@ -904,7 +904,7 @@ class SalesManagerController extends Controller
 
             $tasks = $query->latest('scheduled_at')->paginate($request->get('per_page', 15));
             
-            \Log::info('Sales Manager getTasks - Tasks found after filters', [
+            \Log::info('Senior Manager getTasks - Tasks found after filters', [
                 'user_id' => $user->id,
                 'tasks_count' => $tasks->count(),
                 'total' => $tasks->total(),
@@ -931,7 +931,7 @@ class SalesManagerController extends Controller
                 })->values()->all();
 
             // Log for debugging - include SQL query details
-            \Log::info('Sales Manager getTasks', [
+            \Log::info('Senior Manager getTasks', [
                 'user_id' => $user->id,
                 'user_email' => $user->email,
                 'status_filter' => $request->input('status', 'all'),
@@ -947,7 +947,7 @@ class SalesManagerController extends Controller
             $phoneCallTasks = Task::where('assigned_to', $user->id)
                 ->where('type', 'phone_call')
                 ->count();
-            \Log::info('Sales Manager getTasks - Debug counts', [
+            \Log::info('Senior Manager getTasks - Debug counts', [
                 'total_tasks_for_manager' => $totalTasksWithoutFilter,
                 'phone_call_tasks' => $phoneCallTasks,
             ]);
@@ -1055,7 +1055,7 @@ class SalesManagerController extends Controller
             }
 
             // Log response structure for debugging
-            \Log::info('Sales Manager getTasks - Response', [
+            \Log::info('Senior Manager getTasks - Response', [
                 'user_id' => $user->id,
                 'tasks_count' => count($tasksArray),
                 'response_structure' => [
@@ -1079,7 +1079,7 @@ class SalesManagerController extends Controller
             ]);
             
         } catch (\Exception $e) {
-            \Log::error('Sales Manager getTasks - Exception', [
+            \Log::error('Senior Manager getTasks - Exception', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'user_id' => $request->user()?->id,
@@ -2537,7 +2537,7 @@ class SalesManagerController extends Controller
             return true;
         }
 
-        // For Sales Managers: allow access to leads that came from their team's verified prospects
+        // For Senior Managers: allow access to leads that came from their team's verified prospects
         if ($user->isSalesManager()) {
             $teamMemberIds = $user->teamMembers()->pluck('id');
             
@@ -2555,7 +2555,7 @@ class SalesManagerController extends Controller
             }
         }
 
-        // Sales Executive and Assistant Sales Manager can see assigned leads or leads from their prospects
+        // Sales Executive and Assistant Senior Manager can see assigned leads or leads from their prospects
         if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
             return $lead->activeAssignments()->where('assigned_to', $user->id)->exists() ||
                    $lead->prospects()->where('telecaller_id', $user->id)->exists();

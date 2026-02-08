@@ -67,9 +67,8 @@
                     <select name="field_level" id="field_level" required
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#205A44] focus:border-[#205A44]">
                         <option value="">-- Select Level --</option>
-                        <option value="telecaller" {{ old('field_level') == 'telecaller' ? 'selected' : '' }}>Sales Executive</option>
                         <option value="sales_executive" {{ old('field_level') == 'sales_executive' ? 'selected' : '' }}>Sales Executive</option>
-                        <option value="sales_manager" {{ old('field_level') == 'sales_manager' ? 'selected' : '' }}>Sales Manager</option>
+                        <option value="sales_manager" {{ old('field_level') == 'sales_manager' ? 'selected' : '' }}>Senior Manager</option>
                     </select>
                 </div>
             </div>

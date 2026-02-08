@@ -524,7 +524,7 @@
                         </div>
                         <div class="step-details">
                             <div class="step-info">
-                                <strong>Who:</strong> <span class="role-badge">Sales Manager</span><br>
+                                <strong>Who:</strong> <span class="role-badge">Senior Manager</span><br>
                                 <strong>Action:</strong> Manager reviews the prospect and either verifies or rejects it. Only the sales executive's direct manager can verify.<br>
                                 <strong>Result:</strong> 
                                 <span class="badge badge-verified">Verified</span> - Prospect moves forward
@@ -546,7 +546,7 @@
                         </div>
                         <div class="step-details">
                             <div class="step-info">
-                                <strong>Who:</strong> <span class="role-badge">Sales Manager</span><br>
+                                <strong>Who:</strong> <span class="role-badge">Senior Manager</span><br>
                                 <strong>Action:</strong> Manager schedules a meeting with the verified prospect. Meeting can be created from prospect or manager can create their own meeting.<br>
                                 <strong>Result:</strong> Meeting is scheduled with date, time, and customer details. Status: <span class="badge badge-scheduled">Scheduled</span>
                             </div>
@@ -566,7 +566,7 @@
                         </div>
                         <div class="step-details">
                             <div class="step-info">
-                                <strong>Who:</strong> <span class="role-badge">Sales Manager</span><br>
+                                <strong>Who:</strong> <span class="role-badge">Senior Manager</span><br>
                                 <strong>Action:</strong> Manager marks meeting as completed and MUST upload proof photos (at least 1 photo required).<br>
                                 <strong>Result:</strong> Meeting status changes to <span class="badge badge-pending">Completed</span> and moves to verification queue.
                             </div>
@@ -621,7 +621,7 @@
                         </div>
                         <div class="step-details">
                             <div class="step-info">
-                                <strong>Who:</strong> <span class="role-badge">Sales Manager</span><br>
+                                <strong>Who:</strong> <span class="role-badge">Senior Manager</span><br>
                                 <strong>Action:</strong> After meeting is verified, manager schedules a site visit. Can convert meeting to site visit or create new site visit.<br>
                                 <strong>Result:</strong> Site visit is scheduled. Status: <span class="badge badge-scheduled">Scheduled</span>
                             </div>
@@ -641,7 +641,7 @@
                         </div>
                         <div class="step-details">
                             <div class="step-info">
-                                <strong>Who:</strong> <span class="role-badge">Sales Manager</span><br>
+                                <strong>Who:</strong> <span class="role-badge">Senior Manager</span><br>
                                 <strong>Action:</strong> Manager marks site visit as completed and MUST upload proof photos (at least 1 photo required).<br>
                                 <strong>Result:</strong> Site visit status: <span class="badge badge-pending">Completed</span> and moves to verification queue.
                             </div>
@@ -696,7 +696,7 @@
                         </div>
                         <div class="step-details">
                             <div class="step-info">
-                                <strong>Who:</strong> <span class="role-badge">Sales Manager</span><br>
+                                <strong>Who:</strong> <span class="role-badge">Senior Manager</span><br>
                                 <strong>Action:</strong> After site visit is verified, manager can request for closer. MUST upload proof photos.<br>
                                 <strong>Result:</strong> Closer request is submitted. Status: <span class="badge badge-pending">Pending Verification</span>
                             </div>
@@ -774,7 +774,7 @@
                         </div>
                         <div class="step-details">
                             <div class="step-info">
-                                <strong>Who:</strong> <span class="role-badge">Sales Manager</span><br>
+                                <strong>Who:</strong> <span class="role-badge">Senior Manager</span><br>
                                 <strong>Action:</strong> Manager can create their own lead directly without going through sales executive prospect flow.<br>
                                 <strong>Result:</strong> Lead is created and appears in manager's leads list.
                             </div>
@@ -794,7 +794,7 @@
                         </div>
                         <div class="step-details">
                             <div class="step-info">
-                                <strong>Who:</strong> <span class="role-badge">Sales Manager</span><br>
+                                <strong>Who:</strong> <span class="role-badge">Senior Manager</span><br>
                                 <strong>Action:</strong> Manager schedules meeting with the lead they created.<br>
                                 <strong>Result:</strong> Meeting is scheduled. Status: <span class="badge badge-scheduled">Scheduled</span>
                             </div>
@@ -854,7 +854,7 @@
                         <div class="step-details">
                             <div class="step-info">
                                 <strong>When:</strong> At ANY stage (Meeting, Site Visit, or Closer Request)<br>
-                                <strong>Who:</strong> <span class="role-badge">Sales Manager</span><br>
+                                <strong>Who:</strong> <span class="role-badge">Senior Manager</span><br>
                                 <strong>Action:</strong> Manager can mark a lead as dead if it's no longer viable.<br>
                                 <strong>Stages:</strong>
                                 <ul style="margin-left: 20px; margin-top: 10px;">
@@ -899,7 +899,7 @@
                         </div>
                         <div class="step-details">
                             <div class="step-info">
-                                <strong>Who:</strong> <span class="role-badge">Sales Manager</span><br>
+                                <strong>Who:</strong> <span class="role-badge">Senior Manager</span><br>
                                 <strong>Result:</strong> Once marked as dead, the lead/meeting/site visit:
                                 <ul style="margin-left: 20px; margin-top: 10px;">
                                     <li>Disappears from manager's dashboard</li>

@@ -25,7 +25,7 @@ class AssignmentRuleController extends Controller
 
         $users = \App\Models\User::where('is_active', true)
             ->whereHas('role', function($q) {
-                $q->whereIn('slug', ['sales_manager', 'sales_executive', 'telecaller']);
+                $q->whereIn('slug', ['sales_manager', 'sales_executive']);
             })
             ->get();
 

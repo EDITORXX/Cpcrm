@@ -161,7 +161,7 @@ Route::middleware('auth:sanctum')->group(function () {
     ]);
 
     // Telecaller / Sales Executive routes (both roles use same API)
-    Route::prefix('telecaller')->middleware('role:telecaller,sales_executive')->group(function () {
+    Route::prefix('telecaller')->middleware('role:sales_executive')->group(function () {
         // Auth routes
         Route::get('/whoami', [TelecallerController::class, 'whoami']);
         Route::post('/logout', [TelecallerController::class, 'logout']);
@@ -329,15 +329,20 @@ Route::middleware('auth:sanctum')->group(function () {
         // Authentication
         Route::post('/login', [CrmAuthController::class, 'login']);
         
-        Route::middleware(['auth:sanctum', 'crm'])->group(function () {
-            // Auth routes
+        // Dashboard API: all roles except CRM Admin and Sale Head (sbka dikhega unko chhod kar)
+        Route::middleware(['auth:sanctum', 'crm_dashboard_access'])->group(function () {
             Route::get('/whoami', [CrmAuthController::class, 'whoami']);
-            Route::post('/logout', [CrmAuthController::class, 'logout']);
-            
-            // Dashboard
             Route::get('/dashboard/stats', [CrmDashboardController::class, 'getStats']);
+            Route::get('/dashboard/filter-roles', [CrmDashboardController::class, 'getPerformanceFilterRoles']);
             Route::get('/dashboard/telecaller-stats', [CrmDashboardController::class, 'getTelecallerStats']);
+            Route::get('/dashboard/leads-pending-response', [CrmDashboardController::class, 'getLeadsPendingResponse']);
+            Route::get('/dashboard/average-response-time', [CrmDashboardController::class, 'getAverageResponseTime']);
             Route::get('/dashboard/daily-prospects', [CrmDashboardController::class, 'getDailyProspects']);
+        });
+        
+        Route::middleware(['auth:sanctum', 'crm'])->group(function () {
+            // Auth routes (logout etc. – CRM/Admin only for other CRM features)
+            Route::post('/logout', [CrmAuthController::class, 'logout']);
             
             // Leads
             Route::post('/add-lead', [CrmLeadController::class, 'addLead']);

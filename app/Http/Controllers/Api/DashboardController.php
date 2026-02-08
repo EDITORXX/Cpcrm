@@ -429,7 +429,7 @@ class DashboardController extends Controller
     {
         $allTeamMemberIds = $user->getAllTeamMemberIds();
         
-        // Get all Sales Managers
+        // Get all Senior Managers
         $salesManagers = User::where('manager_id', $user->id)
             ->whereHas('role', function($q) {
                 $q->where('slug', 'sales_manager');
@@ -443,10 +443,10 @@ class DashboardController extends Controller
             })
             ->count();
 
-        // Get all Telecallers
+        // Get all Sales Executives (team)
         $telecallers = User::whereIn('manager_id', array_merge([$user->id], $allTeamMemberIds))
             ->whereHas('role', function($q) {
-                $q->where('slug', 'telecaller');
+                $q->where('slug', \App\Models\Role::SALES_EXECUTIVE);
             })
             ->count();
 

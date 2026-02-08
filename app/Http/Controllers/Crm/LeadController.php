@@ -24,7 +24,7 @@ class LeadController extends Controller
     {
         $users = User::where('is_active', true)
             ->whereHas('role', function($q) {
-                $q->whereIn('slug', ['sales_manager', 'sales_executive', 'telecaller']);
+                $q->whereIn('slug', ['sales_manager', 'sales_executive']);
             })
             ->with('role')
             ->get();

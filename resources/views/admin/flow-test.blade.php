@@ -237,7 +237,7 @@
                 <option value="crm">CRM</option>
                 <option value="hr_manager">HR Manager</option>
                 <option value="finance_manager">Finance Manager</option>
-                <option value="sales_manager">Sales Manager</option>
+                <option value="sales_manager">Senior Manager</option>
                 <option value="sales_executive">Sales Executive</option>
             </select>
             

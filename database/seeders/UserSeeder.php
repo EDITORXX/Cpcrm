@@ -13,11 +13,10 @@ class UserSeeder extends Seeder
     {
         // Get roles
         $crmRole = Role::where('slug', 'crm')->first();
-        $telecallerRole = Role::where('slug', 'telecaller')->first();
+        $salesExecutiveRole = Role::where('slug', 'sales_executive')->first();
         $salesManagerRole = Role::where('slug', 'sales_manager')->first();
-        $salesHeadRole = Role::where('slug', 'sales_manager')->first(); // Sales Head uses sales_manager role
 
-        if (!$crmRole || !$telecallerRole || !$salesManagerRole) {
+        if (!$crmRole || !$salesExecutiveRole || !$salesManagerRole) {
             $this->command->error('Roles not found. Please run RoleSeeder first.');
             return;
         }
@@ -67,14 +66,13 @@ class UserSeeder extends Seeder
             ]
         );
 
-        // Create 4 Telecallers (under Sales Managers)
-        // Use updateOrCreate to ensure manager_id is always correct even if user exists
+        // Create 4 Sales Executives (under Sales Managers)
         User::updateOrCreate(
             ['email' => 'telecaller1@realtorcrm.com'],
             [
                 'name' => 'Telecaller 1',
                 'password' => Hash::make('tc123'),
-                'role_id' => $telecallerRole->id,
+                'role_id' => $salesExecutiveRole->id,
                 'manager_id' => $salesManager1->id,
                 'is_active' => true,
             ]
@@ -85,7 +83,7 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Telecaller 2',
                 'password' => Hash::make('tc123'),
-                'role_id' => $telecallerRole->id,
+                'role_id' => $salesExecutiveRole->id,
                 'manager_id' => $salesManager1->id,
                 'is_active' => true,
             ]
@@ -96,7 +94,7 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Telecaller 3',
                 'password' => Hash::make('tc123'),
-                'role_id' => $telecallerRole->id,
+                'role_id' => $salesExecutiveRole->id,
                 'manager_id' => $salesManager2->id,
                 'is_active' => true,
             ]
@@ -107,7 +105,7 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Telecaller 4',
                 'password' => Hash::make('tc123'),
-                'role_id' => $telecallerRole->id,
+                'role_id' => $salesExecutiveRole->id,
                 'manager_id' => $salesManager2->id,
                 'is_active' => true,
             ]

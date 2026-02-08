@@ -9,7 +9,7 @@ use Illuminate\Console\Command;
 class UpdateSalesManagers extends Command
 {
     protected $signature = 'users:update-sales-managers';
-    protected $description = 'Update Shushank Shukla and Satya Pandey to Sales Manager, assign Arpit as manager to independent users';
+    protected $description = 'Update Shushank Shukla and Satya Pandey to Senior Manager, assign Arpit as manager to independent users';
 
     public function handle()
     {
@@ -29,7 +29,7 @@ class UpdateSalesManagers extends Command
             return Command::FAILURE;
         }
         
-        // 1. Update Shushank Shukla to Sales Manager (under Arpit)
+        // 1. Update Shushank Shukla to Senior Manager (under Arpit)
         $shushank = User::where('name', 'Shushank Shukla')->first();
         if ($shushank) {
             $oldRole = $shushank->role->name;
@@ -40,12 +40,12 @@ class UpdateSalesManagers extends Command
                 'manager_id' => $arpit->id,
             ]);
             
-            $this->info("Updated Shushank Shukla: Role changed from '{$oldRole}' to 'Sales Manager', Manager changed from '{$oldManager}' to 'Arpit'");
+            $this->info("Updated Shushank Shukla: Role changed from '{$oldRole}' to 'Senior Manager', Manager changed from '{$oldManager}' to 'Arpit'");
         } else {
             $this->warn('Shushank Shukla not found!');
         }
         
-        // 2. Update Satya Pandey to Sales Manager (under Arpit)
+        // 2. Update Satya Pandey to Senior Manager (under Arpit)
         $satya = User::where('name', 'Satya Pandey')->first();
         if ($satya) {
             $oldRole = $satya->role->name;
@@ -56,7 +56,7 @@ class UpdateSalesManagers extends Command
                 'manager_id' => $arpit->id,
             ]);
             
-            $this->info("Updated Satya Pandey: Role changed from '{$oldRole}' to 'Sales Manager', Manager changed from '{$oldManager}' to 'Arpit'");
+            $this->info("Updated Satya Pandey: Role changed from '{$oldRole}' to 'Senior Manager', Manager changed from '{$oldManager}' to 'Arpit'");
         } else {
             $this->warn('Satya Pandey not found!');
         }
@@ -83,12 +83,12 @@ class UpdateSalesManagers extends Command
         
         $arpit->refresh();
         $arpitTeam = $arpit->teamMembers()->with('role')->get();
-        $this->info("Arpit (Sales Head - Sales Manager):");
+        $this->info("Arpit (Sales Head - Senior Manager):");
         
         foreach ($arpitTeam as $member) {
             $this->line("  ├── {$member->name} ({$member->role->name})");
             
-            // Show sub-teams for Sales Managers
+            // Show sub-teams for Senior Managers
             if ($member->role->slug === 'sales_manager') {
                 $subTeam = $member->teamMembers()->with('role')->get();
                 foreach ($subTeam as $subMember) {

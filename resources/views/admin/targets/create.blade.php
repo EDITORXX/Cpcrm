@@ -2,7 +2,7 @@
 
 @section('title', 'Set Target - Admin')
 @section('page-title', 'Set Monthly Target')
-@section('page-subtitle', 'Set targets for Sales Executive or Sales Manager for a specific month')
+@section('page-subtitle', 'Set targets for Sales Executive or Senior Manager for a specific month')
 
 @php
     $targetsRouteBase = auth()->user()->isCrm() ? 'crm.targets' : 'admin.targets';
@@ -67,7 +67,7 @@
 
             <h2 class="section-title">User Targets</h2>
 
-            <!-- Prospect Targets (Hidden for Sales Managers) -->
+            <!-- Prospect Targets (Hidden for Senior Managers) -->
             <div id="prospect-targets-section">
                 <div class="form-row">
                     <div class="form-group">
@@ -107,7 +107,7 @@
             <div class="form-group" id="closers-field" style="display: none;">
                 <label>Closers</label>
                 <input type="number" name="target_closers" value="{{ old('target_closers', $existingTarget->target_closers ?? 0) }}" min="0" placeholder="0">
-                <small style="color: #666;">Only for Sales Managers and Sales Executives</small>
+                <small style="color: #666;">Only for Senior Managers and Sales Executives</small>
             </div>
 
             <!-- Incentive Rates Section -->
@@ -125,7 +125,7 @@
                 <small style="color: #666;">Incentive amount per site visit for Sales Executives</small>
             </div>
 
-            <!-- Manager Target Calculation Logic (Only for Sales Managers) -->
+            <!-- Manager Target Calculation Logic (Only for Senior Managers) -->
             <div id="manager-logic-section" style="display: none;">
                 <h2 class="section-title">Manager Target Calculation Logic</h2>
                 
@@ -183,7 +183,7 @@
             if (selectedOption && selectedOption.value) {
                 const role = selectedOption.getAttribute('data-role');
                 
-                // Hide prospect targets for Sales Managers
+                // Hide prospect targets for Senior Managers
                 if (role === 'sales_manager') {
                     prospectTargetsSection.style.display = 'none';
                     // Set prospect fields to 0 for managers
@@ -194,14 +194,14 @@
                     prospectTargetsSection.style.display = 'block';
                 }
                 
-                // Show closers field for Sales Managers and Sales Executives
+                // Show closers field for Senior Managers and Sales Executives
                 if (role === 'sales_manager' || role === 'sales_executive') {
                     closersField.style.display = 'block';
                 } else {
                     closersField.style.display = 'none';
                 }
                 
-                // Show incentive per closer for Sales Managers and Sales Executives
+                // Show incentive per closer for Senior Managers and Sales Executives
                 if (role === 'sales_manager' || role === 'sales_executive') {
                     incentivePerCloserField.style.display = 'block';
                 } else {
@@ -215,7 +215,7 @@
                     incentivePerVisitField.style.display = 'none';
                 }
                 
-                // Show manager logic section only for Sales Managers
+                // Show manager logic section only for Senior Managers
                 if (role === 'sales_manager') {
                     managerLogicSection.style.display = 'block';
                     // Make fields required

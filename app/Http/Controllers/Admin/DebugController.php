@@ -215,9 +215,7 @@ class DebugController extends Controller
         $role = $user->role->slug ?? '';
         
         // Use same logic as LoginController
-        if ($role === 'telecaller') {
-            return route('telecaller.dashboard');
-        } elseif ($role === 'sales_manager') {
+        if ($role === 'sales_manager') {
             return $user->isSalesHead() 
                 ? route('sales-head.dashboard')
                 : route('sales-manager.dashboard');

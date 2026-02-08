@@ -113,14 +113,14 @@ class LeadAssignmentController extends Controller
 
         $assignedUser = User::with('role')->findOrFail($request->telecaller_id);
         
-        // Check if user has eligible role (telecaller, sales_manager, or sales_executive)
+        // Check if user has eligible role (sales_executive, sales_manager, assistant_sales_manager)
         $userRole = $assignedUser->role->slug ?? '';
         $eligibleRoles = [Role::SALES_EXECUTIVE, Role::SALES_MANAGER, Role::ASSISTANT_SALES_MANAGER];
         
         if (!in_array($userRole, $eligibleRoles)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Selected user must be a Telecaller, Sales Manager, or Sales Executive.'
+                'message' => 'Selected user must be a Sales Executive, Senior Manager, or Assistant Sales Manager.'
             ], 422);
         }
 

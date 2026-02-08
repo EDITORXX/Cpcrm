@@ -76,7 +76,7 @@
     <!-- Team Overview Stats -->
     <div id="team-stats" class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6 hidden">
         <div class="stat-card">
-            <div class="stat-label">Active Sales Managers</div>
+            <div class="stat-label">Active Senior Managers</div>
             <div class="stat-value" id="active-managers">0</div>
         </div>
         <div class="stat-card">
@@ -111,9 +111,9 @@
 
     <!-- Performance Tables -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <!-- Sales Managers Performance -->
+        <!-- Senior Managers Performance -->
         <div class="performance-table hidden" id="managers-performance-section">
-            <div class="table-header">Sales Managers Performance</div>
+            <div class="table-header">Senior Managers Performance</div>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">

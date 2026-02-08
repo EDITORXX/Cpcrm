@@ -16,7 +16,7 @@ use Carbon\Carbon;
 class CreateDummyLeadsForSalesManager extends Command
 {
     protected $signature = 'leads:create-dummy-for-manager {manager_email=salesmanager1@realtorcrm.com} {count=10}';
-    protected $description = 'Create dummy leads for a Sales Manager';
+    protected $description = 'Create dummy leads for a Senior Manager';
 
     public function handle()
     {
@@ -26,7 +26,7 @@ class CreateDummyLeadsForSalesManager extends Command
         DB::beginTransaction();
         
         try {
-            // Get Sales Manager
+            // Get Senior Manager
             $manager = User::where('email', $managerEmail)
                 ->whereHas('role', function($q) {
                     $q->where('slug', 'sales_manager');
@@ -34,7 +34,7 @@ class CreateDummyLeadsForSalesManager extends Command
                 ->first();
             
             if (!$manager) {
-                $this->error("Sales Manager with email '{$managerEmail}' not found!");
+                $this->error("Senior Manager with email '{$managerEmail}' not found!");
                 return 1;
             }
             
@@ -70,7 +70,7 @@ class CreateDummyLeadsForSalesManager extends Command
                     'created_by' => $createdBy,
                 ]);
                 
-                // Create assignment to Sales Manager
+                // Create assignment to Senior Manager
                 $assignment = LeadAssignment::create([
                     'lead_id' => $lead->id,
                     'assigned_to' => $manager->id,
@@ -80,7 +80,7 @@ class CreateDummyLeadsForSalesManager extends Command
                     'is_active' => true,
                 ]);
                 
-                // Create calling task for Sales Manager (scheduled 15 minutes from now)
+                // Create calling task for Senior Manager (scheduled 15 minutes from now)
                 $scheduledAt = now()->addMinutes(15);
                 $task = Task::create([
                     'lead_id' => $lead->id,

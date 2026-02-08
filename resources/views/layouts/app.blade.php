@@ -378,7 +378,16 @@
             #mainContent {
                 margin-left: 0 !important;
                 width: 100% !important;
+                max-width: 100vw !important;
+                min-width: 0 !important;
+                overflow-x: hidden !important;
                 padding-bottom: 70px !important;
+            }
+            #mainContent .container {
+                max-width: 100% !important;
+                width: 100% !important;
+                padding-left: 12px !important;
+                padding-right: 12px !important;
             }
             #mobileFooterNav {
                 display: flex !important;
@@ -604,7 +613,7 @@
                     @elseif(auth()->user()->isSalesHead())
                         Sales Head
                     @elseif(auth()->user()->isSalesManager())
-                        Sales Manager
+                        Senior Manager
                     @elseif(auth()->user()->isTelecaller())
                         Sales Executive
                     @else

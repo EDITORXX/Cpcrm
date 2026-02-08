@@ -23,7 +23,7 @@ class UpdateUserHierarchy extends Command
             return Command::FAILURE;
         }
         
-        // 1. Create Arpit as Sales Head (Sales Manager with no manager)
+        // 1. Create Arpit as Sales Head (Senior Manager with no manager)
         $arpit = User::firstOrCreate(
             ['email' => 'arpit@imported.local'],
             [
@@ -47,7 +47,7 @@ class UpdateUserHierarchy extends Command
             $this->info('Updated user: Arpit (Sales Head)');
         }
         
-        // 2. Update Omkar to Sales Manager (under Arpit)
+        // 2. Update Omkar to Senior Manager (under Arpit)
         $omkar = User::where('name', 'Omkar')->first();
         if ($omkar) {
             $oldRole = $omkar->role->name;
@@ -55,7 +55,7 @@ class UpdateUserHierarchy extends Command
                 'role_id' => $salesManagerRole->id,
                 'manager_id' => $arpit->id,
             ]);
-            $this->info("Updated Omkar: Role changed from '{$oldRole}' to 'Sales Manager', Manager set to 'Arpit'");
+            $this->info("Updated Omkar: Role changed from '{$oldRole}' to 'Senior Manager', Manager set to 'Arpit'");
         } else {
             $this->warn('Omkar not found!');
         }
@@ -98,7 +98,7 @@ class UpdateUserHierarchy extends Command
         // Arpit's team
         $arpit->refresh();
         $arpitTeam = $arpit->teamMembers()->with('role')->get();
-        $this->info("Arpit (Sales Head - Sales Manager):");
+        $this->info("Arpit (Sales Head - Senior Manager):");
         foreach ($arpitTeam as $member) {
             $this->line("  ├── {$member->name} ({$member->role->name})");
             if ($member->name === 'Omkar') {

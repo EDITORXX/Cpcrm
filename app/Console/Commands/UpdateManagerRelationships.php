@@ -12,7 +12,7 @@ class UpdateManagerRelationships extends Command
 
     public function handle()
     {
-        // Find Shushank Shukla (Sales Manager)
+        // Find Shushank Shukla (Senior Manager)
         $shushank = User::where('name', 'Shushank Shukla')->first();
         
         if (!$shushank) {
@@ -20,14 +20,14 @@ class UpdateManagerRelationships extends Command
             return Command::FAILURE;
         }
         
-        // Verify Shushank Shukla is Sales Manager
+        // Verify Shushank Shukla is Senior Manager
         if ($shushank->role->slug !== 'sales_manager') {
-            $this->warn('Shushank Shukla is not a Sales Manager. Current role: ' . $shushank->role->name);
-            // Update role to Sales Manager if needed
+            $this->warn('Shushank Shukla is not a Senior Manager. Current role: ' . $shushank->role->name);
+            // Update role to Senior Manager if needed
             $salesManagerRole = \App\Models\Role::where('slug', 'sales_manager')->first();
             if ($salesManagerRole) {
                 $shushank->update(['role_id' => $salesManagerRole->id]);
-                $this->info('Updated Shushank Shukla role to Sales Manager');
+                $this->info('Updated Shushank Shukla role to Senior Manager');
             }
         }
         

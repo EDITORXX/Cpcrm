@@ -287,7 +287,7 @@
                         ['icon'=>'fa-download','title'=>'Export & Reporting','desc'=>'Export leads, prospects, meetings, visits, and closers to CSV. Multiple filtering options for comprehensive reporting.'],
                         ['icon'=>'fab fa-whatsapp','title'=>'WhatsApp Integration','desc'=>'Built-in WhatsApp chat support for customer communication. Template management and group messaging capabilities.'],
                         ['icon'=>'fa-mobile-screen-button','title'=>'Progressive Web App','desc'=>'Install on mobile devices as native app. Offline-capable with service worker. Works on iOS and Android.'],
-                        ['icon'=>'fa-shield-halved','title'=>'Role-Based Access','desc'=>'Granular permissions for Admin, CRM, Sales Head, Sales Manager, and Sales Executive roles. Secure and scalable.'],
+                        ['icon'=>'fa-shield-halved','title'=>'Role-Based Access','desc'=>'Granular permissions for Admin, CRM, Sales Head, Senior Manager, and Sales Executive roles. Secure and scalable.'],
                     ];
                 @endphp
 
@@ -399,7 +399,7 @@
                             ]
                         ],
                         [
-                            'name'=>'Sales Manager',
+                            'name'=>'Senior Manager',
                             'badge'=>'Field Operations',
                             'color'=>'green',
                             'permissions'=>[
@@ -698,7 +698,7 @@
                     </summary>
                     <div class="mt-4 text-sm text-slate-400 leading-relaxed">
                         Yes. The export module supports CSV exports for leads, prospects, meetings, site visits, closers, and dead leads. 
-                        Multiple filtering options available. Accessible by Admin, CRM, Sales Manager, and Sales Head roles.
+                        Multiple filtering options available. Accessible by Admin, CRM, Senior Manager, and Sales Head roles.
                     </div>
                 </details>
 

@@ -461,7 +461,7 @@ class DynamicFormController extends Controller
         try {
             $forms[] = [
                 'name' => 'Meeting Form',
-                'location' => 'Sales Manager > Create Meeting',
+                'location' => 'Senior Manager > Create Meeting',
                 'path' => 'meetings.create',
                 'type' => 'meeting',
                 'route' => $getRouteUrl('sales-manager.meetings.create', '#'),
@@ -474,7 +474,7 @@ class DynamicFormController extends Controller
         try {
             $forms[] = [
                 'name' => 'Site Visit Form',
-                'location' => 'Sales Manager > Create Site Visit',
+                'location' => 'Senior Manager > Create Site Visit',
                 'path' => 'site-visits.create',
                 'type' => 'site_visit',
                 'route' => $getRouteUrl('sales-manager.site-visits.create', '#'),
@@ -487,7 +487,7 @@ class DynamicFormController extends Controller
         try {
             $forms[] = [
                 'name' => 'Task Lead Update Form',
-                'location' => 'Sales Manager > Tasks > Update Lead',
+                'location' => 'Senior Manager > Tasks > Update Lead',
                 'path' => 'sales-manager.tasks.update-lead',
                 'type' => 'task',
                 'route' => $getRouteUrl('sales-manager.tasks', '#'),
@@ -496,11 +496,11 @@ class DynamicFormController extends Controller
             // Skip if route doesn't exist
         }
         
-        // Prospect Details Form (Sales Manager Tasks)
+        // Prospect Details Form (Senior Manager Tasks)
         try {
             $forms[] = [
                 'name' => 'Prospect Details Form',
-                'location' => 'Sales Manager > Tasks > Prospect Details',
+                'location' => 'Senior Manager > Tasks > Prospect Details',
                 'path' => 'sales-manager.tasks.prospect-details',
                 'type' => 'prospect',
                 'route' => $getRouteUrl('sales-manager.tasks', '#'),

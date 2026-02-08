@@ -26,7 +26,7 @@ Broadcast::channel('user.{userId}', function ($user, $userId) {
 });
 
 Broadcast::channel('telecaller.{userId}', function ($user, $userId) {
-    return (int) $user->id === (int) $userId && $user->role && $user->role->slug === 'telecaller';
+    return (int) $user->id === (int) $userId && $user->role && $user->role->slug === 'sales_executive';
 });
 
 // Admin broadcast channel - all authenticated users can listen

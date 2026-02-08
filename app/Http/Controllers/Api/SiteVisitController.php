@@ -54,7 +54,7 @@ class SiteVisitController extends Controller
             }
             $query->where('is_dead', false);
         } elseif ($user->isSalesManager()) {
-            // Sales Manager sees site visits from their direct team members
+            // Senior Manager sees site visits from their direct team members
             $teamMemberIds = $user->teamMembers()->pluck('id');
             $query->where(function($q) use ($teamMemberIds, $user) {
                 $q->where('created_by', $user->id);
@@ -852,9 +852,9 @@ class SiteVisitController extends Controller
     {
         $user = $request->user();
 
-        // Check access - Only Managers and Assistant Sales Managers can request closer
+        // Check access - Only Senior Managers and Assistant Sales Managers can request closer
         if (!$user->isSalesManager() && !$user->isAssistantSalesManager()) {
-            return response()->json(['message' => 'Only Sales Managers and Assistant Sales Managers can request closer.'], 403);
+            return response()->json(['message' => 'Only Senior Managers and Assistant Sales Managers can request closer.'], 403);
         }
         
         if ($user->isSalesManager() && $siteVisit->created_by !== $user->id) {

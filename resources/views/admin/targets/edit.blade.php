@@ -53,7 +53,7 @@
 
             <h2 class="section-title">User Targets</h2>
 
-            <!-- Prospect Targets (Hidden for Sales Managers) -->
+            <!-- Prospect Targets (Hidden for Senior Managers) -->
             <div id="prospect-targets-section" style="display: {{ $target->user->isSalesManager() ? 'none' : 'block' }};">
                 <div class="form-row">
                     <div class="form-group">
@@ -93,7 +93,7 @@
             <div class="form-group" id="closers-field" style="display: {{ ($target->user->isSalesManager() || $target->user->isSalesExecutive()) ? 'block' : 'none' }};">
                 <label>Closers</label>
                 <input type="number" name="target_closers" value="{{ old('target_closers', $target->target_closers) }}" min="0" placeholder="0">
-                <small style="color: #666;">Only for Sales Managers and Sales Executives</small>
+                <small style="color: #666;">Only for Senior Managers and Sales Executives</small>
             </div>
 
             <!-- Incentive Rates Section -->
@@ -111,7 +111,7 @@
                 <small style="color: #666;">Incentive amount per site visit for Sales Executives</small>
             </div>
 
-            <!-- Manager Target Calculation Logic (Only for Sales Managers) -->
+            <!-- Manager Target Calculation Logic (Only for Senior Managers) -->
             <div id="manager-logic-section" style="display: {{ $target->user->isSalesManager() ? 'block' : 'none' }};">
                 <h2 class="section-title">Manager Target Calculation Logic</h2>
                 

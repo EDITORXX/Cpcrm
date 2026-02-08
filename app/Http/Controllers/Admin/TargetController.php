@@ -69,7 +69,7 @@ class TargetController extends Controller
 
         // Get users for filter based on role
         if ($user->isSalesHead()) {
-            // Sales Head can VIEW targets for Assistant Sales Manager, Sales Manager, and Sales Executive (but only SET for Assistant Sales Manager and Sales Manager)
+            // Sales Head can VIEW targets for Assistant Senior Manager, Senior Manager, and Sales Executive (but only SET for Assistant Senior Manager and Senior Manager)
             $users = User::where('is_active', true)
                 ->whereHas('role', function($q) {
                     $q->whereIn('slug', [Role::SALES_MANAGER, Role::ASSISTANT_SALES_MANAGER, Role::SALES_EXECUTIVE]);
@@ -77,7 +77,7 @@ class TargetController extends Controller
                 ->orderBy('name')
                 ->get();
         } else {
-            // Admin/CRM can see all Sales Executives, Assistant Sales Managers, and Sales Managers
+            // Admin/CRM can see all Sales Executives, Assistant Senior Managers, and Senior Managers
             $users = User::where('is_active', true)
                 ->whereHas('role', function($q) {
                     $q->whereIn('slug', [Role::SALES_EXECUTIVE, Role::ASSISTANT_SALES_MANAGER, Role::SALES_MANAGER]);
@@ -100,7 +100,7 @@ class TargetController extends Controller
 
         // Get users based on role
         if ($user->isSalesHead()) {
-            // Sales Head can set targets for Assistant Sales Manager and Sales Manager only
+            // Sales Head can set targets for Assistant Senior Manager and Senior Manager only
             $users = User::where('is_active', true)
                 ->whereHas('role', function($q) {
                     $q->whereIn('slug', [Role::SALES_MANAGER, Role::ASSISTANT_SALES_MANAGER]);
@@ -108,7 +108,7 @@ class TargetController extends Controller
                 ->orderBy('name')
                 ->get();
         } else {
-            // Admin/CRM can set targets for Sales Executives, Assistant Sales Managers, and Sales Managers
+            // Admin/CRM can set targets for Sales Executives, Assistant Senior Managers, and Senior Managers
             $users = User::where('is_active', true)
                 ->whereHas('role', function($q) {
                     $q->whereIn('slug', [Role::SALES_EXECUTIVE, Role::ASSISTANT_SALES_MANAGER, Role::SALES_MANAGER]);
@@ -155,19 +155,19 @@ class TargetController extends Controller
         $targetUser = User::findOrFail($validated['user_id']);
         
         if ($currentUser->isSalesHead()) {
-            // Sales Head can set targets for Sales Executive and Sales Manager only
+            // Sales Head can set targets for Sales Executive and Senior Manager only
             if (!$targetUser->isSalesManager() && !$targetUser->isSalesExecutive()) {
-                return back()->withErrors(['user_id' => 'Targets can only be set for Sales Managers and Sales Executives.'])->withInput();
+                return back()->withErrors(['user_id' => 'Targets can only be set for Senior Managers and Sales Executives.'])->withInput();
             }
         } else {
-            // Admin/CRM can set targets for Telecallers, Sales Executives, and Sales Managers
+            // Admin/CRM can set targets for Telecallers, Sales Executives, and Senior Managers
             if (!$targetUser->isTelecaller() && !$targetUser->isSalesExecutive() && !$targetUser->isSalesManager()) {
-                return back()->withErrors(['user_id' => 'Targets can only be set for Telecallers, Sales Executives, and Sales Managers.'])->withInput();
+                return back()->withErrors(['user_id' => 'Targets can only be set for Telecallers, Sales Executives, and Senior Managers.'])->withInput();
             }
         }
 
         try {
-            // For Sales Managers, set prospect targets to 0 (they don't have prospect targets)
+            // For Senior Managers, set prospect targets to 0 (they don't have prospect targets)
             $isSalesManager = $targetUser->isSalesManager();
             
             $target = $this->targetService->setTargetsForUser(
@@ -214,7 +214,7 @@ class TargetController extends Controller
 
         // Get users based on role
         if ($user->isSalesHead()) {
-            // Sales Head can set targets for Assistant Sales Manager and Sales Manager only
+            // Sales Head can set targets for Assistant Senior Manager and Senior Manager only
             $users = User::where('is_active', true)
                 ->whereHas('role', function($q) {
                     $q->whereIn('slug', [Role::SALES_MANAGER, Role::ASSISTANT_SALES_MANAGER]);
@@ -222,7 +222,7 @@ class TargetController extends Controller
                 ->orderBy('name')
                 ->get();
         } else {
-            // Admin/CRM can set targets for Sales Executives, Assistant Sales Managers, and Sales Managers
+            // Admin/CRM can set targets for Sales Executives, Assistant Senior Managers, and Senior Managers
             $users = User::where('is_active', true)
                 ->whereHas('role', function($q) {
                     $q->whereIn('slug', [Role::SALES_EXECUTIVE, Role::ASSISTANT_SALES_MANAGER, Role::SALES_MANAGER]);
@@ -264,7 +264,7 @@ class TargetController extends Controller
         ]);
 
         try {
-            // For Sales Managers, set prospect targets to 0 (they don't have prospect targets)
+            // For Senior Managers, set prospect targets to 0 (they don't have prospect targets)
             $isSalesManager = $target->user->isSalesManager();
             
             $target->update([
@@ -336,14 +336,14 @@ class TargetController extends Controller
         $users = User::whereIn('id', $validated['user_ids'])->get();
         foreach ($users as $user) {
             if ($currentUser->isSalesHead()) {
-                // Sales Head can set targets for Sales Executive and Sales Manager only
+                // Sales Head can set targets for Sales Executive and Senior Manager only
                 if (!$user->isSalesManager() && !$user->isSalesExecutive()) {
-                    return back()->withErrors(['user_ids' => "Targets can only be set for Sales Managers and Sales Executives. User {$user->name} is not allowed."])->withInput();
+                    return back()->withErrors(['user_ids' => "Targets can only be set for Senior Managers and Sales Executives. User {$user->name} is not allowed."])->withInput();
                 }
             } else {
-                // Admin/CRM can set targets for Telecallers, Sales Executives, and Sales Managers
+                // Admin/CRM can set targets for Telecallers, Sales Executives, and Senior Managers
                 if (!$user->isTelecaller() && !$user->isSalesExecutive() && !$user->isSalesManager()) {
-                    return back()->withErrors(['user_ids' => "Targets can only be set for Telecallers, Sales Executives, and Sales Managers. User {$user->name} is not allowed."])->withInput();
+                    return back()->withErrors(['user_ids' => "Targets can only be set for Telecallers, Sales Executives, and Senior Managers. User {$user->name} is not allowed."])->withInput();
                 }
             }
         }

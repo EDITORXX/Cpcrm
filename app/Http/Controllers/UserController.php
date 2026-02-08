@@ -81,7 +81,7 @@ class UserController extends Controller
 
         $roles = Role::where('is_active', true)->get();
         
-        // Filter roles for CRM users - only allow Sales Executive, Assistant Sales Manager, Sales Manager
+        // Filter roles for CRM users - only allow Sales Executive, Assistant Sales Manager, Senior Manager
         if ($currentUser->isCrm() && !$currentUser->isAdmin()) {
             $roles = $roles->filter(function($role) {
                 return in_array($role->slug, [Role::SALES_EXECUTIVE, Role::ASSISTANT_SALES_MANAGER, Role::SALES_MANAGER]);
@@ -162,7 +162,7 @@ class UserController extends Controller
 
         $roles = Role::where('is_active', true)->get();
         
-        // Filter roles for CRM users - only allow Sales Executive, Assistant Sales Manager, Sales Manager
+        // Filter roles for CRM users - only allow Sales Executive, Assistant Sales Manager, Senior Manager
         if ($currentUser->isCrm() && !$currentUser->isAdmin()) {
             $roles = $roles->filter(function($role) {
                 return in_array($role->slug, [Role::SALES_EXECUTIVE, Role::ASSISTANT_SALES_MANAGER, Role::SALES_MANAGER]);

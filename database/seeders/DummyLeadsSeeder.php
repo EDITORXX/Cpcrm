@@ -26,22 +26,21 @@ class DummyLeadsSeeder extends Seeder
         DB::beginTransaction();
         
         try {
-            // Get telecaller role
-            $telecallerRole = Role::where('slug', Role::TELECALLER)->first();
-            if (!$telecallerRole) {
-                $this->command->error('Telecaller role not found! Please ensure telecaller role exists in database.');
+            // Get sales executive role
+            $salesExecutiveRole = Role::where('slug', Role::SALES_EXECUTIVE)->first();
+            if (!$salesExecutiveRole) {
+                $this->command->error('Sales Executive role not found! Please ensure sales_executive role exists in database.');
                 return;
             }
             
-            // Get first 2 active telecallers
-            $telecallers = User::where('role_id', $telecallerRole->id)
+            // Get first 2 active sales executives
+            $salesExecutives = User::where('role_id', $salesExecutiveRole->id)
                 ->where('is_active', true)
                 ->take(2)
                 ->get();
             
-            if ($telecallers->count() < 2) {
-                $this->command->warn("Only {$telecallers->count()} telecaller(s) found. Need at least 2 telecallers to create dummy leads.");
-                $this->command->warn("Please create at least 2 active telecaller users in the system.");
+            if ($salesExecutives->count() < 2) {
+                $this->command->warn("Only {$salesExecutives->count()} sales executive(s) found. Need at least 2 to create dummy leads.");
                 return;
             }
             
@@ -73,8 +72,8 @@ class DummyLeadsSeeder extends Seeder
                 $this->command->info("✅ Removed {$oldLeads->count()} old dummy leads");
             }
             
-            foreach ($telecallers as $telecaller) {
-                $this->command->info("Creating 10 leads for telecaller: {$telecaller->name} (ID: {$telecaller->id})");
+            foreach ($salesExecutives as $executive) {
+                $this->command->info("Creating 10 leads for sales executive: {$executive->name} (ID: {$executive->id})");
                 
                 for ($i = 1; $i <= 10; $i++) {
                     // Generate random Indian name
@@ -97,7 +96,7 @@ class DummyLeadsSeeder extends Seeder
                     // Create assignment
                     $assignment = LeadAssignment::create([
                         'lead_id' => $lead->id,
-                        'assigned_to' => $telecaller->id,
+                        'assigned_to' => $executive->id,
                         'assigned_by' => $createdBy,
                         'assignment_type' => 'primary',
                         'assigned_at' => now(),
@@ -105,23 +104,18 @@ class DummyLeadsSeeder extends Seeder
                     ]);
                     
                     // Fire LeadAssigned event - this will auto-create calling task via CreateTelecallerTask listener
-                    // Wrap in try-catch to handle broadcasting errors (Pusher may not be configured)
                     try {
-                        event(new LeadAssigned($lead, $telecaller->id, $createdBy));
+                        event(new LeadAssigned($lead, $executive->id, $createdBy));
                     } catch (\Exception $e) {
-                        // Broadcasting errors (like Pusher) shouldn't stop seeder
-                        // Log but continue - listeners may have already run
                         Log::warning("Broadcasting error in seeder (non-critical): " . $e->getMessage());
                     }
                     
                     // Manual fallback: Ensure task and CrmAssignment are created even if event fails
-                    // Check if telecaller role is correct
-                    if ($telecaller->role && $telecaller->role->slug === Role::TELECALLER) {
-                        // Create CrmAssignment if not exists
+                    if ($executive->role && $executive->role->slug === Role::SALES_EXECUTIVE) {
                         $crmAssignment = CrmAssignment::firstOrCreate(
                             [
                                 'lead_id' => $lead->id,
-                                'assigned_to' => $telecaller->id,
+                                'assigned_to' => $executive->id,
                                 'call_status' => 'pending',
                             ],
                             [
@@ -134,7 +128,7 @@ class DummyLeadsSeeder extends Seeder
                         
                         // Create TelecallerTask if not exists
                         $existingTask = TelecallerTask::where('lead_id', $lead->id)
-                            ->where('assigned_to', $telecaller->id)
+                            ->where('assigned_to', $executive->id)
                             ->where('task_type', 'calling')
                             ->where('status', 'pending')
                             ->first();
@@ -142,7 +136,7 @@ class DummyLeadsSeeder extends Seeder
                         if (!$existingTask) {
                             try {
                                 $taskService = app(TelecallerTaskService::class);
-                                $taskService->createCallingTask($lead, $telecaller, $createdBy);
+                                $taskService->createCallingTask($lead, $executive, $createdBy);
                             } catch (\Exception $e) {
                                 Log::error("Failed to create task manually in seeder: " . $e->getMessage());
                             }
@@ -153,7 +147,7 @@ class DummyLeadsSeeder extends Seeder
                     $totalLeadsCreated++;
                 }
                 
-                $this->command->info("  → Created 10 leads with random names for {$telecaller->name}");
+                $this->command->info("  → Created 10 leads with random names for {$executive->name}");
             }
             
             DB::commit();
@@ -180,7 +174,7 @@ class DummyLeadsSeeder extends Seeder
             
             if ($tasksCreated < $totalLeadsCreated) {
                 $this->command->warn("⚠️  Warning: Expected {$totalLeadsCreated} tasks but found {$tasksCreated}. Some tasks may not have been auto-created.");
-                $this->command->info("   This could happen if the assigned users are not telecallers or if tasks already existed.");
+                $this->command->info("   This could happen if the assigned users are not sales executives or if tasks already existed.");
             } else {
                 $this->command->info("✅ All calling tasks successfully auto-created!");
             }

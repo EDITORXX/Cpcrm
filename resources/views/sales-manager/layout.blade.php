@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Sales Manager - Base CRM')</title>
+    <title>@yield('title', 'Senior Manager - Base CRM')</title>
     
     <!-- Cache Control - Prevent Browser Caching -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -697,7 +697,7 @@
     <aside id="sidebar">
         <div>
             <h2>Base CRM</h2>
-            <p>Sales Manager</p>
+            <p>Senior Manager</p>
         </div>
         <nav>
             <a href="{{ route('sales-manager.dashboard') }}" class="sidebar-link {{ request()->routeIs('sales-manager.dashboard') ? 'active' : '' }}" data-label="Dashboard">
@@ -742,7 +742,7 @@
             <div class="header">
                 <div class="header-top">
                     <h1 class="header-title-mobile" style="font-size: 24px; font-weight: 700; color: #063A1C;">
-                        <span class="header-page-title-desktop">@yield('page-title', 'Sales Manager')</span>
+                        <span class="header-page-title-desktop">@yield('page-title', 'Senior Manager')</span>
                         <div class="header-user-info-mobile">
                             <span class="header-user-name-mobile">{{ auth()->user()->name }}</span>
                             <span class="header-user-role-mobile">{{ auth()->user()->getDisplayRoleName() ?? 'User' }}</span>

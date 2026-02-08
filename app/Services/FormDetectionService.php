@@ -291,7 +291,7 @@ class FormDetectionService
     }
 
     /**
-     * Get prospect details form field definitions (Sales Manager Tasks)
+     * Get prospect details form field definitions (Senior Manager Tasks)
      */
     protected function getProspectDetailsFormFields(): array
     {

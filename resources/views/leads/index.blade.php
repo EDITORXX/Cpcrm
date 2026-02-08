@@ -461,7 +461,7 @@
                             }
                         }
                     } else {
-                        // If prospects ARE verified → show owner (Sales Manager or Sales Executive)
+                        // If prospects ARE verified → show owner (Senior Manager or Sales Executive)
                         const prospect = verifiedProspects[0];
                         
                         // Priority: assigned_manager > manager_id > verified_by

@@ -24,7 +24,7 @@ class SalesManagerController extends Controller
                 $user->load('role');
             }
             
-            // Allow Admin, CRM, Sales Head, and Sales Manager to access
+            // Allow Admin, CRM, Sales Head, and Senior Manager to access
             // Only redirect Sales Head if they're trying to access sales-manager dashboard specifically
             if ($user->isSalesHead() && $request->routeIs('sales-manager.dashboard')) {
                 return redirect()->route('sales-head.dashboard')->with('info', 'Redirected to Sales Head Dashboard');
@@ -51,9 +51,9 @@ class SalesManagerController extends Controller
             return redirect()->route('sales-head.dashboard')->with('info', 'Redirected to Sales Head Dashboard');
         }
         
-        // Check if user is actually a Sales Manager
+        // Check if user is actually a Senior Manager
         if (!$user->isSalesManager()) {
-            abort(403, 'Unauthorized. Only Sales Managers can access this page.');
+            abort(403, 'Unauthorized. Only Senior Managers can access this page.');
         }
         
         // Generate API token for the session

@@ -37,7 +37,7 @@ class RemoveSpecificUsers extends Command
             $this->warn("User 'TEST' not found!");
         }
         
-        // 3. Remove Akash (Sales Manager)
+        // 3. Remove Akash (Senior Manager)
         $akash = User::where('name', 'Akash')->first();
         if ($akash) {
             $teamCount = $akash->teamMembers()->count();
@@ -46,7 +46,7 @@ class RemoveSpecificUsers extends Command
                 $akash->teamMembers()->update(['manager_id' => null]);
             }
             $akash->delete();
-            $this->info("Removed user: Akash (Sales Manager)");
+            $this->info("Removed user: Akash (Senior Manager)");
         } else {
             $this->warn("User 'Akash' not found!");
         }

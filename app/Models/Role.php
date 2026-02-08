@@ -36,8 +36,6 @@ class Role extends Model
     public const SALES_MANAGER = 'sales_manager';
     public const SENIOR_MANAGER = 'senior_manager';
     public const ASSISTANT_SALES_MANAGER = 'assistant_sales_manager';
-    public const SALES_EXECUTIVE = 'sales_executive'; // Previously 'telecaller'
-    // Deprecated: Use SALES_EXECUTIVE instead
-    public const TELECALLER = 'sales_executive'; // Kept for backward compatibility during migration
+    public     const SALES_EXECUTIVE = 'sales_executive';
 }
 
