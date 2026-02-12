@@ -297,8 +297,7 @@
         <div class="section-title">Leads Allocated</div>
         <div style="display: flex; gap: 24px; flex-wrap: wrap;">
             <div style="flex: 1; min-width: 0; min-height: 0; width: 75%;">
-                <div class="text-sm text-[#B3B5B4] mb-2 font-medium">No Response Yet</div>
-                <p class="text-sm text-[#B3B5B4] mb-4">Users with leads on which no call outcome has been recorded.</p>
+                <div class="section-title" style="font-size: 1rem; margin-bottom: 12px;">Leads Allocated</div>
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse;">
                         <thead>
@@ -318,8 +317,7 @@
                 </div>
             </div>
             <div style="width: 25%; min-width: 200px;">
-                <div class="text-sm text-[#B3B5B4] mb-2 font-medium">Average Response Time</div>
-                <p class="text-sm text-[#B3B5B4] mb-4">Avg time from assign to first response (this period).</p>
+                <div class="section-title" style="font-size: 1rem; margin-bottom: 12px;">Average Response</div>
                 <div id="average-response-time-panel" style="min-height: 60px;">
                     <p class="text-sm text-[#B3B5B4]">Loading...</p>
                 </div>
@@ -1382,7 +1380,7 @@
     }
 
     function formatAvgResponseTime(avgResponseMinutes) {
-        if (avgResponseMinutes == null || isNaN(avgResponseMinutes)) return '—';
+        if (avgResponseMinutes == null || avgResponseMinutes === 0 || isNaN(avgResponseMinutes)) return '0 min';
         const m = Math.round(Number(avgResponseMinutes));
         if (m < 60) return m + ' min';
         const h = Math.floor(m / 60);
@@ -1393,17 +1391,17 @@
     function renderAverageResponseTime(list) {
         const panel = document.getElementById('average-response-time-panel');
         if (!panel) return;
+        let html = '<table style="width: 100%; border-collapse: collapse; font-size: 14px;"><thead><tr style="background: #F7F6F3; border-bottom: 2px solid #E5DED4;"><th style="padding: 8px 12px; text-align: left; font-weight: 600; color: var(--text-color);">User Name</th><th style="padding: 8px 12px; text-align: right; font-weight: 600; color: var(--text-color);">Avg Time</th></tr></thead><tbody>';
         if (!list || list.length === 0) {
-            panel.innerHTML = '<p class="text-sm text-[#B3B5B4]">No data for this period.</p>';
-            return;
+            html += '<tr><td colspan="2" style="padding: 12px; text-align: center; color: #B3B5B4;">No users in this role.</td></tr>';
+        } else {
+            list.forEach(function(row) {
+                const name = escapeHtml(row.user_name || '');
+                const timeStr = formatAvgResponseTime(row.avg_response_minutes);
+                html += '<tr style="border-bottom: 1px solid #eee;"><td style="padding: 8px 12px;">' + name + '</td><td style="padding: 8px 12px; text-align: right; font-weight: 600; color: var(--text-color);">' + timeStr + '</td></tr>';
+            });
         }
-        let html = '<ul style="list-style: none; padding: 0; margin: 0;">';
-        list.forEach(function(row) {
-            const name = escapeHtml(row.user_name || '');
-            const timeStr = formatAvgResponseTime(row.avg_response_minutes);
-            html += '<li style="padding: 8px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;"><span>' + name + '</span><span style="font-weight: 600; color: var(--text-color);">' + timeStr + '</span></li>';
-        });
-        html += '</ul>';
+        html += '</tbody></table>';
         panel.innerHTML = html;
     }
 
@@ -1446,7 +1444,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${(row.leads || []).map(lead => `
+                                    ${(row.leads || []).length === 0 ? '<tr><td colspan="4" style="padding: 12px; text-align: center; color: #B3B5B4;">No pending leads.</td></tr>' : (row.leads || []).map(lead => `
                                         <tr style="border-bottom: 1px solid #eee;">
                                             <td style="padding: 8px 12px;">${escapeHtml(lead.name || '—')}</td>
                                             <td style="padding: 8px 12px;">${maskPhone(lead.phone)}</td>

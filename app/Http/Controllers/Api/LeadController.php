@@ -7,6 +7,10 @@ use App\Events\LeadAssigned;
 use App\Events\LeadStatusUpdated;
 use App\Models\Lead;
 use App\Models\LeadAssignment;
+use App\Models\User;
+use App\Models\Task;
+use App\Models\TelecallerTask;
+use App\Services\TelecallerTaskService;
 use App\Services\LeadTransferService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -183,31 +187,266 @@ class LeadController extends Controller
         $validated = $request->validate([
             'assigned_to' => 'required|exists:users,id',
             'notes' => 'nullable|string',
+            'create_calling_task' => 'nullable|boolean',
+            'transfer_existing_tasks' => 'nullable|boolean',
         ]);
 
-        $this->assignLead($lead, $validated['assigned_to'], $user->id, $validated['notes'] ?? null);
+        $result = $this->assignLead(
+            $lead,
+            $validated['assigned_to'],
+            $user->id,
+            $validated['notes'] ?? null,
+            (bool) ($validated['create_calling_task'] ?? true),
+            (bool) ($validated['transfer_existing_tasks'] ?? true)
+        );
 
-        return response()->json(['message' => 'Lead assigned successfully']);
+        return response()->json([
+            'message' => 'Lead assigned successfully',
+            'data' => $result,
+        ]);
     }
 
-    private function assignLead(Lead $lead, int $assignedTo, int $assignedBy, ?string $notes = null): void
+    /**
+     * Bulk assign leads to a user (single or multiple selection).
+     */
+    public function bulkAssign(Request $request)
     {
-        // Deactivate existing assignments
-        $lead->assignments()->update(['is_active' => false, 'unassigned_at' => now()]);
+        $user = $request->user();
 
-        // Create new assignment
-        LeadAssignment::create([
-            'lead_id' => $lead->id,
-            'assigned_to' => $assignedTo,
-            'assigned_by' => $assignedBy,
-            'assignment_type' => 'primary',
-            'notes' => $notes,
-            'assigned_at' => now(),
-            'is_active' => true,
+        if (!$user->canAssignLeads()) {
+            return response()->json(['message' => 'Forbidden. You cannot assign leads.'], 403);
+        }
+
+        $validated = $request->validate([
+            'lead_ids' => 'required|array|min:1',
+            'lead_ids.*' => 'required|integer|exists:leads,id',
+            'assigned_to' => 'required|exists:users,id',
+            'notes' => 'nullable|string',
+            'create_calling_task' => 'nullable|boolean',
+            'transfer_existing_tasks' => 'nullable|boolean',
         ]);
 
-        // Fire event
-        event(new LeadAssigned($lead, $assignedTo, $assignedBy));
+        $leadIds = array_values(array_unique($validated['lead_ids']));
+        $assignedTo = (int) $validated['assigned_to'];
+        $notes = $validated['notes'] ?? null;
+        $createCallingTask = (bool) ($validated['create_calling_task'] ?? true);
+        $transferExistingTasks = (bool) ($validated['transfer_existing_tasks'] ?? true);
+
+        $transferred = 0;
+        $failed = 0;
+        $errors = [];
+
+        foreach ($leadIds as $leadId) {
+            try {
+                $lead = Lead::find($leadId);
+                if (!$lead) {
+                    $failed++;
+                    $errors[] = ['lead_id' => $leadId, 'error' => 'Lead not found'];
+                    continue;
+                }
+                $this->assignLead($lead, $assignedTo, $user->id, $notes, $createCallingTask, $transferExistingTasks);
+                $transferred++;
+            } catch (\Exception $e) {
+                $failed++;
+                $errors[] = ['lead_id' => $leadId, 'error' => $e->getMessage()];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'transferred' => $transferred,
+            'failed' => $failed,
+            'message' => $transferred > 0
+                ? "{$transferred} lead(s) transferred successfully." . ($failed > 0 ? " {$failed} failed." : '')
+                : 'No leads were transferred.',
+            'errors' => $errors,
+        ]);
+    }
+
+    /**
+     * Transfer all leads assigned to a given user to another user (one-click).
+     */
+    public function transferAllFromUser(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user->canAssignLeads()) {
+            return response()->json(['message' => 'Forbidden. You cannot assign leads.'], 403);
+        }
+
+        $validated = $request->validate([
+            'from_user_id' => 'required|exists:users,id',
+            'assigned_to' => 'required|exists:users,id',
+            'notes' => 'nullable|string',
+            'create_calling_task' => 'nullable|boolean',
+            'transfer_existing_tasks' => 'nullable|boolean',
+        ]);
+
+        $fromUserId = (int) $validated['from_user_id'];
+        $assignedTo = (int) $validated['assigned_to'];
+        $notes = $validated['notes'] ?? null;
+        $createCallingTask = (bool) ($validated['create_calling_task'] ?? true);
+        $transferExistingTasks = (bool) ($validated['transfer_existing_tasks'] ?? true);
+
+        $leadIds = Lead::whereHas('activeAssignments', function ($q) use ($fromUserId) {
+            $q->where('assigned_to', $fromUserId);
+        })->pluck('id')->take(1000)->all();
+
+        $transferred = 0;
+        $failed = 0;
+        $errors = [];
+
+        foreach ($leadIds as $leadId) {
+            try {
+                $lead = Lead::find($leadId);
+                if (!$lead) {
+                    $failed++;
+                    continue;
+                }
+                $this->assignLead($lead, $assignedTo, $user->id, $notes, $createCallingTask, $transferExistingTasks);
+                $transferred++;
+            } catch (\Exception $e) {
+                $failed++;
+                $errors[] = ['lead_id' => $leadId, 'error' => $e->getMessage()];
+            }
+        }
+
+        $message = $transferred > 0
+            ? "{$transferred} lead(s) transferred successfully." . ($failed > 0 ? " {$failed} failed." : '')
+            : 'No leads were transferred.';
+
+        if (count($leadIds) >= 1000) {
+            $message .= ' Capped at 1000 leads; more may exist for this user.';
+        }
+
+        return response()->json([
+            'success' => true,
+            'transferred' => $transferred,
+            'failed' => $failed,
+            'message' => $message,
+            'errors' => array_slice($errors, 0, 10),
+        ]);
+    }
+
+    private function assignLead(
+        Lead $lead,
+        int $assignedTo,
+        int $assignedBy,
+        ?string $notes = null,
+        bool $createCallingTask = true,
+        bool $transferExistingTasks = true
+    ): array
+    {
+        return DB::transaction(function () use ($lead, $assignedTo, $assignedBy, $notes, $createCallingTask, $transferExistingTasks) {
+            $oldAssignments = $lead->assignments()
+                ->where('is_active', true)
+                ->get(['assigned_to']);
+
+            $oldOwnerIds = $oldAssignments
+                ->pluck('assigned_to')
+                ->filter(fn ($id) => (int) $id !== (int) $assignedTo)
+                ->unique()
+                ->values();
+
+            // Deactivate existing assignments
+            $lead->assignments()->where('is_active', true)->update([
+                'is_active' => false,
+                'unassigned_at' => now(),
+            ]);
+
+            // Create new assignment
+            LeadAssignment::create([
+                'lead_id' => $lead->id,
+                'assigned_to' => $assignedTo,
+                'assigned_by' => $assignedBy,
+                'assignment_type' => 'primary',
+                'notes' => $notes,
+                'assigned_at' => now(),
+                'is_active' => true,
+            ]);
+
+            $transferredTaskCounts = [
+                'telecaller_tasks' => 0,
+                'manager_tasks' => 0,
+            ];
+
+            if ($transferExistingTasks && $oldOwnerIds->isNotEmpty()) {
+                $transferredTaskCounts['telecaller_tasks'] = TelecallerTask::where('lead_id', $lead->id)
+                    ->whereIn('assigned_to', $oldOwnerIds)
+                    ->whereIn('status', ['pending', 'in_progress'])
+                    ->update(['assigned_to' => $assignedTo]);
+
+                $transferredTaskCounts['manager_tasks'] = Task::where('lead_id', $lead->id)
+                    ->whereIn('assigned_to', $oldOwnerIds)
+                    ->where('type', 'phone_call')
+                    ->whereIn('status', ['pending', 'in_progress'])
+                    ->update(['assigned_to' => $assignedTo]);
+            }
+
+            $createdNewTask = false;
+            if ($createCallingTask) {
+                $beforeTelecallerCount = TelecallerTask::where('lead_id', $lead->id)
+                    ->where('assigned_to', $assignedTo)
+                    ->where('task_type', 'calling')
+                    ->whereIn('status', ['pending', 'in_progress'])
+                    ->count();
+
+                $beforeManagerCount = Task::where('lead_id', $lead->id)
+                    ->where('assigned_to', $assignedTo)
+                    ->where('type', 'phone_call')
+                    ->whereIn('status', ['pending', 'in_progress'])
+                    ->count();
+
+                event(new LeadAssigned($lead, $assignedTo, $assignedBy));
+
+                $afterTelecallerCount = TelecallerTask::where('lead_id', $lead->id)
+                    ->where('assigned_to', $assignedTo)
+                    ->where('task_type', 'calling')
+                    ->whereIn('status', ['pending', 'in_progress'])
+                    ->count();
+
+                $afterManagerCount = Task::where('lead_id', $lead->id)
+                    ->where('assigned_to', $assignedTo)
+                    ->where('type', 'phone_call')
+                    ->whereIn('status', ['pending', 'in_progress'])
+                    ->count();
+
+                $createdNewTask = $afterTelecallerCount > $beforeTelecallerCount || $afterManagerCount > $beforeManagerCount;
+
+                // Fallback: create task if no open task exists after event processing.
+                if (!$createdNewTask && $afterTelecallerCount === 0 && $afterManagerCount === 0) {
+                    $assignee = User::with('role')->find($assignedTo);
+                    if ($assignee) {
+                        if ($assignee->isSalesExecutive()) {
+                            app(TelecallerTaskService::class)->createCallingTask($lead, $assignee, $assignedBy);
+                            $createdNewTask = true;
+                        } elseif ($assignee->isSalesManager() || $assignee->isAssistantSalesManager()) {
+                            Task::create([
+                                'lead_id' => $lead->id,
+                                'assigned_to' => $assignedTo,
+                                'type' => 'phone_call',
+                                'title' => "Call lead: {$lead->name}",
+                                'description' => "Phone call task for lead: {$lead->name} ({$lead->phone})",
+                                'status' => 'pending',
+                                'scheduled_at' => now()->addMinutes(10),
+                                'created_by' => $assignedBy,
+                            ]);
+                            $createdNewTask = true;
+                        }
+                    }
+                }
+            }
+
+            return [
+                'lead_id' => $lead->id,
+                'old_owner_ids' => $oldOwnerIds->values()->all(),
+                'new_owner_id' => $assignedTo,
+                'transfer_existing_tasks' => $transferExistingTasks,
+                'create_calling_task' => $createCallingTask,
+                'transferred_task_counts' => $transferredTaskCounts,
+                'created_new_task' => $createdNewTask,
+            ];
+        });
     }
 
     /**

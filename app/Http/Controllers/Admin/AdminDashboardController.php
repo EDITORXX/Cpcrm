@@ -656,18 +656,23 @@ class AdminDashboardController extends Controller
 
     /**
      * Get user-wise leads that are allocated but not yet responded (no call outcome).
-     * Same "remaining" logic as getTelecallerPerformance.
+     * Same "remaining" logic as getTelecallerPerformance. Includes all users except Admin, CRM, Sales Head.
      */
     private function getLeadsPendingResponseByUser(?array $dateRange = null): array
     {
-        $salesExecutiveRole = Role::where('slug', Role::SALES_EXECUTIVE)->first();
-        if (!$salesExecutiveRole) {
-            return [];
-        }
-
-        $users = User::where('is_active', true)
-            ->where('role_id', $salesExecutiveRole->id)
-            ->get();
+        $users = User::with('role')
+            ->where('is_active', true)
+            ->whereHas('role', function ($q) {
+                $q->whereNotIn('slug', [Role::ADMIN, Role::CRM]);
+            })
+            ->get()
+            ->filter(function ($user) {
+                if ($user->role && $user->role->slug === Role::SALES_MANAGER && $user->manager_id === null) {
+                    return false;
+                }
+                return true;
+            })
+            ->values();
 
         if ($users->isEmpty()) {
             return [];
@@ -712,10 +717,6 @@ class AdminDashboardController extends Controller
 
             $assignments = $assignmentsQuery->orderBy('assigned_at', 'desc')->get();
 
-            if ($assignments->isEmpty()) {
-                continue;
-            }
-
             $leads = [];
             foreach ($assignments as $a) {
                 $lead = $a->lead;
@@ -752,14 +753,19 @@ class AdminDashboardController extends Controller
      */
     private function getAverageResponseTimeByUser(?array $dateRange = null): array
     {
-        $salesExecutiveRole = Role::where('slug', Role::SALES_EXECUTIVE)->first();
-        if (!$salesExecutiveRole) {
-            return [];
-        }
-
-        $users = User::where('is_active', true)
-            ->where('role_id', $salesExecutiveRole->id)
-            ->get();
+        $users = User::with('role')
+            ->where('is_active', true)
+            ->whereHas('role', function ($q) {
+                $q->whereNotIn('slug', [Role::ADMIN, Role::CRM]);
+            })
+            ->get()
+            ->filter(function ($user) {
+                if ($user->role && $user->role->slug === Role::SALES_MANAGER && $user->manager_id === null) {
+                    return false;
+                }
+                return true;
+            })
+            ->values();
 
         if ($users->isEmpty()) {
             return [];
@@ -822,21 +828,20 @@ class AdminDashboardController extends Controller
                 $responseMinutesList[] = (int) round($assignedAt->diffInMinutes($firstResponseCarbon));
             }
 
-            if (count($responseMinutesList) === 0) {
-                continue;
-            }
-
-            $avgMinutes = array_sum($responseMinutesList) / count($responseMinutesList);
+            $avgMinutes = count($responseMinutesList) > 0
+                ? array_sum($responseMinutesList) / count($responseMinutesList)
+                : 0;
             $result[] = [
                 'user_id' => $userId,
                 'user_name' => $user->name,
-                'avg_response_minutes' => round($avgMinutes, 1),
+                'avg_response_minutes' => count($responseMinutesList) > 0 ? round($avgMinutes, 1) : 0,
                 'responded_count' => count($responseMinutesList),
             ];
         }
 
         usort($result, function ($a, $b) {
-            return (int) ($a['avg_response_minutes'] <=> $b['avg_response_minutes']);
+            $cmp = (int) ($a['avg_response_minutes'] <=> $b['avg_response_minutes']);
+            return $cmp !== 0 ? $cmp : strcasecmp($a['user_name'] ?? '', $b['user_name'] ?? '');
         });
 
         return $result;

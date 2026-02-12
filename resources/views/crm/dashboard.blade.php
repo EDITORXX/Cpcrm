@@ -211,14 +211,31 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-none">
                     <h5 class="mb-0">Leads Allocated</h5>
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-12 col-lg-9">
-                            <h6 class="text-muted small mb-1">No Response Yet</h6>
-                            <p class="text-muted small mb-2">Users with leads on which no call outcome has been recorded.</p>
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                <h6 class="mb-0 fw-semibold" style="font-size: 1rem;">Leads Allocated</h6>
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <select id="leads-allocated-date-range" class="form-select form-select-sm" style="max-width: 160px;" title="Date range">
+                                        <option value="today">Today</option>
+                                        <option value="yesterday">Yesterday</option>
+                                        <option value="this_week">This Week</option>
+                                        <option value="this_month" selected>This Month</option>
+                                        <option value="this_year">This Year</option>
+                                        <option value="all_time">All Time</option>
+                                        <option value="custom">Custom</option>
+                                    </select>
+                                    <span id="leads-allocated-custom-date-wrap" class="d-none align-middle">
+                                        <input type="date" id="leads-allocated-date-start" class="form-control form-control-sm d-inline-block" style="max-width: 130px;" title="From">
+                                        <span class="mx-1">–</span>
+                                        <input type="date" id="leads-allocated-date-end" class="form-control form-control-sm d-inline-block" style="max-width: 130px;" title="To">
+                                    </span>
+                                </div>
+                            </div>
                             <div class="table-responsive crm-perf-table-wrap">
                                 <table class="table table-bordered table-hover mb-0">
                                     <thead>
@@ -238,8 +255,7 @@
                             </div>
                         </div>
                         <div class="col-12 col-lg-3">
-                            <h6 class="text-muted small mb-1">Average Response Time</h6>
-                            <p class="text-muted small mb-2">Avg time from assign to first response (this period).</p>
+                            <h6 class="mb-2 fw-semibold" style="font-size: 1rem;">Average Response</h6>
                             <div id="average-response-time-panel" style="min-height: 60px;">
                                 <p class="text-muted small mb-0">Loading...</p>
                             </div>

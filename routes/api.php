@@ -137,6 +137,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Leads
     Route::apiResource('leads', LeadController::class);
+    Route::post('/leads/bulk-assign', [LeadController::class, 'bulkAssign']);
+    Route::post('/leads/transfer-all-from-user', [LeadController::class, 'transferAllFromUser']);
     Route::post('/leads/{lead}/assign', [LeadController::class, 'assign']);
 
     // Site Visits

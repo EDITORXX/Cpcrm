@@ -129,18 +129,38 @@ class LeadController extends Controller
             });
         }
 
-        $leads = $query->latest()->paginate(15);
+        $view = $request->get('view', 'cards');
+        $perPage = 15;
+        if (($user->isAdmin() || $user->isCrm()) && $view === 'list') {
+            $perPage = min(500, (int) $request->get('per_page', 500));
+            $perPage = $perPage >= 1 ? $perPage : 500;
+        }
+        $leads = $query->latest()->paginate($perPage);
+
         $statuses = ['new', 'connected', 'verified_prospect', 'meeting_scheduled', 'meeting_completed', 'visit_scheduled', 'visit_done', 'revisited_scheduled', 'revisited_completed', 'closed', 'dead', 'on_hold'];
-        
-        // Get sales executives (previously telecallers) for filter dropdown
-        $telecallers = User::where('is_active', true)
-            ->whereHas('role', function($q) {
-                $q->where('slug', Role::SALES_EXECUTIVE);
+
+        // Filter by User dropdown: all users except Admin, CRM, HR, Finance
+        $excludeRolesForFilter = [Role::ADMIN, Role::CRM, Role::HR_MANAGER, Role::FINANCE_MANAGER];
+        $filterUsers = User::where('is_active', true)
+            ->whereHas('role', function ($q) use ($excludeRolesForFilter) {
+                $q->whereNotIn('slug', $excludeRolesForFilter);
             })
+            ->with('role')
             ->orderBy('name')
             ->get();
 
-        return view('leads.index', compact('leads', 'statuses', 'telecallers'));
+        $ownerTransferUsers = collect();
+        if ($user->isAdmin() || $user->isCrm()) {
+            $ownerTransferUsers = User::where('is_active', true)
+                ->whereHas('role', function ($q) {
+                    $q->whereNotIn('slug', [Role::ADMIN, Role::CRM]);
+                })
+                ->with('role')
+                ->orderBy('name')
+                ->get();
+        }
+
+        return view('leads.index', compact('leads', 'statuses', 'filterUsers', 'ownerTransferUsers', 'view'));
     }
 
     public function create()
@@ -332,7 +352,18 @@ class LeadController extends Controller
             // Calculate response time data
             $responseTimeData = $this->calculateResponseTime($lead, $user);
 
-            return view('leads.show', compact('lead', 'timeline', 'responseTimeData', 'layout'));
+            $ownerTransferUsers = collect();
+            if ($user && ($user->isAdmin() || $user->isCrm())) {
+                $ownerTransferUsers = User::where('is_active', true)
+                    ->whereHas('role', function ($q) {
+                        $q->whereNotIn('slug', [Role::ADMIN, Role::CRM]);
+                    })
+                    ->with('role')
+                    ->orderBy('name')
+                    ->get();
+            }
+
+            return view('leads.show', compact('lead', 'timeline', 'responseTimeData', 'layout', 'ownerTransferUsers'));
         } catch (\Exception $e) {
             Log::error('Error loading lead details: ' . $e->getMessage(), [
                 'lead_id' => $lead->id ?? null,
@@ -489,6 +520,18 @@ class LeadController extends Controller
                 ->withErrors(['error' => 'Failed to update lead: ' . $e->getMessage()])
                 ->withInput();
         }
+    }
+
+    public function destroy(Request $request, Lead $lead)
+    {
+        $user = $request->user();
+        if (!$user->isAdmin() && !$user->isCrm()) {
+            abort(403, 'Only Admin and CRM can delete leads.');
+        }
+        $lead->delete();
+        return redirect()
+            ->route('leads.index')
+            ->with('success', 'Lead deleted successfully.');
     }
 
     public function shortDetails(Request $request, Lead $lead)

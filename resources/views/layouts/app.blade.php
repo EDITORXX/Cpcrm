@@ -298,6 +298,9 @@
         body.nav-icons #mainContent {
             margin-left: 64px !important;
         }
+        body.nav-text #sidebar {
+            width: 256px !important;
+        }
         body.nav-text #mainContent {
             margin-left: 256px !important;
         }
@@ -872,8 +875,8 @@
         </div>
         
         <!-- Main Content -->
-        <div id="mainContent" style="margin-left: 64px; flex: 1; overflow-y: auto; height: 100vh; background: #F7F6F3; transition: margin-left 0.3s ease-in-out;">
-            <div class="container" style="padding: 20px; max-width: 100%; width: 100%;">
+        <div id="mainContent" style="margin-left: 64px; flex: 1; min-width: 0; overflow-y: auto; overflow-x: hidden; height: 100vh; background: #F7F6F3; transition: margin-left 0.3s ease-in-out;">
+            <div class="container" style="padding: 20px; max-width: 100%; width: 100%; min-width: 0; box-sizing: border-box;">
                 <!-- Header -->
                 <div class="header">
                     <div>
@@ -1164,6 +1167,10 @@
             const next = (current === 'icons') ? 'text' : 'icons';
             localStorage.setItem(NAV_MODE_KEY, next);
             applyNavMode(next);
+            requestAnimationFrame(function() {
+                const mc = document.getElementById('mainContent');
+                if (mc) mc.offsetHeight;
+            });
         };
         
         // Initialize sidebar functionality when DOM is ready
@@ -1193,12 +1200,15 @@
 
             // Restore navigation mode (icons/text)
             const savedNavMode = localStorage.getItem(NAV_MODE_KEY);
-            applyNavMode(savedNavMode);
+            applyNavMode(savedNavMode || 'icons');
             const navModeToggle = document.getElementById('navModeToggle');
-            if (navModeToggle) {
+            if (navModeToggle && !navModeToggle.dataset.navBound) {
+                navModeToggle.dataset.navBound = '1';
                 navModeToggle.addEventListener('click', function(e) {
                     e.preventDefault();
+                    e.stopPropagation();
                     window.toggleNavMode();
+                    return false;
                 });
             }
             
@@ -1221,6 +1231,11 @@
             // DOM is already ready
             initSidebar();
         }
+        // Fallback: re-apply nav mode on window load (fixes CRM Users page etc. when content loads late)
+        window.addEventListener('load', function() {
+            const mode = localStorage.getItem(NAV_MODE_KEY) || 'icons';
+            applyNavMode(mode);
+        });
         
         // Sidebar Tooltip Functionality
         (function() {

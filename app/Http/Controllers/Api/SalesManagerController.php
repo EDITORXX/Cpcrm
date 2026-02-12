@@ -1515,10 +1515,17 @@ class SalesManagerController extends Controller
             $prospect = $lead->prospects()->latest()->first();
             
             if (!$prospect) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Prospect not found for this lead',
-                ], 404);
+                // Direct-assigned/imported leads may not have a prospect yet.
+                // Create one so manager form submission can proceed normally.
+                $prospect = Prospect::create([
+                    'lead_id' => $lead->id,
+                    'customer_name' => $request->input('name', $lead->name),
+                    'phone' => $request->input('phone', $lead->phone),
+                    'manager_id' => $user->id,
+                    'assigned_manager' => $user->id,
+                    'created_by' => $user->id,
+                    'verification_status' => 'pending_verification',
+                ]);
             }
             
             // Validate basic fields

@@ -88,6 +88,21 @@
                         <i class="fas fa-calendar-alt text-xs sm:text-sm"></i>
                         <span>Schedule Task</span>
                     </button>
+
+                    @if($user && ($user->isAdmin() || $user->isCrm()))
+                    <button onclick="openOwnerTransferModal()" class="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white rounded-lg transition-all duration-200 border border-white/20 shadow-sm font-medium text-xs sm:text-sm whitespace-nowrap min-w-[130px] sm:min-w-0">
+                        <i class="fas fa-user-edit text-xs sm:text-sm"></i>
+                        <span>Change Owner</span>
+                    </button>
+                    <form method="POST" action="{{ route('leads.destroy', $lead->id) }}" class="inline" onsubmit="return confirm('Remove this lead from the list? It will be moved to trash and can be recovered.');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-red-600/90 hover:bg-red-700 backdrop-blur-sm text-white rounded-lg transition-all duration-200 border border-red-500/50 shadow-sm font-medium text-xs sm:text-sm whitespace-nowrap min-w-[120px] sm:min-w-0">
+                            <i class="fas fa-trash-alt text-xs sm:text-sm"></i>
+                            <span>Delete lead</span>
+                        </button>
+                    </form>
+                    @endif
                     
                     <!-- Edit Requirements Button - Show for roles that can use centralized form -->
                     @if($user && ($user->isTelecaller() || $user->isSalesManager() || $user->isSalesHead() || $user->isAdmin() || $user->isCrm()))
@@ -727,6 +742,54 @@
     </div>
 </div>
 
+@if($user && ($user->isAdmin() || $user->isCrm()))
+@php
+    $currentOwnerId = optional($lead->activeAssignments->first())->assigned_to;
+@endphp
+<div id="ownerTransferModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Change Lead Owner</h3>
+                <button onclick="closeOwnerTransferModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="ownerTransferForm" onsubmit="submitOwnerTransfer(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">New Owner *</label>
+                        <select id="ownerTransferAssignedTo" name="assigned_to" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <option value="">Select user</option>
+                            @foreach(($ownerTransferUsers ?? collect()) as $transferUser)
+                                <option value="{{ $transferUser->id }}" {{ (int) $currentOwnerId === (int) $transferUser->id ? 'selected' : '' }}>
+                                    {{ $transferUser->name }} ({{ $transferUser->role->name ?? 'User' }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="flex items-start gap-2 cursor-pointer">
+                            <input type="checkbox" id="ownerTransferCreateCallingTask" name="create_calling_task" checked class="mt-1">
+                            <span class="text-sm text-gray-700">Create calling task for new owner</span>
+                        </label>
+                    </div>
+                    <input type="hidden" id="ownerTransferExistingTasks" name="transfer_existing_tasks" value="1">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+                        <textarea id="ownerTransferNotes" name="notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Reason for owner change"></textarea>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeOwnerTransferModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-all duration-200">Transfer Lead</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
+
 <!-- Simplified Meeting Modal -->
 <div id="meetingModal" class="fixed inset-0 bg-black bg-opacity-60 hidden h-full w-full z-50 flex items-center justify-center" style="backdrop-filter: blur(3px);">
     <div class="w-full max-w-2xl mx-3 sm:mx-0">
@@ -1108,6 +1171,7 @@
     }
     const LEAD_ID = {{ $lead->id }};
     const LEAD_INTERESTED_PROJECTS = @json($uniqueProjectNames ?? []);
+    const CAN_TRANSFER_OWNER = @json($user && ($user->isAdmin() || $user->isCrm()));
 
     // Modal open/close functions
     function openCallModal() {
@@ -1339,6 +1403,29 @@
     function closeScheduleCallTaskModal() {
         document.getElementById('scheduleCallTaskModal').classList.add('hidden');
         document.getElementById('scheduleCallTaskForm').reset();
+    }
+
+    function openOwnerTransferModal() {
+        if (!CAN_TRANSFER_OWNER) return;
+        const modal = document.getElementById('ownerTransferModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
+    }
+
+    function closeOwnerTransferModal() {
+        const modal = document.getElementById('ownerTransferModal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+        const form = document.getElementById('ownerTransferForm');
+        if (form) {
+            form.reset();
+            const createCheckbox = document.getElementById('ownerTransferCreateCallingTask');
+            if (createCheckbox) {
+                createCheckbox.checked = true;
+            }
+        }
     }
 
     // Form submission functions
@@ -1704,6 +1791,49 @@
         }
     }
 
+    async function submitOwnerTransfer(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        const assignedToRaw = formData.get('assigned_to');
+        if (!assignedToRaw) {
+            alert('Please select new owner');
+            return;
+        }
+
+        const payload = {
+            assigned_to: parseInt(assignedToRaw, 10),
+            create_calling_task: formData.get('create_calling_task') === 'on',
+            transfer_existing_tasks: true,
+            notes: (formData.get('notes') || '').trim() || null,
+        };
+
+        try {
+            const response = await fetch(`${window.API_BASE_URL}/leads/${LEAD_ID}/assign`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${window.API_TOKEN}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            const contentType = response.headers.get('content-type') || '';
+            const result = contentType.includes('application/json') ? await response.json() : {};
+            if (!response.ok) {
+                throw new Error(result.message || 'Failed to transfer lead owner');
+            }
+
+            alert('Lead owner changed successfully.');
+            closeOwnerTransferModal();
+            location.reload();
+        } catch (error) {
+            console.error('Owner transfer error:', error);
+            alert(error.message || 'Unable to transfer lead owner');
+        }
+    }
+
     // Close modals when clicking outside
     window.onclick = function(event) {
         const callModal = document.getElementById('callModal');
@@ -1726,6 +1856,10 @@
         }
         if (event.target === scheduleCallTaskModal) {
             closeScheduleCallTaskModal();
+        }
+        const ownerTransferModal = document.getElementById('ownerTransferModal');
+        if (event.target === ownerTransferModal) {
+            closeOwnerTransferModal();
         }
     }
 

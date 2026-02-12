@@ -1629,8 +1629,8 @@
                 }
             } catch (error) {
                 console.error('Error fetching task data:', error);
-                // Default to showing verification if we can't determine
-                hasProspect = true;
+                // Safer fallback: treat as direct lead to avoid wrong prospect actions.
+                hasProspect = false;
             }
         }
         

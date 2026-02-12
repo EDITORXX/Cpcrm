@@ -3,6 +3,13 @@
     if ($user && !$user->relationLoaded('role')) {
         $user->load('role');
     }
+    $ownerTransferUsersJson = ($ownerTransferUsers ?? collect())->map(function ($transferUser) {
+        return [
+            'id' => $transferUser->id,
+            'name' => $transferUser->name,
+            'role' => $transferUser->role->name ?? 'User',
+        ];
+    })->values()->all();
 @endphp
 @if($user && ($user->isAdmin() || $user->isCrm()))
     @extends('layouts.app')
@@ -36,6 +43,20 @@
     <a href="{{ route('leads.create') }}" class="px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 text-sm font-medium">
         Add Lead
     </a>
+    @if($user && ($user->isAdmin() || $user->isCrm()))
+    @php
+        $currentView = $view ?? request('view', 'cards');
+        $viewQuery = request()->except(['view', 'per_page']);
+    @endphp
+    <div class="flex items-center rounded-lg border border-gray-300 overflow-hidden bg-white shadow-sm">
+        <a href="{{ route('leads.index', array_merge($viewQuery, ['view' => 'cards'])) }}" class="px-4 py-2 text-sm font-medium {{ $currentView !== 'list' ? 'bg-[#063A1C] text-white' : 'bg-white text-gray-700 hover:bg-gray-50' }}">
+            <i class="fas fa-th-large mr-1.5"></i> Cards
+        </a>
+        <a href="{{ route('leads.index', array_merge($viewQuery, ['view' => 'list', 'per_page' => 500])) }}" class="px-4 py-2 text-sm font-medium {{ $currentView === 'list' ? 'bg-[#063A1C] text-white' : 'bg-white text-gray-700 hover:bg-gray-50' }}">
+            <i class="fas fa-list mr-1.5"></i> List
+        </a>
+    </div>
+    @endif
 @endsection
 
 @section('content')
@@ -54,6 +75,10 @@
     <!-- Search and Filter (mobile: one row 25% x 4) -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
         <form method="GET" action="{{ route('leads.index') }}" class="leads-filter-form flex gap-4 items-end flex-wrap">
+            @if($user && ($user->isAdmin() || $user->isCrm()) && request('view') === 'list')
+            <input type="hidden" name="view" value="list">
+            <input type="hidden" name="per_page" value="500">
+            @endif
             <div class="flex-1 min-w-[200px]">
                 <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Search</label>
                 <input type="text" 
@@ -82,9 +107,9 @@
                         id="user_id"
                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand">
                     <option value="">All Users</option>
-                    @foreach($telecallers as $telecaller)
-                        <option value="{{ $telecaller->id }}" {{ request('user_id') == $telecaller->id ? 'selected' : '' }}>
-                            {{ $telecaller->name }}
+                    @foreach($filterUsers ?? [] as $filterUser)
+                        <option value="{{ $filterUser->id }}" {{ request('user_id') == $filterUser->id ? 'selected' : '' }}>
+                            {{ $filterUser->name }}{{ $filterUser->role ? ' (' . $filterUser->role->name . ')' : '' }}
                         </option>
                     @endforeach
                 </select>
@@ -100,21 +125,48 @@
         </form>
     </div>
 
+    @if($user && ($user->isAdmin() || $user->isCrm()) && request('user_id'))
+        @php
+            $transferAllFromUser = ($filterUsers ?? collect())->firstWhere('id', request('user_id'));
+        @endphp
+        @if($transferAllFromUser)
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex flex-wrap items-center gap-4">
+            <span class="text-sm font-medium text-amber-800">Transfer all leads from <strong>{{ $transferAllFromUser->name }}</strong> to:</span>
+            <select id="transferAllToUserId" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                @foreach($ownerTransferUsers ?? [] as $u)
+                    @if((int)$u->id !== (int)request('user_id'))
+                        <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->role->name ?? 'User' }})</option>
+                    @endif
+                @endforeach
+            </select>
+            <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" id="transferAllCreateTask" checked>
+                Create calling task
+            </label>
+            <button type="button" onclick="submitTransferAllFromUser()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-medium text-sm">
+                Transfer all
+            </button>
+        </div>
+        @endif
+    @endif
+
     <!-- Leads Cards -->
     <style>
         .leads-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 1.5rem;
+            max-width: 100%;
+            min-width: 0;
         }
         @media (max-width: 1280px) {
             .leads-grid {
-                grid-template-columns: repeat(3, 1fr);
+                grid-template-columns: repeat(3, minmax(0, 1fr));
             }
         }
         @media (max-width: 1024px) {
             .leads-grid {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
         @media (max-width: 640px) {
@@ -132,6 +184,8 @@
             display: flex;
             flex-direction: column;
             min-height: 280px;
+            min-width: 0;
+            overflow: hidden;
         }
         .lead-card:hover {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -141,6 +195,7 @@
             display: flex;
             align-items: center;
             margin-bottom: 1rem;
+            min-width: 0;
         }
         .lead-card-avatar {
             width: 48px;
@@ -159,6 +214,8 @@
         .lead-card-body {
             flex: 1;
             margin-bottom: 1rem;
+            min-width: 0;
+            overflow: hidden;
         }
         .lead-card-footer {
             display: flex !important;
@@ -167,12 +224,13 @@
             padding-top: 1rem;
             border-top: 1px solid #e5e7eb;
             width: 100%;
+            min-width: 0;
         }
         .lead-card-footer a,
         .lead-card-footer button {
             flex: 1;
-            white-space: nowrap;
             min-width: 0;
+            white-space: nowrap;
             display: flex !important;
             align-items: center;
             justify-content: center;
@@ -189,9 +247,75 @@
         #leadDetailsModal .fa-star {
             font-size: 1.25rem;
         }
+        .bulk-transfer-bar {
+            display: none;
+        }
+        .bulk-transfer-bar.visible {
+            display: flex;
+        }
     </style>
+
+    @if($user && ($user->isAdmin() || $user->isCrm()) && ($view ?? 'cards') !== 'list')
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4 flex flex-wrap items-center gap-4">
+        <label class="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+            <input type="checkbox" id="selectAllLeadsOnPage" onchange="toggleSelectAllLeads(this)" class="rounded border-gray-300 text-green-600 focus:ring-green-500">
+            Select all on this page
+        </label>
+        <div id="bulkTransferBar" class="bulk-transfer-bar flex flex-wrap items-center gap-3">
+            <span id="bulkTransferCount" class="text-sm text-gray-700">Transfer selected (<span class="font-semibold">0</span>) to</span>
+            <select id="bulkTransferToUserId" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500">
+                @foreach($ownerTransferUsers ?? [] as $u)
+                    <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->role->name ?? 'User' }})</option>
+                @endforeach
+            </select>
+            <label class="flex items-center gap-2 text-sm text-gray-600">
+                <input type="checkbox" id="bulkTransferCreateTask" checked class="rounded border-gray-300 text-green-600">
+                Create calling task
+            </label>
+            <button type="button" id="bulkTransferBtn" onclick="submitBulkTransfer()" disabled class="px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg font-medium text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed">
+                Transfer
+            </button>
+        </div>
+    </div>
+    @endif
     
     @if($leads->count() > 0)
+        @if(($view ?? 'cards') === 'list' && $user && ($user->isAdmin() || $user->isCrm()))
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Name</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Number</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Owner</th>
+                            <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @foreach($leads as $lead)
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3">
+                                <a href="{{ route('leads.show', $lead->id) }}" class="text-[#063A1C] font-medium hover:underline">{{ $lead->name }}</a>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-600">{{ $lead->phone }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">
+                                @if($lead->activeAssignments->count() > 0)
+                                    {{ $lead->activeAssignments->first()->assignedTo->name }}
+                                @else
+                                    <span class="text-gray-400">Unassigned</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3">
+                                <a href="{{ route('leads.show', $lead->id) }}" class="text-green-600 hover:text-green-800 text-sm font-medium">View</a>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @else
         <div class="leads-grid mb-6">
             @foreach($leads as $lead)
                 @php
@@ -232,8 +356,13 @@
                     $phoneNumber = preg_replace('/[^0-9]/', '', $lead->phone);
                     $whatsappUrl = 'https://wa.me/' . $phoneNumber;
                 @endphp
-                <div class="lead-card">
+                <div class="lead-card" data-lead-id="{{ $lead->id }}">
                     <div class="lead-card-header">
+                        @if($user && ($user->isAdmin() || $user->isCrm()))
+                        <label class="flex items-center mr-2 cursor-pointer shrink-0" title="Select for bulk transfer">
+                            <input type="checkbox" class="lead-checkbox rounded border-gray-300 text-green-600 focus:ring-green-500" value="{{ $lead->id }}" data-lead-id="{{ $lead->id }}" onchange="updateBulkTransferBar()">
+                        </label>
+                        @endif
                         <div class="lead-card-avatar">
                             {{ strtoupper(substr($lead->name, 0, 1)) }}
                         </div>
@@ -305,15 +434,26 @@
                             <i class="fas fa-info-circle mr-1.5"></i>
                             <span>Short Detail</span>
                         </button>
+                        @if($user && ($user->isAdmin() || $user->isCrm()))
+                        <form method="POST" action="{{ route('leads.destroy', $lead->id) }}" class="flex-1 flex" onsubmit="return confirm('Delete this lead? It will be moved to trash and can be recovered.');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" style="display: flex !important; visibility: visible !important;" class="w-full flex items-center justify-center px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200 font-medium text-xs shadow-md">
+                                <i class="fas fa-trash-alt mr-1.5"></i>
+                                <span>Delete</span>
+                            </button>
+                        </form>
+                        @endif
                     </div>
                 </div>
             @endforeach
         </div>
+        @endif
 
         <!-- Pagination -->
         @if($leads->hasPages())
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-4 py-3 sm:px-6">
-                {{ $leads->links() }}
+                {{ $leads->withQueryString()->links() }}
             </div>
         @endif
     @else
@@ -349,7 +489,122 @@
     </div>
 
     <script>
+        const API_BASE_URL = '{{ url("/api") }}';
+        const API_TOKEN = '{{ auth()->check() ? (session("api_token") ?? auth()->user()->createToken("web-token")->plainTextToken) : "" }}';
+        const CAN_TRANSFER_OWNER = @json($user && ($user->isAdmin() || $user->isCrm()));
+        const OWNER_TRANSFER_USERS = @json($ownerTransferUsersJson ?? []);
+        const FILTER_USER_ID = @json(request('user_id'));
+
+        function getSelectedLeadIds() {
+            return Array.from(document.querySelectorAll('.lead-checkbox:checked')).map(cb => parseInt(cb.value, 10));
+        }
+
+        function updateBulkTransferBar() {
+            if (!CAN_TRANSFER_OWNER) return;
+            const ids = getSelectedLeadIds();
+            const n = ids.length;
+            const bar = document.getElementById('bulkTransferBar');
+            const countEl = document.querySelector('#bulkTransferCount span');
+            const btn = document.getElementById('bulkTransferBtn');
+            if (countEl) countEl.textContent = n;
+            if (bar) {
+                if (n > 0) bar.classList.add('visible');
+                else bar.classList.remove('visible');
+            }
+            if (btn) btn.disabled = n === 0;
+        }
+
+        function toggleSelectAllLeads(selectAllCheckbox) {
+            const checkboxes = document.querySelectorAll('.lead-checkbox');
+            checkboxes.forEach(cb => { cb.checked = !!selectAllCheckbox.checked; });
+            updateBulkTransferBar();
+        }
+
+        async function submitBulkTransfer() {
+            if (!CAN_TRANSFER_OWNER) return;
+            const leadIds = getSelectedLeadIds();
+            if (leadIds.length === 0) {
+                alert('Please select at least one lead.');
+                return;
+            }
+            const toUserId = document.getElementById('bulkTransferToUserId');
+            if (!toUserId || !toUserId.value) {
+                alert('Please select a user to transfer to.');
+                return;
+            }
+            const createTask = document.getElementById('bulkTransferCreateTask');
+            const payload = {
+                lead_ids: leadIds,
+                assigned_to: parseInt(toUserId.value, 10),
+                create_calling_task: !!(createTask && createTask.checked),
+                transfer_existing_tasks: true,
+            };
+            try {
+                const response = await fetch(`${API_BASE_URL}/leads/bulk-assign`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_TOKEN}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(result.message || 'Bulk transfer failed');
+                alert(result.message || 'Leads transferred successfully.');
+                document.getElementById('selectAllLeadsOnPage').checked = false;
+                document.querySelectorAll('.lead-checkbox').forEach(cb => { cb.checked = false; });
+                updateBulkTransferBar();
+                location.reload();
+            } catch (error) {
+                console.error('Bulk transfer error:', error);
+                alert(error.message || 'Unable to transfer leads.');
+            }
+        }
+
+        async function submitTransferAllFromUser() {
+            if (!CAN_TRANSFER_OWNER || !FILTER_USER_ID) return;
+            const toSelect = document.getElementById('transferAllToUserId');
+            if (!toSelect || !toSelect.value) {
+                alert('Please select a user to transfer to.');
+                return;
+            }
+            const toName = toSelect.options[toSelect.selectedIndex].text;
+            const createTask = document.getElementById('transferAllCreateTask');
+            if (!confirm('Transfer all leads assigned to the current user to ' + toName + '? This will affect all such leads.')) return;
+            const payload = {
+                from_user_id: parseInt(FILTER_USER_ID, 10),
+                assigned_to: parseInt(toSelect.value, 10),
+                create_calling_task: !!(createTask && createTask.checked),
+                transfer_existing_tasks: true,
+            };
+            try {
+                const response = await fetch(`${API_BASE_URL}/leads/transfer-all-from-user`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_TOKEN}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(result.message || 'Transfer all failed');
+                alert(result.message || 'Leads transferred successfully.');
+                location.reload();
+            } catch (error) {
+                console.error('Transfer all error:', error);
+                alert(error.message || 'Unable to transfer leads.');
+            }
+        }
+
         // Star rating rendering function
+        function escapeHtml(value) {
+            const div = document.createElement('div');
+            div.textContent = value == null ? '' : String(value);
+            return div.innerHTML;
+        }
+
         function renderStarRating(score) {
             if (!score || score < 1) return '<span class="text-gray-400 text-2xl">-</span>';
             let stars = '';
@@ -436,6 +691,7 @@
                 // Get assigned user with priority logic based on prospect verification status
                 let assignedUser = 'Unassigned';
                 let assignedUserRole = '';
+                let assignedOwnerId = null;
                 
                 // Priority 1: Check if lead has prospects
                 if (lead.prospects && lead.prospects.length > 0) {
@@ -458,6 +714,7 @@
                             if (assignedTo && assignedTo.role && assignedTo.role.slug === 'telecaller') {
                                 assignedUser = assignedTo.name || 'Unassigned';
                                 assignedUserRole = assignedTo.role.name || '';
+                                assignedOwnerId = assignedTo.id || null;
                             }
                         }
                     } else {
@@ -484,6 +741,7 @@
                         if (assignedTo && assignedTo.name) {
                             assignedUser = assignedTo.name;
                             assignedUserRole = assignedTo.role ? assignedTo.role.name : '';
+                            assignedOwnerId = assignedTo.id || null;
                         }
                     }
                 }
@@ -640,6 +898,26 @@
                         <p class="text-sm text-gray-900">${lead.notes}</p>
                     </div>
                     ` : ''}
+
+                    ${CAN_TRANSFER_OWNER ? `
+                    <div class="mb-6 pt-4 border-t border-gray-200">
+                        <label class="block text-xs font-medium text-gray-500 mb-2">Change Lead Owner</label>
+                        <div class="space-y-3">
+                            <select id="ownerTransferAssignedTo-${leadId}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <option value="">Select user</option>
+                                ${OWNER_TRANSFER_USERS.map(user => `<option value="${user.id}">${escapeHtml(user.name)} (${escapeHtml(user.role)})</option>`).join('')}
+                            </select>
+                            <label class="flex items-center gap-2 text-sm text-gray-700">
+                                <input type="checkbox" id="ownerTransferCreateTask-${leadId}" checked>
+                                <span>Create calling task for new owner</span>
+                            </label>
+                            <textarea id="ownerTransferNotes-${leadId}" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Reason for owner change (optional)"></textarea>
+                            <button type="button" onclick="transferLeadOwnerFromShortDetails(${leadId})" class="w-full px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 font-medium text-sm">
+                                Transfer Lead
+                            </button>
+                        </div>
+                    </div>
+                    ` : ''}
                     
                     <!-- Action Button -->
                     <div class="pt-4 border-t border-gray-200">
@@ -648,6 +926,13 @@
                         </a>
                     </div>
                 `;
+
+                if (CAN_TRANSFER_OWNER && assignedOwnerId) {
+                    const selectEl = document.getElementById(`ownerTransferAssignedTo-${leadId}`);
+                    if (selectEl) {
+                        selectEl.value = String(assignedOwnerId);
+                    }
+                }
             } catch (error) {
                 console.error('Error loading lead details:', error);
                 content.innerHTML = `
@@ -670,6 +955,51 @@
 
         function closeLeadDetailsModal() {
             document.getElementById('leadDetailsModal').classList.add('hidden');
+        }
+
+        async function transferLeadOwnerFromShortDetails(leadId) {
+            if (!CAN_TRANSFER_OWNER) return;
+
+            const assignedToEl = document.getElementById(`ownerTransferAssignedTo-${leadId}`);
+            const createTaskEl = document.getElementById(`ownerTransferCreateTask-${leadId}`);
+            const notesEl = document.getElementById(`ownerTransferNotes-${leadId}`);
+
+            if (!assignedToEl || !assignedToEl.value) {
+                alert('Please select new owner');
+                return;
+            }
+
+            const payload = {
+                assigned_to: parseInt(assignedToEl.value, 10),
+                create_calling_task: !!(createTaskEl && createTaskEl.checked),
+                transfer_existing_tasks: true,
+                notes: notesEl && notesEl.value ? notesEl.value.trim() : null,
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/leads/${leadId}/assign`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_TOKEN}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                const contentType = response.headers.get('content-type') || '';
+                const result = contentType.includes('application/json') ? await response.json() : {};
+                if (!response.ok) {
+                    throw new Error(result.message || 'Failed to transfer lead owner');
+                }
+
+                alert('Lead owner changed successfully.');
+                closeLeadDetailsModal();
+                location.reload();
+            } catch (error) {
+                console.error('Owner transfer error:', error);
+                alert(error.message || 'Unable to transfer lead owner');
+            }
         }
 
         // Close modal when clicking outside

@@ -59,7 +59,42 @@ function setupEventListeners() {
     }
     document.getElementById('perf-date-start')?.addEventListener('change', () => { if (perfDateRange?.value === 'custom') { loadTelecallerStats(); loadLeadsPendingResponse(); loadAverageResponseTime(); } });
     document.getElementById('perf-date-end')?.addEventListener('change', () => { if (perfDateRange?.value === 'custom') { loadTelecallerStats(); loadLeadsPendingResponse(); loadAverageResponseTime(); } });
-    
+
+    // Leads Allocated section: date filter (filters both Leads Allocated and Average Response; syncs with perf)
+    const leadsAllocDate = document.getElementById('leads-allocated-date-range');
+    const leadsAllocCustomWrap = document.getElementById('leads-allocated-custom-date-wrap');
+    if (leadsAllocDate && perfDateRange) {
+        leadsAllocDate.value = perfDateRange.value;
+        leadsAllocDate.addEventListener('change', function() {
+            perfDateRange.value = this.value;
+            if (perfCustomWrap) perfCustomWrap.classList.toggle('d-none', this.value !== 'custom');
+            if (leadsAllocCustomWrap) leadsAllocCustomWrap.classList.toggle('d-none', this.value !== 'custom');
+            loadLeadsPendingResponse();
+            loadAverageResponseTime();
+        });
+    }
+    if (leadsAllocCustomWrap && leadsAllocDate) {
+        leadsAllocCustomWrap.classList.toggle('d-none', leadsAllocDate.value !== 'custom');
+    }
+    document.getElementById('leads-allocated-date-start')?.addEventListener('change', function() {
+        var perfStart = document.getElementById('perf-date-start');
+        if (perfStart) perfStart.value = this.value;
+        loadLeadsPendingResponse();
+        loadAverageResponseTime();
+    });
+    document.getElementById('leads-allocated-date-end')?.addEventListener('change', function() {
+        var perfEnd = document.getElementById('perf-date-end');
+        if (perfEnd) perfEnd.value = this.value;
+        loadLeadsPendingResponse();
+        loadAverageResponseTime();
+    });
+    perfDateRange?.addEventListener('change', function syncPerfToLeadsAlloc() {
+        if (leadsAllocDate) {
+            leadsAllocDate.value = this.value;
+            if (leadsAllocCustomWrap) leadsAllocCustomWrap.classList.toggle('d-none', this.value !== 'custom');
+        }
+    });
+
     // Form submissions
     document.getElementById('csv-upload-form')?.addEventListener('submit', handleCsvUpload);
     document.getElementById('add-lead-form')?.addEventListener('submit', handleAddLead);
@@ -251,7 +286,7 @@ function toggleLeadsPendingDetail(detailId, rowId) {
 }
 
 function formatAvgResponseTime(avgResponseMinutes) {
-    if (avgResponseMinutes == null || isNaN(avgResponseMinutes)) return '—';
+    if (avgResponseMinutes == null || avgResponseMinutes === 0 || isNaN(avgResponseMinutes)) return '0 min';
     var m = Math.round(Number(avgResponseMinutes));
     if (m < 60) return m + ' min';
     var h = Math.floor(m / 60);
@@ -262,31 +297,40 @@ function formatAvgResponseTime(avgResponseMinutes) {
 function renderAverageResponseTime(list) {
     var panel = document.getElementById('average-response-time-panel');
     if (!panel) return;
+    var html = '<table class="table table-sm table-bordered mb-0"><thead><tr><th class="text-start">User Name</th><th class="text-end">Avg Time</th></tr></thead><tbody>';
     if (!list || list.length === 0) {
-        panel.innerHTML = '<p class="text-muted small mb-0">No data for this period.</p>';
-        return;
+        html += '<tr><td colspan="2" class="text-center text-muted py-2">No users in this role.</td></tr>';
+    } else {
+        list.forEach(function(row) {
+            var name = escapeHtmlPending(row.user_name || '');
+            var timeStr = formatAvgResponseTime(row.avg_response_minutes);
+            html += '<tr><td>' + name + '</td><td class="text-end fw-semibold">' + timeStr + '</td></tr>';
+        });
     }
-    var html = '<ul class="list-unstyled mb-0">';
-    list.forEach(function(row) {
-        var name = escapeHtmlPending(row.user_name || '');
-        var timeStr = formatAvgResponseTime(row.avg_response_minutes);
-        html += '<li class="d-flex justify-content-between align-items-center py-2 border-bottom"><span>' + name + '</span><span class="fw-semibold">' + timeStr + '</span></li>';
-    });
-    html += '</ul>';
+    html += '</tbody></table>';
     panel.innerHTML = html;
+}
+
+function getLeadsAllocatedDateParams() {
+    var rangeEl = document.getElementById('leads-allocated-date-range') || document.getElementById('perf-date-range');
+    var startEl = document.getElementById('leads-allocated-date-start') || document.getElementById('perf-date-start');
+    var endEl = document.getElementById('leads-allocated-date-end') || document.getElementById('perf-date-end');
+    return {
+        dateRange: rangeEl?.value || 'this_month',
+        start: startEl?.value,
+        end: endEl?.value
+    };
 }
 
 async function loadAverageResponseTime() {
     var panel = document.getElementById('average-response-time-panel');
     if (!panel) return;
     try {
-        var dateRange = document.getElementById('perf-date-range')?.value || 'this_month';
-        var url = '/dashboard/average-response-time?date_range=' + encodeURIComponent(dateRange);
-        if (dateRange === 'custom') {
-            var start = document.getElementById('perf-date-start')?.value;
-            var end = document.getElementById('perf-date-end')?.value;
-            if (start) url += '&start_date=' + encodeURIComponent(start);
-            if (end) url += '&end_date=' + encodeURIComponent(end);
+        var params = getLeadsAllocatedDateParams();
+        var url = '/dashboard/average-response-time?date_range=' + encodeURIComponent(params.dateRange);
+        if (params.dateRange === 'custom') {
+            if (params.start) url += '&start_date=' + encodeURIComponent(params.start);
+            if (params.end) url += '&end_date=' + encodeURIComponent(params.end);
         }
         var raw = await apiRequest(url);
         var data = Array.isArray(raw) ? raw : (raw && raw.data ? raw.data : []);
@@ -301,13 +345,11 @@ async function loadLeadsPendingResponse() {
     const tbody = document.getElementById('leads-pending-response-tbody');
     if (!tbody) return;
     try {
-        const dateRange = document.getElementById('perf-date-range')?.value || 'this_month';
-        let url = '/dashboard/leads-pending-response?date_range=' + encodeURIComponent(dateRange);
-        if (dateRange === 'custom') {
-            const start = document.getElementById('perf-date-start')?.value;
-            const end = document.getElementById('perf-date-end')?.value;
-            if (start) url += '&start_date=' + encodeURIComponent(start);
-            if (end) url += '&end_date=' + encodeURIComponent(end);
+        var params = getLeadsAllocatedDateParams();
+        let url = '/dashboard/leads-pending-response?date_range=' + encodeURIComponent(params.dateRange);
+        if (params.dateRange === 'custom') {
+            if (params.start) url += '&start_date=' + encodeURIComponent(params.start);
+            if (params.end) url += '&end_date=' + encodeURIComponent(params.end);
         }
         const raw = await apiRequest(url);
         const serverNow = raw && raw.server_now ? raw.server_now : null;
@@ -338,7 +380,7 @@ async function loadLeadsPendingResponse() {
                 '<table class="table table-sm table-bordered mb-0">' +
                 '<thead><tr><th>Lead Name</th><th>Phone</th><th>Assigned At</th><th></th></tr></thead>' +
                 '<tbody>' +
-                (leads.map(function(lead) {
+                (leads.length === 0 ? '<tr><td colspan="4" class="text-center text-muted py-2">No pending leads.</td></tr>' : leads.map(function(lead) {
                     return '<tr><td>' + escapeHtmlPending(lead.name || '—') + '</td><td>' + maskPhonePending(lead.phone) + '</td><td>' + formatAssignedAtFullPending(lead.assigned_at) + '</td><td><a href="' + leadShowBase + '/' + lead.lead_id + '" class="text-primary small">View</a></td></tr>';
                 }).join('')) +
                 '</tbody></table></div></td></tr>';
