@@ -445,6 +445,7 @@
                                         <option value="number">Number</option>
                                         <option value="email">Email</option>
                                         <option value="tel">Phone</option>
+                                        <option value="select">Dropdown</option>
                                         <option value="date">Date</option>
                                         <option value="time">Time</option>
                                         <option value="datetime">Date and Time</option>
