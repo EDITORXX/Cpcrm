@@ -4,6 +4,7 @@
 @section('page-title', 'Meta Sheet Configuration Setup')
 
 @section('content')
+@include('integrations.meta-sheet-guide-modal')
 <div class="max-w-4xl mx-auto">
     <!-- Progress Steps -->
     <div class="mb-8">
@@ -52,6 +53,13 @@
                         <li>Update sheet with CRM status (sent, assigned, call info)</li>
                     </ul>
                 </div>
+
+                <p class="mb-4">
+                    <button type="button" onclick="document.getElementById('metaSheetGuideModal').classList.remove('hidden')" class="text-[#063A1C] hover:text-[#205A44] font-medium underline inline-flex items-center gap-1">
+                        <i class="fas fa-book-open"></i>
+                        See full connection guide (Meta + CRM steps)
+                    </button>
+                </p>
                 
                 <form action="{{ route('integrations.meta-sheet.store-step1') }}" method="POST">
                     @csrf
@@ -91,7 +99,7 @@
                         
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Service Account JSON Path (Optional)</label>
-                            <input type="text" name="service_account_json_path" value="{{ old('service_account_json_path', $config->service_account_json_path) }}"
+                            <input type="text" name="service_account_json_path" value="{{ old('service_account_json_path', $config->service_account_json_path ?? 'google-credentials/service-account.json') }}"
                                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#063A1C] focus:border-[#063A1C]"
                                 placeholder="google-credentials/service-account.json">
                         </div>

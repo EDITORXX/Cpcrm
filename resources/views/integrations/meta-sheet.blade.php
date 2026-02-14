@@ -4,13 +4,20 @@
 @section('page-title', 'Meta Sheet Configuration')
 
 @section('header-actions')
-    <a href="{{ route('integrations.meta-sheet.create') }}" class="px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 text-sm font-medium">
-        <i class="fas fa-plus mr-2"></i>
-        Add New Meta Sheet
-    </a>
+    <div class="flex flex-wrap items-center gap-2">
+        <a href="{{ route('integrations.meta-sheet.create') }}" class="px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 text-sm font-medium">
+            <i class="fas fa-plus mr-2"></i>
+            Add New Meta Sheet
+        </a>
+        <button type="button" onclick="document.getElementById('metaSheetGuideModal').classList.remove('hidden')" class="inline-flex items-center gap-1.5 px-3 py-2 border border-[#205A44] text-[#063A1C] rounded-lg hover:bg-[#063A1C] hover:text-white transition-colors duration-200 text-sm font-medium" title="Step-by-step guide to connect Meta/Facebook leads via Google Sheets">
+            <i class="fas fa-info-circle"></i>
+            Connection guide
+        </button>
+    </div>
 @endsection
 
 @section('content')
+@include('integrations.meta-sheet-guide-modal')
 <div class="max-w-7xl mx-auto">
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h2 class="text-xl font-semibold text-gray-900 mb-4">Configured Meta/Facebook Sheets</h2>
