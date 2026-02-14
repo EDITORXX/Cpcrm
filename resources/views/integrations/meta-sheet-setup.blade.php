@@ -646,25 +646,23 @@ function closeCustomFieldModal() {
     document.getElementById('custom-field-form').reset();
 }
 
-// Generate field key from label
-function generateFieldKeyFromLabel() {
+// Generate field key from label (no arg = read from modal input and set key field; with arg = return key string)
+function generateFieldKeyFromLabel(labelOrEmpty) {
     const labelInput = document.getElementById('field_label');
     const keyInput = document.getElementById('field_key');
-    
-    if (labelInput.value && !keyInput.value) {
-        let key = labelInput.value.toLowerCase().trim();
-        // Replace spaces and special characters with underscores
-        key = key.replace(/[^a-z0-9]+/g, '_');
-        // Remove consecutive underscores
-        key = key.replace(/_+/g, '_');
-        // Remove leading/trailing underscores
-        key = key.replace(/^_+|_+$/g, '');
-        // Ensure it starts with a letter
-        if (key && !/^[a-z]/.test(key)) {
-            key = 'field_' + key;
-        }
-        keyInput.value = key;
+    const str = (typeof labelOrEmpty === 'string') ? labelOrEmpty : (labelInput && labelInput.value ? labelInput.value : '');
+    const label = (str || '').trim();
+    if (!label) {
+        if (keyInput && (labelOrEmpty === undefined || labelOrEmpty === null)) keyInput.value = '';
+        return '';
     }
+    let key = label.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '');
+    if (key && !/^[a-z]/.test(key)) key = 'field_' + key;
+    if (keyInput && (labelOrEmpty === undefined || labelOrEmpty === null)) keyInput.value = key;
+    return key;
 }
 
 // Auto-generate field key when label changes
@@ -716,10 +714,17 @@ function createCustomField(event) {
         headers: {
             'X-CSRF-TOKEN': '{{ csrf_token() }}',
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
         },
         body: JSON.stringify(formData),
     })
-    .then(response => response.json())
+    .then(response => {
+        const ct = response.headers.get('content-type');
+        if (!ct || !ct.includes('application/json')) {
+            throw new Error('Server returned an invalid response. Please refresh the page and try again.');
+        }
+        return response.json();
+    })
     .then(data => {
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalBtnText;
@@ -1041,30 +1046,26 @@ function displayMappings(columns) {
         const normalizedHeader = headerText.toLowerCase().replace(/[^a-z0-9]/g, '_');
         if (metaTemplate[normalizedHeader]) {
             mappedField = metaTemplate[normalizedHeader];
-            isRequired = (mappedField === 'name' || mappedField === 'phone');
         } else {
             // Try fuzzy matching
             for (const [templateKey, templateValue] of Object.entries(metaTemplate)) {
                 if (normalizedHeader.includes(templateKey.replace(/[^a-z0-9]/g, '_')) || 
                     templateKey.replace(/[^a-z0-9]/g, '_').includes(normalizedHeader)) {
                     mappedField = templateValue;
-                    isRequired = (mappedField === 'name' || mappedField === 'phone');
                     break;
                 }
             }
         }
         
-        // Special handling for name and phone
+        // Special handling for name and phone (auto-map only; required is user choice)
         if (headerText.toLowerCase().includes('name') && !mappedField) {
             mappedField = 'name';
-            isRequired = true;
         } else if ((headerText.toLowerCase().includes('phone') || headerText.toLowerCase().includes('mobile')) && !mappedField) {
             mappedField = 'phone';
-            isRequired = true;
         }
         
         const row = document.createElement('tr');
-        row.className = isRequired ? 'bg-green-50' : '';
+        row.className = '';
         row.innerHTML = `
             <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                 ${columnLetter}
@@ -1097,8 +1098,7 @@ function displayMappings(columns) {
             <td class="px-4 py-3 whitespace-nowrap text-center">
                 <input type="checkbox" 
                        name="mappings[${index}][is_required]" 
-                       ${isRequired ? 'checked' : ''}
-                       ${isRequired ? 'disabled' : ''}
+                       value="1"
                        class="w-4 h-4 text-[#063A1C] border-gray-300 rounded focus:ring-[#063A1C]">
             </td>
         `;
@@ -1111,22 +1111,6 @@ function displayMappings(columns) {
     document.getElementById('mapping-empty').classList.add('hidden');
     document.getElementById('mapping-content').classList.remove('hidden');
     document.getElementById('save-mappings-btn').disabled = false;
-}
-
-// Helper function to generate field key from label
-function generateFieldKeyFromLabel(label) {
-    let key = label.toLowerCase().trim();
-    // Replace spaces and special characters with underscores
-    key = key.replace(/[^a-z0-9]+/g, '_');
-    // Remove consecutive underscores
-    key = key.replace(/_+/g, '_');
-    // Remove leading/trailing underscores
-    key = key.replace(/^_+|_+$/g, '');
-    // Ensure it starts with a letter
-    if (key && !/^[a-z]/.test(key)) {
-        key = 'field_' + key;
-    }
-    return key;
 }
 
 // Helper function to capitalize first letter of each word
@@ -1142,6 +1126,7 @@ async function createCustomFieldForMapping(fieldLabel, fieldKey) {
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
             },
             body: JSON.stringify({
                 field_label: fieldLabel,
@@ -1151,6 +1136,10 @@ async function createCustomFieldForMapping(fieldLabel, fieldKey) {
             })
         });
         
+        const ct = response.headers.get('content-type');
+        if (!ct || !ct.includes('application/json')) {
+            throw new Error('Server returned an invalid response. Please refresh the page and try again.');
+        }
         const data = await response.json();
         
         if (data.success && data.field) {
@@ -1245,7 +1234,6 @@ async function autoMapAllFields() {
         const normalizedHeader = headerText.toLowerCase().replace(/[^a-z0-9]/g, '_');
         if (metaTemplate[normalizedHeader]) {
             mappedField = metaTemplate[normalizedHeader];
-            isRequired = (mappedField === 'name' || mappedField === 'phone');
         } else {
             // Try fuzzy matching
             for (const [templateKey, templateValue] of Object.entries(metaTemplate)) {
@@ -1253,20 +1241,17 @@ async function autoMapAllFields() {
                 if (normalizedHeader.includes(templateKeyNormalized) || 
                     templateKeyNormalized.includes(normalizedHeader)) {
                     mappedField = templateValue;
-                    isRequired = (mappedField === 'name' || mappedField === 'phone');
                     break;
                 }
             }
         }
         
-        // Special handling for name and phone
+        // Special handling for name, phone, email, etc. (required is user choice)
         if (!mappedField) {
             if (headerText.toLowerCase().includes('name')) {
                 mappedField = 'name';
-                isRequired = true;
             } else if (headerText.toLowerCase().includes('phone') || headerText.toLowerCase().includes('mobile')) {
                 mappedField = 'phone';
-                isRequired = true;
             } else if (headerText.toLowerCase().includes('email')) {
                 mappedField = 'email';
             } else if (headerText.toLowerCase().includes('city') || headerText.toLowerCase().includes('lucknow')) {
@@ -1337,22 +1322,10 @@ async function autoMapAllFields() {
                 fieldLabelInput.value = headerText;
             }
             
-            // Set required checkbox
+            // Required is always user choice - do not auto-check or disable
             if (requiredCheckbox) {
-                if (isRequired) {
-                    requiredCheckbox.checked = true;
-                    requiredCheckbox.disabled = true;
-                } else {
-                    requiredCheckbox.checked = false;
-                    requiredCheckbox.disabled = false;
-                }
-            }
-            
-            // Highlight row if required
-            if (isRequired) {
-                row.classList.add('bg-green-50');
-            } else {
-                row.classList.remove('bg-green-50');
+                requiredCheckbox.checked = false;
+                requiredCheckbox.disabled = false;
             }
             
             mappedCount++;
@@ -1538,12 +1511,9 @@ async function saveMappings() {
         }
     });
     
-    // Validate required fields - only name and phone are required
-    const nameMapped = mappings.some(m => m.lead_field_key === 'name');
-    const phoneMapped = mappings.some(m => m.lead_field_key === 'phone');
-    
-    if (!nameMapped || !phoneMapped) {
-        showErrorModal('Required Fields Missing', 'Both Name and Phone fields must be mapped. Please map at least one column to "Customer Name" and one to "Phone Number".');
+    // At least one mapping required
+    if (mappings.length === 0) {
+        showErrorModal('No Mappings', 'Please map at least one column to a CRM field.');
         return;
     }
     
