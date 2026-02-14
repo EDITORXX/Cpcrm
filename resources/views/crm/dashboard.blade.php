@@ -265,16 +265,129 @@
             </div>
         </div>
     </div>
+
+    <!-- Danger zone: Delete All Leads -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-danger">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0 text-danger fw-semibold">Danger Zone</h6>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-2">Permanently delete every lead in the system. This cannot be undone.</p>
+                    <button type="button" class="btn btn-outline-danger btn-sm" id="btnDeleteAllLeads" data-bs-toggle="modal" data-bs-target="#modalDeleteAllLeads">
+                        Delete All Leads
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Modals -->
 @include('crm.modals.user-management')
 @include('crm.modals.transfer-leads')
 
+<!-- Delete All Leads modal -->
+<div class="modal fade" id="modalDeleteAllLeads" tabindex="-1" aria-labelledby="modalDeleteAllLeadsLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-danger">
+                <h5 class="modal-title text-danger" id="modalDeleteAllLeadsLabel">Delete All Leads</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">This will permanently delete all leads. This cannot be undone.</p>
+                <div class="mb-3">
+                    <label for="deleteAllLeadsPassword" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="deleteAllLeadsPassword" placeholder="Enter password" autocomplete="off">
+                    <div id="deleteAllLeadsError" class="invalid-feedback"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmDeleteAllLeads">Delete All Leads</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <!-- Bootstrap 5.3.3 JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{ asset('js/crm-dashboard.js') }}"></script>
+<script>
+(function() {
+    var deleteAllLeadsUrl = '{{ route("crm.danger.delete-all-leads") }}';
+    var csrfToken = document.querySelector('meta[name="csrf-token"]') && document.querySelector('meta[name="csrf-token"]').content;
+
+    document.getElementById('btnConfirmDeleteAllLeads').addEventListener('click', function() {
+        var input = document.getElementById('deleteAllLeadsPassword');
+        var errorEl = document.getElementById('deleteAllLeadsError');
+        var btn = this;
+        var password = (input && input.value) ? input.value.trim() : '';
+        if (!password) {
+            input.classList.add('is-invalid');
+            errorEl.textContent = 'Please enter the password.';
+            return;
+        }
+        input.classList.remove('is-invalid');
+        errorEl.textContent = '';
+        btn.disabled = true;
+        btn.textContent = 'Deleting...';
+
+        fetch(deleteAllLeadsUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken || '',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ password: password })
+        }).then(function(res) {
+            return res.json().then(function(data) {
+                return { ok: res.ok, status: res.status, data: data };
+            }).catch(function() {
+                return { ok: res.ok, status: res.status, data: { message: 'Invalid response.' } };
+            });
+        }).then(function(result) {
+            btn.disabled = false;
+            btn.textContent = 'Delete All Leads';
+            if (result.ok && result.data && result.data.success) {
+                var modal = bootstrap.Modal.getInstance(document.getElementById('modalDeleteAllLeads'));
+                if (modal) modal.hide();
+                input.value = '';
+                var msg = result.data.message || 'All leads deleted.';
+                if (result.data.deleted_count !== undefined) {
+                    msg += ' (' + result.data.deleted_count + ' deleted)';
+                }
+                var alertEl = document.getElementById('notification-alert');
+                if (alertEl) {
+                    alertEl.classList.remove('d-none', 'alert-danger');
+                    alertEl.classList.add('alert-success');
+                    document.getElementById('notification-message').textContent = msg;
+                }
+                setTimeout(function() { window.location.reload(); }, 1500);
+            } else {
+                input.classList.add('is-invalid');
+                errorEl.textContent = (result.data && result.data.message) ? result.data.message : 'Invalid password or action not allowed.';
+            }
+        }).catch(function(err) {
+            btn.disabled = false;
+            btn.textContent = 'Delete All Leads';
+            input.classList.add('is-invalid');
+            errorEl.textContent = 'Request failed. Try again.';
+        });
+    });
+
+    document.getElementById('modalDeleteAllLeads').addEventListener('show.bs.modal', function() {
+        document.getElementById('deleteAllLeadsPassword').value = '';
+        document.getElementById('deleteAllLeadsPassword').classList.remove('is-invalid');
+        document.getElementById('deleteAllLeadsError').textContent = '';
+    });
+})();
+</script>
 @endpush
 
 @endsection

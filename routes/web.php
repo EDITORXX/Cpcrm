@@ -367,7 +367,10 @@ Route::middleware(['auth'])->group(function () {
             return view('admin.broadcast');
         })->name('admin.broadcast');
     });
-    
+
+    // CRM danger: delete all leads (password required)
+    Route::middleware(['auth', 'role:admin,crm'])->post('/crm/danger/delete-all-leads', [\App\Http\Controllers\Crm\CrmDangerController::class, 'deleteAllLeads'])->name('crm.danger.delete-all-leads');
+
     // Admin Dashboard (Admin only)
     // Integration Routes (Admin & CRM)
     Route::middleware(['auth', 'role:admin,crm'])->prefix('integrations')->name('integrations.')->group(function () {
