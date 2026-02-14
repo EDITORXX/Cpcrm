@@ -22,6 +22,9 @@ Route::prefix('install')->group(function () {
     Route::post('/install', [\App\Http\Controllers\InstallController::class, 'install'])->name('install.install');
 });
 
+// Developer API documentation — only accessible via unique URL (no link in app)
+Route::get('/developer/docs/{access_key}', [\App\Http\Controllers\DeveloperDocsController::class, 'show'])->name('developer.docs');
+
 Route::get('/', function () {
     return view('landing');
 });
