@@ -3,23 +3,6 @@
 @section('title', 'CRM - Base CRM')
 @section('page-title', 'CRM')
 @section('header-below-title')
-    <div class="d-flex flex-wrap align-items-center gap-2">
-        <label class="form-label small mb-0 fw-bold" for="date-range-filter">Date Range:</label>
-        <select id="date-range-filter" class="form-select form-select-sm" style="max-width: 160px;">
-            <option value="today">Today</option>
-            <option value="yesterday">Yesterday</option>
-            <option value="this_week">This Week</option>
-            <option value="this_month" selected>This Month</option>
-            <option value="this_year">This Year</option>
-            <option value="all_time">All Time</option>
-            <option value="custom">Custom</option>
-        </select>
-        <span id="custom-date-wrap" class="d-none align-middle">
-            <input type="date" id="date-range-start" class="form-control form-control-sm d-inline-block" style="max-width: 140px;" title="From">
-            <span class="mx-1">–</span>
-            <input type="date" id="date-range-end" class="form-control form-control-sm d-inline-block" style="max-width: 140px;" title="To">
-        </span>
-    </div>
 @endsection
 
 @push('styles')
@@ -120,6 +103,15 @@
         .card-header h5 { font-size: 1rem; }
     }
     
+    /* Sales Executive Performance: role + date filter in one line */
+    #perf-role-filter,
+    #perf-date-range {
+        display: inline-block;
+    }
+    .card-header .d-flex.flex-nowrap {
+        white-space: nowrap;
+    }
+    
     /* Sales Executive Performance table: scroll andar, page full width */
     .crm-perf-table-wrap {
         overflow-x: auto;
@@ -174,11 +166,11 @@
             <div class="card">
                 <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
                     <h5 class="mb-0">Sales Executive Performance</h5>
-                    <div class="d-flex flex-wrap align-items-center gap-2">
-                        <select id="perf-role-filter" class="form-select form-select-sm" style="max-width: 180px;" title="User type">
+                    <div class="d-flex flex-nowrap align-items-center gap-2">
+                        <select id="perf-role-filter" class="form-select form-select-sm flex-shrink-0" style="max-width: 180px; width: 180px;" title="User type">
                             <option value="all">All</option>
                         </select>
-                        <select id="perf-date-range" class="form-select form-select-sm" style="max-width: 160px;" title="Date range">
+                        <select id="perf-date-range" class="form-select form-select-sm flex-shrink-0" style="max-width: 160px; width: 160px;" title="Date range">
                             <option value="today">Today</option>
                             <option value="yesterday">Yesterday</option>
                             <option value="this_week">This Week</option>
@@ -187,7 +179,7 @@
                             <option value="all_time">All Time</option>
                             <option value="custom">Custom</option>
                         </select>
-                        <span id="perf-custom-date-wrap" class="d-none align-middle">
+                        <span id="perf-custom-date-wrap" class="d-none align-middle flex-nowrap">
                             <input type="date" id="perf-date-start" class="form-control form-control-sm d-inline-block" style="max-width: 130px;" title="From">
                             <span class="mx-1">–</span>
                             <input type="date" id="perf-date-end" class="form-control form-control-sm d-inline-block" style="max-width: 130px;" title="To">
