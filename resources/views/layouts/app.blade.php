@@ -254,12 +254,20 @@
             transition: all 0.3s;
         }
         
+        /* Sidebar width: controlled here only (no Tailwind w-64) to prevent overlap with main content */
+        #sidebar {
+            width: 64px;
+            min-width: 64px;
+            max-width: 64px;
+        }
         /* Sidebar nav mode
            - Default is icon mode (body.nav-icons)
            - Toggle to text mode (body.nav-text) using localStorage
         */
         body.nav-icons #sidebar {
             width: 64px !important;
+            min-width: 64px !important;
+            max-width: 64px !important;
         }
         
         body.nav-icons #sidebar nav {
@@ -294,12 +302,18 @@
             padding-left: 0 !important;
         }
 
-        /* Keep main content aligned with sidebar width */
+        /* Keep main content aligned with sidebar width - prevent sidebar overlap */
+        #mainContent {
+            margin-left: 64px;
+            transition: margin-left 0.3s ease-in-out;
+        }
         body.nav-icons #mainContent {
             margin-left: 64px !important;
         }
         body.nav-text #sidebar {
             width: 256px !important;
+            min-width: 256px !important;
+            max-width: 256px !important;
         }
         body.nav-text #mainContent {
             margin-left: 256px !important;
@@ -604,7 +618,7 @@
     
     <div style="display: flex; height: 100vh; overflow: hidden;">
         <!-- Sidebar -->
-        <aside id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-sm z-30" style="overflow-y: auto; transition: transform 0.3s ease-in-out;">
+        <aside id="sidebar" class="fixed left-0 top-0 h-full bg-white border-r border-gray-200 shadow-sm z-30" style="overflow-y: auto; transition: width 0.3s ease-in-out, transform 0.3s ease-in-out;">
             <!-- Logo and Role -->
             <div style="padding: 20px; margin-bottom: 30px;">
                 <h2 style="font-size: 24px; font-weight: 700; color: var(--text-color); margin-bottom: 10px;">Base CRM</h2>
