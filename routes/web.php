@@ -287,6 +287,10 @@ Route::middleware(['auth'])->group(function () {
             $user->load('role');
         }
         
+        // Sales Executive / Telecaller: Telecaller-style dashboard
+        if ($user->isTelecaller()) {
+            return redirect()->route('sales-executive.dashboard');
+        }
         // Sale Head: apna dashboard
         if ($user->isSalesHead()) {
             return redirect()->route('sales-head.dashboard');

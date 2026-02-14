@@ -208,11 +208,12 @@ class LoginController extends Controller
         // Determine redirect URL based on role
         $redirectUrl = match($role) {
             'telecaller' => route('telecaller.dashboard'),
+            'sales_executive' => route('sales-executive.dashboard'),
             'sales_manager' => $user->isSalesHead() 
                 ? route('sales-head.dashboard')
                 : route('sales-manager.dashboard'),
             'admin' => route('admin.dashboard'),
-            'crm', 'sales_executive' => route('dashboard'),
+            'crm' => route('dashboard'),
             default => '/',
         };
         

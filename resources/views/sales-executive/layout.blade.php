@@ -19,38 +19,44 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { width: 100%; overflow-x: hidden; }
         body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #F7F6F3; width: 100%; max-width: 100vw; }
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px; width: 100%; box-sizing: border-box; overflow-x: hidden; }
+        .container { max-width: 100%; margin: 0 auto; padding: 20px; width: 100%; box-sizing: border-box; overflow-x: hidden; }
         .header { 
             background: white; 
-            padding: 16px; 
+            padding: 16px 20px; 
             border-radius: 12px; 
             margin-bottom: 16px; 
             box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
             display: flex; 
-            flex-direction: column;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
             gap: 12px;
             width: 100%; 
             box-sizing: border-box; 
             max-width: 100%; 
-            overflow-x: hidden; 
+            overflow: visible;
         }
         .header-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            width: 100%;
+            flex: 1;
+            min-width: 0;
         }
         .header-actions {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             gap: 10px;
-            width: 100%;
+            flex-shrink: 0;
+            align-items: center;
         }
         .header-actions-row {
             display: flex;
             align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
+            gap: 12px;
+            flex-wrap: nowrap;
+            flex-shrink: 0;
         }
         
         /* Mobile Header - Single Line */
@@ -118,31 +124,50 @@
             transition: all 0.3s;
         }
         
-        /* Icon-only sidebar (all views) */
+        /* Sidebar: default icon-only; expanded = icon + text */
         #sidebar {
-            width: 64px !important;
+            width: 64px;
+            transition: width 0.25s ease;
         }
-        
+        body.sidebar-nav-expanded #sidebar {
+            width: 256px;
+        }
         #sidebar nav {
-            padding: 0 12px !important;
+            padding: 0 12px;
         }
-        
-        #sidebar h2,
-        #sidebar p {
-            display: none !important;
+        /* Icon-only: hide text and brand name */
+        #sidebar h2 {
+            display: none;
         }
-        
+        body.sidebar-nav-expanded #sidebar h2 {
+            display: block !important;
+        }
         #sidebar .sidebar-link {
-            justify-content: center;
-            padding: 12px !important;
-            font-size: 0 !important;
+            justify-content: flex-start;
+            padding: 12px 12px;
+            font-size: 0;
+            overflow: hidden;
         }
-        
+        body.sidebar-nav-expanded #sidebar .sidebar-link {
+            font-size: 14px;
+            padding: 12px 16px;
+        }
         #sidebar .sidebar-link i {
-            margin-right: 0 !important;
+            margin-right: 10px;
             font-size: 18px;
             width: 20px;
+            min-width: 20px;
             text-align: center;
+            flex-shrink: 0;
+        }
+        body.sidebar-nav-expanded #sidebar .sidebar-link i {
+            margin-right: 10px;
+        }
+        #sidebar .sidebar-link i.icon-only {
+            margin-right: 0;
+        }
+        body.sidebar-nav-expanded #sidebar .sidebar-link i.icon-only {
+            margin-right: 10px;
         }
         .sidebar-link:hover {
             background: #F7F6F3 !important;
@@ -433,6 +458,11 @@
             #mainContent {
                 margin-left: 64px !important;
                 width: calc(100% - 64px) !important;
+                max-width: none !important;
+            }
+            body.sidebar-nav-expanded #mainContent {
+                margin-left: 256px !important;
+                width: calc(100% - 256px) !important;
             }
             
             /* Show logout button on desktop */
@@ -445,15 +475,17 @@
                 display: block !important;
             }
             
-            /* Desktop header layout */
+            /* Desktop header layout - single row, clock always visible */
             .header {
                 flex-direction: row;
+                flex-wrap: nowrap;
                 justify-content: space-between;
                 align-items: center;
             }
             
             .header-top {
-                flex: 0 0 auto;
+                flex: 1 1 auto;
+                min-width: 0;
             }
             
             .header-actions {
@@ -465,6 +497,15 @@
                 flex-direction: row;
                 align-items: center;
                 gap: 16px;
+                flex-wrap: nowrap;
+            }
+            
+            .header-clock-wrap {
+                flex-shrink: 0;
+            }
+            
+            #datetimeClock {
+                flex-shrink: 0;
             }
         }
         
@@ -501,6 +542,46 @@
         
         .sidebar-close-btn:hover {
             background: #e0e0e0;
+        }
+        
+        /* Sidebar expand/collapse toggle (icon + text) */
+        .sidebar-nav-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 12px;
+            margin-top: 16px;
+            margin-bottom: 8px;
+            background: rgba(0,0,0,0.05);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #063A1C;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .sidebar-nav-toggle:hover {
+            background: rgba(0,0,0,0.08);
+            color: #205A44;
+        }
+        .sidebar-nav-toggle i {
+            font-size: 16px;
+            transition: transform 0.25s;
+        }
+        body.sidebar-nav-expanded .sidebar-nav-toggle i {
+            transform: rotate(180deg);
+        }
+        .sidebar-nav-toggle .toggle-label {
+            display: none;
+            margin-left: 8px;
+            white-space: nowrap;
+        }
+        body.sidebar-nav-expanded .sidebar-nav-toggle .toggle-label {
+            display: inline;
+        }
+        @media (max-width: 767px) {
+            .sidebar-nav-toggle { display: none !important; }
         }
         
         @media (max-width: 1024px) {
@@ -740,6 +821,10 @@
                 <i class="fas fa-user" style="margin-right: 10px; width: 20px;"></i>
                 Profile
             </a>
+            <button type="button" class="sidebar-nav-toggle" id="sidebarNavToggle" onclick="toggleSidebarNav()" aria-label="Toggle sidebar icon and text">
+                <i class="fas fa-chevron-left"></i>
+                <span class="toggle-label">Collapse</span>
+            </button>
         </nav>
     </aside>
     
@@ -771,9 +856,9 @@
             </div>
             <div class="header-actions">
                 <div class="header-actions-row">
-                    <!-- Date/Time Clock -->
-                    <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-end;">
-                        <div id="datetimeClock" style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px 12px; font-family: 'Courier New', monospace; font-weight: 600; font-size: 12px; color: #063A1C; min-width: 160px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <!-- Date/Time Clock - always visible in header right -->
+                    <div class="header-clock-wrap" style="flex-shrink: 0; min-width: 140px;">
+                        <div id="datetimeClock" style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px 12px; font-family: 'Courier New', monospace; font-weight: 600; font-size: 12px; color: #063A1C; min-width: 140px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                             <div id="clockTime" style="font-size: 16px; color: #205A44;">--:--:--</div>
                             <div id="clockDate" style="font-size: 11px; color: #B3B5B4; margin-top: 2px;">-- -- ----</div>
                         </div>
@@ -1119,6 +1204,46 @@
         // Adjust on load and resize
         window.addEventListener('resize', adjustContainerMargin);
         adjustContainerMargin();
+
+        // Sidebar icon + text toggle (expand/collapse)
+        function toggleSidebarNav() {
+            document.body.classList.toggle('sidebar-nav-expanded');
+            var expanded = document.body.classList.contains('sidebar-nav-expanded');
+            try {
+                localStorage.setItem('sales_executive_sidebar_expanded', expanded ? '1' : '0');
+            } catch (e) {}
+            var mainContent = document.getElementById('mainContent');
+            if (mainContent && window.innerWidth > 767) {
+                mainContent.style.marginLeft = expanded ? '256px' : '64px';
+                mainContent.style.width = expanded ? 'calc(100% - 256px)' : 'calc(100% - 64px)';
+            }
+            var btn = document.getElementById('sidebarNavToggle');
+            if (btn) {
+                var label = btn.querySelector('.toggle-label');
+                var icon = btn.querySelector('i');
+                if (label) label.textContent = expanded ? 'Collapse' : 'Expand';
+                if (icon) icon.className = expanded ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
+            }
+        }
+        (function applySidebarNavPreference() {
+            try {
+                if (localStorage.getItem('sales_executive_sidebar_expanded') === '1') {
+                    document.body.classList.add('sidebar-nav-expanded');
+                    var mainContent = document.getElementById('mainContent');
+                    if (mainContent && window.innerWidth > 767) {
+                        mainContent.style.marginLeft = '256px';
+                        mainContent.style.width = 'calc(100% - 256px)';
+                    }
+                    var btn = document.getElementById('sidebarNavToggle');
+                    if (btn) {
+                        var label = btn.querySelector('.toggle-label');
+                        var icon = btn.querySelector('i');
+                        if (label) label.textContent = 'Collapse';
+                        if (icon) icon.className = 'fas fa-chevron-right';
+                    }
+                }
+            } catch (e) {}
+        })();
 
         // Initialize on page load
         (function() {
