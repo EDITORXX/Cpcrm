@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\Role;
 use App\Models\SystemSettings;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -229,19 +230,33 @@ class DebugController extends Controller
     }
     
     /**
-     * Show quick login page with all users
+     * Show quick login page with all users in clear hierarchy order (top to bottom).
+     * Order: Admin → CRM → HR → Finance → Sales Head → Senior Manager → Manager → Assistant Sales Manager → Sales Executive.
      */
     public function showQuickLogin()
     {
-        // Get all active users grouped by role
-        $users = User::where('is_active', true)
-            ->with('role')
+        $all = User::where('is_active', true)
+            ->with(['role', 'manager'])
             ->orderBy('name')
-            ->get()
-            ->groupBy(function($user) {
-                return $user->role->name ?? 'Unknown';
-            });
-        
+            ->get();
+
+        // Define display order and how to assign each user to a group (hierarchy-friendly)
+        $roleSlug = fn ($u) => $u->role->slug ?? null;
+        $groups = [
+            'Admin' => $all->filter(fn ($u) => $roleSlug($u) === Role::ADMIN),
+            'CRM' => $all->filter(fn ($u) => $roleSlug($u) === Role::CRM),
+            'HR Manager' => $all->filter(fn ($u) => $roleSlug($u) === Role::HR_MANAGER),
+            'Finance Manager' => $all->filter(fn ($u) => $roleSlug($u) === Role::FINANCE_MANAGER),
+            'Sales Head (Associate Director)' => $all->filter(fn ($u) => $roleSlug($u) === Role::SALES_MANAGER && $u->manager_id === null),
+            'Senior Manager' => $all->filter(fn ($u) => $roleSlug($u) === Role::SALES_MANAGER && $u->manager_id !== null),
+            'Manager' => $all->filter(fn ($u) => $roleSlug($u) === Role::SENIOR_MANAGER),
+            'Assistant Sales Manager' => $all->filter(fn ($u) => $roleSlug($u) === Role::ASSISTANT_SALES_MANAGER),
+            'Sales Executive' => $all->filter(fn ($u) => $roleSlug($u) === Role::SALES_EXECUTIVE),
+        ];
+
+        // Only include non-empty groups and keep order
+        $users = collect($groups)->filter->isNotEmpty();
+
         return view('admin.quick-login', compact('users'));
     }
 }

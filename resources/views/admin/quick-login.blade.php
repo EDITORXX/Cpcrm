@@ -53,10 +53,10 @@
                 <h1 class="text-3xl font-bold text-gray-900 mb-2">
                     <i class="fas fa-bolt text-yellow-500"></i> Quick Login - All Users
                 </h1>
-                <p class="text-gray-600">Click on any user card to login instantly</p>
+                <p class="text-gray-600">Click on any user card to login instantly. Order: top (highest) → bottom (field).</p>
             </div>
 
-            <!-- Users Grid -->
+            <!-- Users Grid (ordered by hierarchy: Admin → … → Sales Executive) -->
             @foreach($users as $roleName => $roleUsers)
             <div class="mb-8">
                 <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
@@ -72,8 +72,12 @@
                                 <h3 class="font-semibold text-gray-900 mb-1">{{ $user->name }}</h3>
                                 <p class="text-sm text-gray-600 mb-2">{{ $user->email }}</p>
                             </div>
-                            <div class="role-badge role-{{ $user->role->slug ?? 'unknown' }}">
-                                {{ $user->role->slug ?? 'N/A' }}
+                            @php
+                                $slug = $user->role->slug ?? 'unknown';
+                                $badgeText = ($slug === 'sales_manager' && $user->manager_id === null) ? 'SALES HEAD' : str_replace('_', ' ', strtoupper($slug));
+                            @endphp
+                            <div class="role-badge role-{{ $slug }}">
+                                {{ $badgeText }}
                             </div>
                         </div>
                         @if($user->phone)
