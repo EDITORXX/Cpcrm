@@ -8,24 +8,52 @@
 <div class="max-w-4xl mx-auto">
     <!-- Progress Steps -->
     <div class="mb-8">
+        @php
+            $stepRoutes = [
+                1 => null,
+                2 => isset($config) ? route('integrations.meta-sheet.step2', $config->id) : null,
+                3 => isset($config) ? route('integrations.meta-sheet.step3', $config->id) : null,
+                4 => isset($config) ? route('integrations.meta-sheet.step4', $config->id) : null,
+                5 => isset($config) ? route('integrations.meta-sheet.step5', $config->id) : null,
+                6 => isset($config) ? route('integrations.meta-sheet.step6', $config->id) : null,
+            ];
+        @endphp
         <div class="flex items-center justify-between">
             @for($i = 1; $i <= 6; $i++)
                 <div class="flex items-center flex-1">
-                    <div class="flex flex-col items-center flex-1">
-                        <div class="w-10 h-10 rounded-full flex items-center justify-center font-semibold
-                            {{ $step >= $i ? 'bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white' : 'bg-gray-200 text-gray-600' }}">
-                            {{ $i }}
+                    @if($stepRoutes[$i])
+                        <a href="{{ $stepRoutes[$i] }}" class="flex flex-col items-center flex-1 group" title="Go to Step {{ $i }}">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors
+                                {{ $step >= $i ? 'bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white' : 'bg-gray-200 text-gray-600 group-hover:bg-gray-300' }}">
+                                {{ $i }}
+                            </div>
+                            <div class="mt-2 text-xs text-center text-gray-600 group-hover:text-gray-800">
+                                @if($i == 1) Info
+                                @elseif($i == 2) Sheet Config
+                                @elseif($i == 3) Field Mapping
+                                @elseif($i == 4) Status Columns
+                                @elseif($i == 5) Apps Script
+                                @else Test & Complete
+                                @endif
+                            </div>
+                        </a>
+                    @else
+                        <div class="flex flex-col items-center flex-1">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center font-semibold
+                                {{ $step >= $i ? 'bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white' : 'bg-gray-200 text-gray-600' }}">
+                                {{ $i }}
+                            </div>
+                            <div class="mt-2 text-xs text-center text-gray-600">
+                                @if($i == 1) Info
+                                @elseif($i == 2) Sheet Config
+                                @elseif($i == 3) Field Mapping
+                                @elseif($i == 4) Status Columns
+                                @elseif($i == 5) Apps Script
+                                @else Test & Complete
+                                @endif
+                            </div>
                         </div>
-                        <div class="mt-2 text-xs text-center text-gray-600">
-                            @if($i == 1) Info
-                            @elseif($i == 2) Sheet Config
-                            @elseif($i == 3) Field Mapping
-                            @elseif($i == 4) Status Columns
-                            @elseif($i == 5) Apps Script
-                            @else Test & Complete
-                            @endif
-                        </div>
-                    </div>
+                    @endif
                     @if($i < 6)
                         <div class="flex-1 h-1 mx-2 {{ $step > $i ? 'bg-gradient-to-r from-[#063A1C] to-[#205A44]' : 'bg-gray-200' }}"></div>
                     @endif
@@ -72,6 +100,9 @@
         @elseif($step == 2 && isset($config))
             <!-- Step 2: Google Sheet Configuration -->
             <h2 class="text-xl font-semibold text-gray-900 mb-6">Google Sheet Configuration</h2>
+            @php
+                $hasSelectedColumns = is_array($selectedColumns ?? null) && count($selectedColumns ?? []) > 0;
+            @endphp
             <form action="{{ route('integrations.meta-sheet.store-step2', $config->id) }}" method="POST" onsubmit="return validateStep2Form(event)">
                 @csrf
                 <div class="space-y-4">
@@ -171,7 +202,7 @@
                             <i class="fas fa-save mr-2"></i> Save as Draft
                         </button>
                     </div>
-                    <button type="submit" id="step2-next-btn" class="px-6 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d]" disabled>
+                    <button type="submit" id="step2-next-btn" class="px-6 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] disabled:opacity-50 disabled:cursor-not-allowed" @if(!$hasSelectedColumns) disabled @endif>
                         Next <i class="fas fa-arrow-right ml-2"></i>
                     </button>
                 </div>
@@ -944,6 +975,13 @@ function validateStep2Form(event) {
     
     // Check if name and phone columns are selected
     const checkboxes = document.querySelectorAll('.column-checkbox:checked');
+
+    // Edit flow support: if columns already saved previously and user did not re-run auto-detect,
+    // allow moving to next step based on saved selection.
+    if (checkboxes.length === 0 && selectedColumns.length > 0) {
+        return true;
+    }
+
     let hasName = false;
     let hasPhone = false;
     
@@ -962,6 +1000,22 @@ function validateStep2Form(event) {
     
     return true;
 }
+
+// Initialize Step 2 Next button when editing existing configuration
+document.addEventListener('DOMContentLoaded', function() {
+    const selectedColumnsInput = document.getElementById('selected_columns_input');
+    const nextBtn = document.getElementById('step2-next-btn');
+    if (!selectedColumnsInput || !nextBtn) return;
+
+    try {
+        const selectedColumns = JSON.parse(selectedColumnsInput.value || '[]');
+        if (Array.isArray(selectedColumns) && selectedColumns.length > 0) {
+            nextBtn.disabled = false;
+        }
+    } catch (error) {
+        // Keep button state unchanged if JSON parsing fails.
+    }
+});
 
 // Load and display columns when step 3 loads
 @if($step == 3 && isset($config))
