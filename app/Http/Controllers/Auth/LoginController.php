@@ -212,6 +212,7 @@ class LoginController extends Controller
             'sales_manager' => $user->isSalesHead() 
                 ? route('sales-head.dashboard')
                 : route('sales-manager.dashboard'),
+            'assistant_sales_manager' => route('sales-manager.dashboard'),
             'admin' => route('admin.dashboard'),
             'crm' => route('dashboard'),
             default => '/',
