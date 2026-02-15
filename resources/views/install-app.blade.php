@@ -86,6 +86,29 @@
             min-height: 20px;
         }
         .status.error { color: #dc2626; }
+        .btn-login {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px 20px;
+            margin-top: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #205A44;
+            background: #fff;
+            border: 2px solid rgba(255,255,255,0.9);
+            border-radius: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.2s, background 0.2s, color 0.2s;
+        }
+        .btn-login:hover, .btn-login:active {
+            background: rgba(255,255,255,0.95);
+            color: #063A1C;
+            transform: scale(0.98);
+        }
         .footer {
             margin-top: 24px;
             font-size: 13px;
@@ -103,6 +126,7 @@
             <span id="installBtnText">Install App</span>
         </button>
         <div id="status" class="status" role="status" aria-live="polite"></div>
+        <a href="{{ url('/login') }}" class="btn-login">Login</a>
     </div>
     <p class="footer">
         <a href="{{ url('/login') }}">Already installed? Open app</a>

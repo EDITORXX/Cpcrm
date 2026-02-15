@@ -547,7 +547,7 @@
                         <a href="#" style="color: #205A44; text-decoration: none;">Forgot password?</a>
                     </div>
 
-                    <button type="submit" class="btn-signin">Sign In</button>
+                    <button type="submit" class="btn-signin">Login</button>
                 </form>
             </div>
         </div>
