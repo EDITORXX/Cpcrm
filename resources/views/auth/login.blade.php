@@ -372,7 +372,7 @@
         }
         .btn-install-app:active { transform: translateY(0); }
         .btn-install-app:disabled { opacity: 0.7; cursor: not-allowed; }
-        #installAppStatus { font-size: 13px; color: #059669; margin-top: 8px; min-height: 18px; }
+        #installAppStatus { font-size: 13px; color: #205A44; margin-top: 10px; min-height: 18px; line-height: 1.4; padding: 0 4px; }
         #installAppStatus.error { color: #dc2626; }
 
         .error-message {
@@ -576,7 +576,7 @@
 
                     <button type="submit" class="btn-signin">Login</button>
                 </form>
-                <button type="button" class="btn-install-app" id="installAppBtn" data-install-url="{{ route('install-app') }}">
+                <button type="button" class="btn-install-app" id="installAppBtn">
                     <i class="fas fa-download"></i> Install App
                 </button>
                 <div id="installAppStatus" role="status" aria-live="polite"></div>
@@ -634,57 +634,90 @@
             });
         });
 
-        // PWA Install – 1-click on login page (never redirect to root)
+        // PWA Install – 1-click on login page (NO redirect, install inline only)
         (function() {
             var installBtn = document.getElementById('installAppBtn');
             var statusEl = document.getElementById('installAppStatus');
             var deferredPrompt = null;
-            var installPageUrl = (installBtn && installBtn.getAttribute('data-install-url')) || (window.location.origin + '/install-app');
+            var swReady = false;
 
             function setStatus(msg, isError) {
                 if (!statusEl) return;
                 statusEl.textContent = msg || '';
                 statusEl.className = isError ? 'error' : '';
+                statusEl.id = 'installAppStatus';
             }
 
-            function doInstall() {
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    deferredPrompt.userChoice.then(function(choice) {
-                        if (choice.outcome === 'accepted') setStatus('Installing...');
-                        deferredPrompt = null;
-                    });
-                    return;
-                }
-                window.location.assign(installPageUrl);
+            // 1. Register service worker first (required for PWA)
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js?v=' + Date.now()).then(function(reg) {
+                    swReady = true;
+                    console.log('SW registered for PWA install', reg.scope);
+                }).catch(function(err) {
+                    console.warn('SW registration failed:', err);
+                });
             }
 
+            // 2. Capture beforeinstallprompt (Chrome/Edge fires this when PWA is installable)
             window.addEventListener('beforeinstallprompt', function(e) {
                 e.preventDefault();
                 deferredPrompt = e;
+                console.log('PWA install prompt captured');
+                setStatus('');
+                if (installBtn) {
+                    installBtn.innerHTML = '<i class="fas fa-download"></i> Install App';
+                    installBtn.disabled = false;
+                }
             });
 
+            // 3. App installed
             window.addEventListener('appinstalled', function() {
                 deferredPrompt = null;
-                if (installBtn) { installBtn.disabled = true; installBtn.innerHTML = '<i class="fas fa-check"></i> Installed'; }
-                setStatus('App installed. Open from home screen.');
+                if (installBtn) {
+                    installBtn.disabled = true;
+                    installBtn.innerHTML = '<i class="fas fa-check-circle"></i> Installed!';
+                }
+                setStatus('App installed successfully! Open it from your home screen.');
             });
 
+            // 4. Click handler – NO redirect, install or show instructions
             if (installBtn) {
                 installBtn.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
+
+                    // If we have the install prompt, trigger it
                     if (deferredPrompt) {
-                        doInstall();
-                    } else {
-                        window.location.assign(installPageUrl);
+                        deferredPrompt.prompt();
+                        deferredPrompt.userChoice.then(function(choice) {
+                            if (choice.outcome === 'accepted') {
+                                setStatus('Installing app...');
+                                installBtn.disabled = true;
+                                installBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Installing...';
+                            } else {
+                                setStatus('Install cancelled. You can try again.');
+                            }
+                            deferredPrompt = null;
+                        });
+                        return false;
                     }
+
+                    // No prompt available – show platform-specific instructions
+                    var ua = navigator.userAgent || '';
+                    if (/Android/i.test(ua)) {
+                        setStatus('Tap the browser menu (⋮) at top-right → "Install app" or "Add to Home screen"');
+                    } else if (/iPhone|iPad|iPod/i.test(ua)) {
+                        setStatus('Tap the Share button (⎋) → "Add to Home Screen"');
+                    } else if (/Chrome/i.test(ua)) {
+                        setStatus('Click the install icon (⊕) in the address bar, or Menu → "Install app"');
+                    } else if (/Edge/i.test(ua)) {
+                        setStatus('Click Menu (···) → "Apps" → "Install this site as an app"');
+                    } else {
+                        setStatus('Use your browser menu to find "Install" or "Add to Home Screen"');
+                    }
+
                     return false;
                 });
-            }
-
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('{{ asset("sw.js") }}?v=' + Date.now()).catch(function() {});
             }
         })();
     </script>
