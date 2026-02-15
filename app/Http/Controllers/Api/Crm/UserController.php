@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api\Crm;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Role;
+use App\Models\SystemSettings;
+use App\Services\NewUserMailService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -77,10 +80,18 @@ class UserController extends Controller
             $validated['password'] = '123456';
         }
 
+        $plainPassword = $validated['password'];
         $validated['password'] = Hash::make($validated['password']);
         $validated['is_active'] = $validated['is_active'] ?? true;
 
         $user = User::create($validated);
+
+        if (filter_var(SystemSettings::get('send_welcome_email_to_new_user', '1'), FILTER_VALIDATE_BOOLEAN)) {
+            app(NewUserMailService::class)->sendWelcomeEmailIfEnabled($user, $plainPassword);
+        }
+        if (filter_var(SystemSettings::get('notify_admin_on_new_user', '1'), FILTER_VALIDATE_BOOLEAN)) {
+            app(NotificationService::class)->notifyAdminsNewUser($user);
+        }
 
         return response()->json($user->load(['role', 'manager']), 201);
     }

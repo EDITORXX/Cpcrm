@@ -243,6 +243,39 @@ class NotificationService
     }
 
     /**
+     * Notify all admin users when a new user is created
+     */
+    public function notifyAdminsNewUser(User $newUser): array
+    {
+        $admins = User::whereHas('role', function ($q) {
+            $q->where('slug', Role::ADMIN);
+        })->where('is_active', true)->get();
+
+        $actionUrl = url('/users');
+        $title = 'New user created';
+        $message = "New user created: {$newUser->name} ({$newUser->email})";
+
+        $notifications = [];
+        foreach ($admins as $admin) {
+            $notifications[] = AppNotification::create([
+                'user_id' => $admin->id,
+                'type' => AppNotification::TYPE_NEW_USER,
+                'title' => $title,
+                'message' => $message,
+                'action_type' => AppNotification::ACTION_USER,
+                'action_url' => $actionUrl,
+                'data' => [
+                    'new_user_id' => $newUser->id,
+                    'new_user_name' => $newUser->name,
+                    'new_user_email' => $newUser->email,
+                ],
+            ]);
+        }
+
+        return $notifications;
+    }
+
+    /**
      * Send admin broadcast message to users
      */
     public function sendBroadcast(User $sender, string $title, string $message, string $targetType = 'all_users', array $targetRoles = []): array

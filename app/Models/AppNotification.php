@@ -31,9 +31,11 @@ class AppNotification extends Model
     public const TYPE_ADMIN_BROADCAST = 'admin_broadcast';
     public const TYPE_SITE_VISIT = 'site_visit';
     public const TYPE_MEETING = 'meeting';
+    public const TYPE_NEW_USER = 'new_user';
 
     // Action types
     public const ACTION_LEAD = 'lead';
+    public const ACTION_USER = 'user';
     public const ACTION_VERIFICATION = 'verification';
     public const ACTION_FOLLOWUP = 'followup';
     public const ACTION_BROADCAST = 'broadcast';

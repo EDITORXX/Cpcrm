@@ -21,8 +21,15 @@ class SystemSettingsController extends Controller
     {
         $maintenanceMode = SystemSettings::isMaintenanceMode();
         $maintenanceMessage = SystemSettings::get('maintenance_message');
-        
-        return view('admin.system-settings.index', compact('maintenanceMode', 'maintenanceMessage'));
+        $sendWelcomeEmailToNewUser = filter_var(SystemSettings::get('send_welcome_email_to_new_user', '1'), FILTER_VALIDATE_BOOLEAN);
+        $notifyAdminOnNewUser = filter_var(SystemSettings::get('notify_admin_on_new_user', '1'), FILTER_VALIDATE_BOOLEAN);
+
+        return view('admin.system-settings.index', compact(
+            'maintenanceMode',
+            'maintenanceMessage',
+            'sendWelcomeEmailToNewUser',
+            'notifyAdminOnNewUser'
+        ));
     }
     
     /**
@@ -59,7 +66,34 @@ class SystemSettingsController extends Controller
             ], 500);
         }
     }
-    
+
+    /**
+     * Update user notification settings (welcome email + notify admin on new user)
+     */
+    public function updateUserNotificationSettings(Request $request)
+    {
+        $request->validate([
+            'send_welcome_email_to_new_user' => 'required|boolean',
+            'notify_admin_on_new_user' => 'required|boolean',
+        ]);
+
+        try {
+            SystemSettings::set('send_welcome_email_to_new_user', $request->send_welcome_email_to_new_user ? '1' : '0');
+            SystemSettings::set('notify_admin_on_new_user', $request->notify_admin_on_new_user ? '1' : '0');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User notification settings updated successfully.',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error updating user notification settings: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     /**
      * Upload files (zip or regular files)
      */

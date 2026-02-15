@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Role;
+use App\Models\SystemSettings;
+use App\Services\NewUserMailService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -130,10 +133,18 @@ class UserController extends Controller
             }
         }
 
+        $plainPassword = $validated['password'];
         $validated['password'] = Hash::make($validated['password']);
         $validated['is_active'] = $request->has('is_active') ? true : false;
 
         $user = User::create($validated);
+
+        if (filter_var(SystemSettings::get('send_welcome_email_to_new_user', '1'), FILTER_VALIDATE_BOOLEAN)) {
+            app(NewUserMailService::class)->sendWelcomeEmailIfEnabled($user, $plainPassword);
+        }
+        if (filter_var(SystemSettings::get('notify_admin_on_new_user', '1'), FILTER_VALIDATE_BOOLEAN)) {
+            app(NotificationService::class)->notifyAdminsNewUser($user);
+        }
 
         return redirect()->route('users.index')
             ->with('success', 'User created successfully.');

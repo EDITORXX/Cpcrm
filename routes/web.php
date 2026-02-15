@@ -544,6 +544,7 @@ Route::middleware(['auth'])->group(function () {
         Route::prefix('system-settings')->name('system-settings.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'index'])->name('index');
             Route::post('/maintenance/toggle', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'toggleMaintenanceMode'])->name('maintenance.toggle');
+            Route::post('/user-notifications/update', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'updateUserNotificationSettings'])->name('user-notifications.update');
             Route::post('/files/upload', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'uploadFiles'])->name('files.upload');
             Route::post('/files/deploy', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'deployFiles'])->name('files.deploy');
             Route::post('/migrations/run', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'runMigrations'])->name('migrations.run');

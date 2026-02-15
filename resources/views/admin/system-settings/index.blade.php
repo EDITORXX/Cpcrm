@@ -213,6 +213,43 @@
         </div>
     </div>
 
+    <!-- User & Email Notifications Section -->
+    <div class="section-card">
+        <div class="section-title">
+            <i class="fas fa-user-plus"></i> User & Email Notifications
+        </div>
+        <p class="text-sm text-gray-600 mb-4">
+            When a new user is created, send them a welcome email with credentials and notify admins.
+        </p>
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900">Send welcome email to new user</h3>
+                    <p class="text-sm text-gray-600">New user receives an email with name, password, position, and login link.</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="send-welcome-email-toggle" {{ $sendWelcomeEmailToNewUser ? 'checked' : '' }}>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900">Notify admin when a new user is created</h3>
+                    <p class="text-sm text-gray-600">Admin gets an in-app notification with the new user's name and email.</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="notify-admin-toggle" {{ $notifyAdminOnNewUser ? 'checked' : '' }}>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+        <div class="mt-4">
+            <button type="button" onclick="saveUserNotificationSettings()" class="btn-primary" id="user-notifications-btn">
+                <i class="fas fa-save mr-2"></i> Save User Notification Settings
+            </button>
+        </div>
+    </div>
+
     <!-- Database Settings Section -->
     <div class="section-card">
         <div class="section-title">
@@ -408,6 +445,40 @@ const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 document.getElementById('maintenance-toggle').addEventListener('change', function() {
     document.getElementById('maintenance-message-section').style.display = this.checked ? 'block' : 'none';
 });
+
+function saveUserNotificationSettings() {
+    const sendWelcome = document.getElementById('send-welcome-email-toggle').checked;
+    const notifyAdmin = document.getElementById('notify-admin-toggle').checked;
+    const btn = document.getElementById('user-notifications-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
+    fetch('{{ route("admin.system-settings.user-notifications.update") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken
+        },
+        body: JSON.stringify({
+            send_welcome_email_to_new_user: sendWelcome,
+            notify_admin_on_new_user: notifyAdmin
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage(data.message, 'success');
+        } else {
+            showMessage(data.message || 'Error saving settings', 'error');
+        }
+    })
+    .catch(error => {
+        showMessage('Error: ' + error.message, 'error');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save mr-2"></i> Save User Notification Settings';
+    });
+}
 
 function toggleMaintenanceMode() {
     const enabled = document.getElementById('maintenance-toggle').checked;

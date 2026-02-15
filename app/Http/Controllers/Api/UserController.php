@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Role;
+use App\Models\SystemSettings;
+use App\Services\NewUserMailService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -73,9 +76,17 @@ class UserController extends Controller
             }
         }
 
+        $plainPassword = $validated['password'];
         $validated['password'] = Hash::make($validated['password']);
 
         $newUser = User::create($validated);
+
+        if (filter_var(SystemSettings::get('send_welcome_email_to_new_user', '1'), FILTER_VALIDATE_BOOLEAN)) {
+            app(NewUserMailService::class)->sendWelcomeEmailIfEnabled($newUser, $plainPassword);
+        }
+        if (filter_var(SystemSettings::get('notify_admin_on_new_user', '1'), FILTER_VALIDATE_BOOLEAN)) {
+            app(NotificationService::class)->notifyAdminsNewUser($newUser);
+        }
 
         return response()->json($newUser->load(['role', 'manager']), 201);
     }
