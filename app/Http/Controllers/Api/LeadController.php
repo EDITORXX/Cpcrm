@@ -23,23 +23,21 @@ class LeadController extends Controller
         $query = Lead::with(['creator', 'activeAssignments.assignedTo']);
 
         // Role-based filtering
-        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
+        if ($user->isSalesExecutive()) {
             $query->whereHas('activeAssignments', function ($q) use ($user) {
                 $q->where('assigned_to', $user->id);
             });
-        } elseif ($user->isSalesManager()) {
+        } elseif ($user->isSalesManager() || $user->isSeniorManager() || $user->isAssistantSalesManager()) {
             $teamMemberIds = $user->teamMembers()->pluck('id');
             
-            // Show only leads that come from verified prospects (manager verified them)
-            // Exclude rejected and pending prospects
+            // Show leads from team's verified prospects (verified by this manager)
             if ($teamMemberIds->isNotEmpty()) {
                 $query->whereHas('prospects', function ($subQ) use ($teamMemberIds, $user) {
                     $subQ->whereIn('telecaller_id', $teamMemberIds)
                          ->whereIn('verification_status', ['verified', 'approved'])
-                         ->where('verified_by', $user->id); // Only prospects verified by this manager
+                         ->where('verified_by', $user->id);
                 });
             } else {
-                // If no team members, show empty result
                 $query->whereRaw('1 = 0');
             }
         }
@@ -546,14 +544,18 @@ class LeadController extends Controller
             return true;
         }
 
-        // For Senior Managers: allow access to leads that came from their team's verified prospects
-        if ($user->isSalesManager()) {
+        // Senior Manager, Manager, Assistant Sales Manager: team's leads
+        if ($user->isSalesManager() || $user->isSeniorManager() || $user->isAssistantSalesManager()) {
             $teamMemberIds = $user->teamMembers()->pluck('id');
-            
-            return $lead->prospects()
-                ->whereIn('telecaller_id', $teamMemberIds)
-                ->whereIn('verification_status', ['verified', 'approved'])
-                ->exists();
+            if ($teamMemberIds->isNotEmpty() && $lead->activeAssignments()->whereIn('assigned_to', $teamMemberIds)->where('is_active', true)->exists()) {
+                return true;
+            }
+            if ($teamMemberIds->isNotEmpty()) {
+                return $lead->prospects()
+                    ->whereIn('telecaller_id', $teamMemberIds)
+                    ->whereIn('verification_status', ['verified', 'approved'])
+                    ->exists();
+            }
         }
 
         return false;

@@ -299,6 +299,14 @@ Route::middleware(['auth'])->group(function () {
         if ($user->isAssistantSalesManager()) {
             return redirect()->route('sales-manager.dashboard');
         }
+        // Manager (senior_manager): Sales Manager dashboard, CRM nahi
+        if ($user->isSeniorManager()) {
+            return redirect()->route('sales-manager.dashboard');
+        }
+        // Senior Manager (sales_manager, not Sales Head): Sales Manager dashboard
+        if ($user->isSalesManager()) {
+            return redirect()->route('sales-manager.dashboard');
+        }
         // CRM + Admin + baaki sab: CRM dashboard open
         return view('crm.dashboard');
     })->name('dashboard');

@@ -51,9 +51,9 @@ class SalesManagerController extends Controller
             return redirect()->route('sales-head.dashboard')->with('info', 'Redirected to Sales Head Dashboard');
         }
         
-        // Check if user is actually a Senior Manager
-        if (!$user->isSalesManager()) {
-            abort(403, 'Unauthorized. Only Senior Managers can access this page.');
+        // Allow Senior Manager, Manager (senior_manager), and Assistant Sales Manager
+        if (!$user->isSalesManager() && !$user->isSeniorManager() && !$user->isAssistantSalesManager()) {
+            abort(403, 'Unauthorized. Only Senior Managers, Managers, or Assistant Sales Managers can access this page.');
         }
         
         // Generate API token for the session

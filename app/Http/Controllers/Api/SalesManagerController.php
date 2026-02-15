@@ -566,8 +566,8 @@ class SalesManagerController extends Controller
                 // No team members, show only their own
                 $query->where('manager_id', $user->id);
             }
-        } elseif ($user->isSalesManager()) {
-            // Senior Manager can see prospects from their direct team members
+        } elseif ($user->isSalesManager() || $user->isSeniorManager() || $user->isAssistantSalesManager()) {
+            // Senior Manager / Manager / Assistant Sales Manager: prospects from their direct team members
             $teamMemberIds = $user->teamMembers()->pluck('id');
             
             // Build query to show all prospects for this manager:
@@ -2544,16 +2544,14 @@ class SalesManagerController extends Controller
             return true;
         }
 
-        // For Senior Managers: allow access to leads that came from their team's verified prospects
-        if ($user->isSalesManager()) {
+        // Senior Manager, Manager, Assistant Sales Manager: team's leads
+        if ($user->isSalesManager() || $user->isSeniorManager() || $user->isAssistantSalesManager()) {
             $teamMemberIds = $user->teamMembers()->pluck('id');
             
-            // Check if lead is assigned to team members
             if ($teamMemberIds->isNotEmpty() && $lead->activeAssignments()->whereIn('assigned_to', $teamMemberIds)->where('is_active', true)->exists()) {
                 return true;
             }
             
-            // Check if lead came from verified prospects of team members
             if ($teamMemberIds->isNotEmpty()) {
                 return $lead->prospects()
                     ->whereIn('telecaller_id', $teamMemberIds)
@@ -2562,8 +2560,8 @@ class SalesManagerController extends Controller
             }
         }
 
-        // Sales Executive and Assistant Senior Manager can see assigned leads or leads from their prospects
-        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
+        // Sales Executive: only assigned leads or leads from their own prospects
+        if ($user->isSalesExecutive()) {
             return $lead->activeAssignments()->where('assigned_to', $user->id)->exists() ||
                    $lead->prospects()->where('telecaller_id', $user->id)->exists();
         }

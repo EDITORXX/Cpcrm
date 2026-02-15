@@ -62,6 +62,28 @@ class LeadController extends Controller
             });
         }
 
+        // Sales Manager, Manager (senior_manager), Assistant Sales Manager: only leads assigned to them or their team
+        if ($user->isSalesManager() || $user->isSeniorManager() || $user->isAssistantSalesManager()) {
+            $teamMemberIds = $user->teamMembers()->pluck('id');
+            if ($teamMemberIds->isEmpty()) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->where(function ($q) use ($user, $teamMemberIds) {
+                    $q->whereHas('activeAssignments', function ($aq) use ($user, $teamMemberIds) {
+                        $aq->where('is_active', true)
+                           ->where(function ($aq2) use ($user, $teamMemberIds) {
+                               $aq2->where('assigned_to', $user->id)
+                                   ->orWhereIn('assigned_to', $teamMemberIds);
+                           });
+                    })
+                    ->orWhereHas('prospects', function ($pq) use ($teamMemberIds) {
+                        $pq->whereIn('telecaller_id', $teamMemberIds)
+                           ->whereIn('verification_status', ['verified', 'approved']);
+                    });
+                });
+            }
+        }
+
         // Search functionality
         if ($request->has('search')) {
             $search = $request->search;
@@ -639,11 +661,11 @@ class LeadController extends Controller
             return false;
         }
 
-        // Senior Manager can see leads from their team's verified prospects
-        if ($user->isSalesManager()) {
+        // Senior Manager, Manager, Assistant Sales Manager: can see leads from their team
+        if ($user->isSalesManager() || $user->isSeniorManager() || $user->isAssistantSalesManager()) {
             $teamMemberIds = $user->teamMembers()->pluck('id');
             
-            // Check if lead is directly assigned to this sales manager
+            // Check if lead is directly assigned to this manager
             if ($lead->activeAssignments()->where('assigned_to', $user->id)->where('is_active', true)->exists()) {
                 return true;
             }
@@ -664,8 +686,8 @@ class LeadController extends Controller
             return false;
         }
 
-        // Sales Executive and Assistant Sales Manager can see assigned leads or leads from their prospects
-        if ($user->isSalesExecutive() || $user->isAssistantSalesManager()) {
+        // Sales Executive can see only assigned leads or leads from their own prospects
+        if ($user->isSalesExecutive()) {
             return $lead->activeAssignments()->where('assigned_to', $user->id)->exists() ||
                    $lead->prospects()->where('telecaller_id', $user->id)->exists();
         }
