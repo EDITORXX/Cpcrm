@@ -205,7 +205,10 @@ class LeadController extends Controller
 
         $projects = Project::where('is_active', true)->orderBy('name')->get();
 
-        return view('leads.create', compact('users', 'projects'));
+        // CRM panel: hide Location Details (Address, City, State, Pincode) on create form
+        $showLocationDetails = !$user->isCrm();
+
+        return view('leads.create', compact('users', 'projects', 'showLocationDetails'));
     }
 
     public function store(Request $request)
@@ -710,8 +713,38 @@ class LeadController extends Controller
             'is_active' => true,
         ]);
 
-        // Fire event
+        // Fire event (listener creates calling task)
         event(new LeadAssigned($lead, $assignedTo, $assignedBy));
+
+        // Fallback: ensure calling task exists for assignee (admin-assigned leads must show task to user)
+        try {
+            $assignee = User::with('role')->find($assignedTo);
+            if ($assignee && $assignee->role) {
+                $slug = $assignee->role->slug ?? '';
+                if ($slug === Role::SALES_EXECUTIVE) {
+                    $exists = \App\Models\TelecallerTask::where('lead_id', $lead->id)->where('assigned_to', $assignedTo)->whereIn('status', ['pending', 'in_progress'])->exists();
+                    if (!$exists) {
+                        app(\App\Services\TelecallerTaskService::class)->createCallingTask($lead, $assignee, $assignedBy);
+                    }
+                } elseif (in_array($slug, [Role::SALES_MANAGER, Role::ASSISTANT_SALES_MANAGER])) {
+                    $exists = \App\Models\Task::where('lead_id', $lead->id)->where('assigned_to', $assignedTo)->where('type', 'phone_call')->whereIn('status', ['pending', 'in_progress'])->exists();
+                    if (!$exists) {
+                        \App\Models\Task::create([
+                            'lead_id' => $lead->id,
+                            'assigned_to' => $assignedTo,
+                            'type' => 'phone_call',
+                            'title' => "Call lead: {$lead->name}",
+                            'description' => "Phone call task for lead: {$lead->name} ({$lead->phone})",
+                            'status' => 'pending',
+                            'scheduled_at' => now()->addMinutes(10),
+                            'created_by' => $assignedBy,
+                        ]);
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning("LeadController assignLead: fallback task creation failed for lead {$lead->id}: " . $e->getMessage());
+        }
     }
 }
 

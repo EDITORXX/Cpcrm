@@ -29,17 +29,21 @@ class LeadController extends Controller
             });
         } elseif ($user->isSalesManager() || $user->isSeniorManager() || $user->isAssistantSalesManager()) {
             $teamMemberIds = $user->teamMembers()->pluck('id');
-            
-            // Show leads from team's verified prospects (verified by this manager)
-            if ($teamMemberIds->isNotEmpty()) {
-                $query->whereHas('prospects', function ($subQ) use ($teamMemberIds, $user) {
-                    $subQ->whereIn('telecaller_id', $teamMemberIds)
-                         ->whereIn('verification_status', ['verified', 'approved'])
-                         ->where('verified_by', $user->id);
+            $managerAndTeamIds = $teamMemberIds->merge([$user->id])->unique()->values();
+
+            // Show leads: (1) assigned to this manager or their team, OR (2) from team's verified prospects
+            $query->where(function ($q) use ($managerAndTeamIds, $teamMemberIds, $user) {
+                $q->whereHas('activeAssignments', function ($aq) use ($managerAndTeamIds) {
+                    $aq->whereIn('assigned_to', $managerAndTeamIds);
                 });
-            } else {
-                $query->whereRaw('1 = 0');
-            }
+                if ($teamMemberIds->isNotEmpty()) {
+                    $q->orWhereHas('prospects', function ($subQ) use ($teamMemberIds, $user) {
+                        $subQ->whereIn('telecaller_id', $teamMemberIds)
+                             ->whereIn('verification_status', ['verified', 'approved'])
+                             ->where('verified_by', $user->id);
+                    });
+                }
+            });
         }
 
         // Filters

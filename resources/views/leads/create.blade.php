@@ -62,7 +62,8 @@
                     </div>
                 </div>
 
-                <!-- Location Details -->
+                @if($showLocationDetails ?? true)
+                <!-- Location Details (hidden when CRM creates lead) -->
                 <div class="mb-8">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">Location Details</h3>
                     
@@ -88,6 +89,7 @@
                         </div>
                     </div>
                 </div>
+                @endif
 
                 <!-- Property Requirements -->
                 <div class="mb-8">
