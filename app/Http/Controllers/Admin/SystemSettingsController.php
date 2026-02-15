@@ -112,11 +112,11 @@ class SystemSettingsController extends Controller
             'email' => 'required|email',
         ]);
 
-        $defaultMailer = config('mail.default');
+        $defaultMailer = config('mail.default') ?: env('MAIL_MAILER');
         if (empty($defaultMailer)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Mail not configured. Set MAIL_MAILER in .env (e.g. MAIL_MAILER=smtp).',
+                'message' => 'Mail not configured. Set MAIL_MAILER in .env (e.g. MAIL_MAILER=smtp). Then run: php artisan config:clear',
             ], 400);
         }
 
