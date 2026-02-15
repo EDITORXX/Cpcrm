@@ -112,13 +112,8 @@ class SystemSettingsController extends Controller
             'email' => 'required|email',
         ]);
 
-        $defaultMailer = config('mail.default') ?: env('MAIL_MAILER');
-        if (empty($defaultMailer)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Mail not configured. Set MAIL_MAILER in .env (e.g. MAIL_MAILER=smtp). Then run: php artisan config:clear',
-            ], 400);
-        }
+        $mailerName = config('mail.default') ?: env('MAIL_MAILER') ?: 'smtp';
+        $mailerName = is_string($mailerName) ? $mailerName : 'smtp';
 
         try {
             $appName = config('app.name');
@@ -130,7 +125,7 @@ class SystemSettingsController extends Controller
                 'is_active' => true,
             ];
 
-            Mail::send('emails.new-user-welcome', [
+            Mail::mailer($mailerName)->send('emails.new-user-welcome', [
                 'user' => $user,
                 'plainPassword' => 'Test@12345',
                 'roleName' => 'Sales Executive',
