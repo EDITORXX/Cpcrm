@@ -155,28 +155,28 @@ class TargetController extends Controller
         $targetUser = User::findOrFail($validated['user_id']);
         
         if ($currentUser->isSalesHead()) {
-            // Sales Head can set targets for Sales Executive and Senior Manager only
-            if (!$targetUser->isSalesManager() && !$targetUser->isSalesExecutive()) {
-                return back()->withErrors(['user_id' => 'Targets can only be set for Senior Managers and Sales Executives.'])->withInput();
+            // Sales Head can set targets for Sales Executive, Senior Manager, and Assistant Sales Manager
+            if (!$targetUser->isSalesManager() && !$targetUser->isSalesExecutive() && !$targetUser->isAssistantSalesManager()) {
+                return back()->withErrors(['user_id' => 'Targets can only be set for Senior Managers, Sales Executives, and Assistant Sales Managers.'])->withInput();
             }
         } else {
-            // Admin/CRM can set targets for Telecallers, Sales Executives, and Senior Managers
-            if (!$targetUser->isTelecaller() && !$targetUser->isSalesExecutive() && !$targetUser->isSalesManager()) {
-                return back()->withErrors(['user_id' => 'Targets can only be set for Telecallers, Sales Executives, and Senior Managers.'])->withInput();
+            // Admin/CRM can set targets for Telecallers, Sales Executives, Senior Managers, and Assistant Sales Managers
+            if (!$targetUser->isTelecaller() && !$targetUser->isSalesExecutive() && !$targetUser->isSalesManager() && !$targetUser->isAssistantSalesManager()) {
+                return back()->withErrors(['user_id' => 'Targets can only be set for Telecallers, Sales Executives, Senior Managers, and Assistant Sales Managers.'])->withInput();
             }
         }
 
         try {
-            // For Senior Managers, set prospect targets to 0 (they don't have prospect targets)
-            $isSalesManager = $targetUser->isSalesManager();
+            // For Senior Managers and Assistant Sales Managers, set prospect/call targets to 0 (they don't have those)
+            $isManagerRole = $targetUser->isSalesManager() || $targetUser->isAssistantSalesManager();
             
             $target = $this->targetService->setTargetsForUser(
                 $validated['user_id'],
                 $validated['month'],
                 [
-                    'target_prospects_extract' => $isSalesManager ? 0 : ($validated['target_prospects_extract'] ?? 0),
-                    'target_prospects_verified' => $isSalesManager ? 0 : ($validated['target_prospects_verified'] ?? 0),
-                    'target_calls' => $isSalesManager ? 0 : ($validated['target_calls'] ?? 0),
+                    'target_prospects_extract' => $isManagerRole ? 0 : ($validated['target_prospects_extract'] ?? 0),
+                    'target_prospects_verified' => $isManagerRole ? 0 : ($validated['target_prospects_verified'] ?? 0),
+                    'target_calls' => $isManagerRole ? 0 : ($validated['target_calls'] ?? 0),
                     'target_visits' => $validated['target_visits'] ?? 0,
                     'target_meetings' => $validated['target_meetings'] ?? 0,
                     'target_closers' => $validated['target_closers'] ?? 0,
@@ -264,13 +264,13 @@ class TargetController extends Controller
         ]);
 
         try {
-            // For Senior Managers, set prospect targets to 0 (they don't have prospect targets)
-            $isSalesManager = $target->user->isSalesManager();
+            // For Senior Managers and Assistant Sales Managers, set prospect/call targets to 0
+            $isManagerRole = $target->user->isSalesManager() || $target->user->isAssistantSalesManager();
             
             $target->update([
-                'target_prospects_extract' => $isSalesManager ? 0 : ($validated['target_prospects_extract'] ?? 0),
-                'target_prospects_verified' => $isSalesManager ? 0 : ($validated['target_prospects_verified'] ?? 0),
-                'target_calls' => $isSalesManager ? 0 : ($validated['target_calls'] ?? 0),
+                'target_prospects_extract' => $isManagerRole ? 0 : ($validated['target_prospects_extract'] ?? 0),
+                'target_prospects_verified' => $isManagerRole ? 0 : ($validated['target_prospects_verified'] ?? 0),
+                'target_calls' => $isManagerRole ? 0 : ($validated['target_calls'] ?? 0),
                 'target_visits' => $validated['target_visits'] ?? 0,
                 'target_meetings' => $validated['target_meetings'] ?? 0,
                 'target_closers' => $validated['target_closers'] ?? 0,
@@ -336,14 +336,14 @@ class TargetController extends Controller
         $users = User::whereIn('id', $validated['user_ids'])->get();
         foreach ($users as $user) {
             if ($currentUser->isSalesHead()) {
-                // Sales Head can set targets for Sales Executive and Senior Manager only
-                if (!$user->isSalesManager() && !$user->isSalesExecutive()) {
-                    return back()->withErrors(['user_ids' => "Targets can only be set for Senior Managers and Sales Executives. User {$user->name} is not allowed."])->withInput();
+                // Sales Head can set targets for Sales Executive, Senior Manager, and Assistant Sales Manager
+                if (!$user->isSalesManager() && !$user->isSalesExecutive() && !$user->isAssistantSalesManager()) {
+                    return back()->withErrors(['user_ids' => "Targets can only be set for Senior Managers, Sales Executives, and Assistant Sales Managers. User {$user->name} is not allowed."])->withInput();
                 }
             } else {
-                // Admin/CRM can set targets for Telecallers, Sales Executives, and Senior Managers
-                if (!$user->isTelecaller() && !$user->isSalesExecutive() && !$user->isSalesManager()) {
-                    return back()->withErrors(['user_ids' => "Targets can only be set for Telecallers, Sales Executives, and Senior Managers. User {$user->name} is not allowed."])->withInput();
+                // Admin/CRM can set targets for Telecallers, Sales Executives, Senior Managers, and Assistant Sales Managers
+                if (!$user->isTelecaller() && !$user->isSalesExecutive() && !$user->isSalesManager() && !$user->isAssistantSalesManager()) {
+                    return back()->withErrors(['user_ids' => "Targets can only be set for Telecallers, Sales Executives, Senior Managers, and Assistant Sales Managers. User {$user->name} is not allowed."])->withInput();
                 }
             }
         }
