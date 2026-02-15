@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Install App - Base CRM</title>
+    <title>Install App - {{ config('app.name') }}</title>
     <link rel="manifest" href="{{ asset('manifest.json') }}">
     <link rel="apple-touch-icon" href="{{ asset('icon-192.png') }}">
     <meta name="theme-color" content="#205A44">
@@ -120,7 +120,7 @@
 <body>
     <div class="card">
         <div class="icon-wrap">📱</div>
-        <h1>Install Base CRM</h1>
+        <h1>Install {{ config('app.name') }}</h1>
         <p>Add to your home screen for quick access and enable notifications for lead updates.</p>
         <button type="button" id="installBtn" class="btn-install">
             <span id="installBtnText">Install App</span>

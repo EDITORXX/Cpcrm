@@ -30,7 +30,20 @@
         <tr>
             <td style="padding: 8px 24px 20px;">
                 <p style="margin: 0 0 16px; font-size: 14px; color: #333;">Please log in and change your password after your first login.</p>
-                <a href="{{ $loginUrl }}" style="display: inline-block; padding: 12px 24px; background: #15803d; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">Log in to {{ $appName }}</a>
+                <p style="margin: 0 0 12px; font-size: 14px; color: #333;">Use the links below:</p>
+                <table cellpadding="0" cellspacing="0" style="margin: 0;">
+                    <tr>
+                        <td style="padding-right: 12px; padding-bottom: 8px;">
+                            <a href="{{ $loginUrl }}" style="display: inline-block; padding: 12px 24px; background: #15803d; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">Log in to {{ $appName }}</a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <a href="{{ $installAppUrl ?? url('/install-app') }}" style="display: inline-block; padding: 12px 24px; background: #205A44; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; border: 2px solid #205A44;">Install App (PWA)</a>
+                        </td>
+                    </tr>
+                </table>
+                <p style="margin: 12px 0 0; font-size: 13px; color: #666;">Install the app on your phone for quick access. After installing, use &quot;Log in&quot; to sign in.</p>
             </td>
         </tr>
         <tr>

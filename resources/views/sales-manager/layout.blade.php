@@ -712,7 +712,7 @@
                 <i class="fas fa-star"></i>
                 <span>Prospects</span>
             </a>
-            <a href="{{ route('sales-manager.leads') }}" class="sidebar-link {{ request()->routeIs('sales-manager.leads') || (request()->routeIs('leads.show') && auth()->check() && auth()->user()->isSalesManager()) ? 'active' : '' }}" data-label="Leads">
+            <a href="{{ route('sales-manager.leads') }}" class="sidebar-link {{ request()->routeIs('sales-manager.leads') || (request()->routeIs('leads.show') && auth()->check() && (auth()->user()->isSalesManager() || auth()->user()->isAssistantSalesManager())) ? 'active' : '' }}" data-label="Leads">
                 <i class="fas fa-user-friends"></i>
                 <span>Leads</span>
             </a>
@@ -780,7 +780,7 @@
             <i class="fas fa-star"></i>
             <span>Prospects</span>
         </a>
-        <a href="{{ route('sales-manager.leads') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.leads') || (request()->routeIs('leads.show') && auth()->check() && auth()->user()->isSalesManager()) ? 'active' : '' }}">
+        <a href="{{ route('sales-manager.leads') }}" class="footer-nav-link {{ request()->routeIs('sales-manager.leads') || (request()->routeIs('leads.show') && auth()->check() && (auth()->user()->isSalesManager() || auth()->user()->isAssistantSalesManager())) ? 'active' : '' }}">
             <i class="fas fa-user-friends"></i>
             <span>Leads</span>
         </a>

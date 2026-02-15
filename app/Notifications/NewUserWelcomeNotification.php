@@ -27,6 +27,7 @@ class NewUserWelcomeNotification extends Notification implements ShouldQueue
     public function toMail($notifiable): MailMessage
     {
         $loginUrl = url('/login');
+        $installAppUrl = url('/install-app');
         $appName = config('app.name');
 
         return (new MailMessage)
@@ -37,6 +38,7 @@ class NewUserWelcomeNotification extends Notification implements ShouldQueue
                 'roleName' => $this->roleName,
                 'managerName' => $this->managerName,
                 'loginUrl' => $loginUrl,
+                'installAppUrl' => $installAppUrl,
                 'appName' => $appName,
             ]);
     }

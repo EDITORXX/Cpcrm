@@ -323,7 +323,7 @@ class LeadController extends Controller
                 } elseif ($user->isSalesManager()) {
                     $layout = 'sales-manager.layout';
                 } elseif ($user->isAssistantSalesManager()) {
-                    $layout = 'sales-head.layout';
+                    $layout = 'sales-manager.layout';
                 } elseif ($user->isSalesExecutive()) {
                     $layout = 'telecaller.layout';
                 } elseif ($user->relationLoaded('role') && $user->role) {
@@ -332,7 +332,7 @@ class LeadController extends Controller
                             $layout = 'sales-manager.layout';
                             break;
                         case \App\Models\Role::ASSISTANT_SALES_MANAGER:
-                            $layout = 'sales-head.layout';
+                            $layout = 'sales-manager.layout';
                             break;
                         case \App\Models\Role::SALES_EXECUTIVE:
                             $layout = 'telecaller.layout';

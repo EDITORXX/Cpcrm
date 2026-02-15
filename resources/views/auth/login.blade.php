@@ -8,6 +8,7 @@
     <meta http-equiv="Expires" content="0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Login - Realtor CRM</title>
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -348,6 +349,32 @@
             transform: translateY(0);
         }
 
+        .btn-install-app {
+            width: 100%;
+            padding: 12px 14px;
+            margin-top: 12px;
+            background: transparent;
+            color: #205A44;
+            border: 2px solid #205A44;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-install-app:hover {
+            background: rgba(32, 90, 68, 0.08);
+            transform: translateY(-1px);
+        }
+        .btn-install-app:active { transform: translateY(0); }
+        .btn-install-app:disabled { opacity: 0.7; cursor: not-allowed; }
+        #installAppStatus { font-size: 13px; color: #059669; margin-top: 8px; min-height: 18px; }
+        #installAppStatus.error { color: #dc2626; }
+
         .error-message {
             background: #fee;
             color: #c33;
@@ -549,6 +576,10 @@
 
                     <button type="submit" class="btn-signin">Login</button>
                 </form>
+                <button type="button" class="btn-install-app" id="installAppBtn" data-install-url="{{ route('install-app') }}">
+                    <i class="fas fa-download"></i> Install App
+                </button>
+                <div id="installAppStatus" role="status" aria-live="polite"></div>
             </div>
         </div>
     </div>
@@ -602,6 +633,60 @@
                 this.classList.add('active');
             });
         });
+
+        // PWA Install – 1-click on login page (never redirect to root)
+        (function() {
+            var installBtn = document.getElementById('installAppBtn');
+            var statusEl = document.getElementById('installAppStatus');
+            var deferredPrompt = null;
+            var installPageUrl = (installBtn && installBtn.getAttribute('data-install-url')) || (window.location.origin + '/install-app');
+
+            function setStatus(msg, isError) {
+                if (!statusEl) return;
+                statusEl.textContent = msg || '';
+                statusEl.className = isError ? 'error' : '';
+            }
+
+            function doInstall() {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then(function(choice) {
+                        if (choice.outcome === 'accepted') setStatus('Installing...');
+                        deferredPrompt = null;
+                    });
+                    return;
+                }
+                window.location.assign(installPageUrl);
+            }
+
+            window.addEventListener('beforeinstallprompt', function(e) {
+                e.preventDefault();
+                deferredPrompt = e;
+            });
+
+            window.addEventListener('appinstalled', function() {
+                deferredPrompt = null;
+                if (installBtn) { installBtn.disabled = true; installBtn.innerHTML = '<i class="fas fa-check"></i> Installed'; }
+                setStatus('App installed. Open from home screen.');
+            });
+
+            if (installBtn) {
+                installBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (deferredPrompt) {
+                        doInstall();
+                    } else {
+                        window.location.assign(installPageUrl);
+                    }
+                    return false;
+                });
+            }
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('{{ asset("sw.js") }}?v=' + Date.now()).catch(function() {});
+            }
+        })();
     </script>
 </body>
 </html>
