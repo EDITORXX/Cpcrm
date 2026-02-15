@@ -90,16 +90,16 @@
                 </div>
             </div>
 
-            <div class="form-group" id="closers-field" style="display: {{ ($target->user->isSalesManager() || $target->user->isSalesExecutive()) ? 'block' : 'none' }};">
+            <div class="form-group" id="closers-field" style="display: {{ ($target->user->isSalesManager() || $target->user->isSalesExecutive() || $target->user->isAssistantSalesManager()) ? 'block' : 'none' }};">
                 <label>Closers</label>
                 <input type="number" name="target_closers" value="{{ old('target_closers', $target->target_closers) }}" min="0" placeholder="0">
-                <small style="color: #666;">Only for Senior Managers and Sales Executives</small>
+                <small style="color: #666;">For Senior Managers, Assistant Sales Managers, and Sales Executives</small>
             </div>
 
             <!-- Incentive Rates Section -->
             <h2 class="section-title">Incentive Rates (Optional)</h2>
             
-            <div class="form-group" id="incentive-per-closer-field" style="display: {{ ($target->user->isSalesManager() || $target->user->isSalesExecutive()) ? 'block' : 'none' }};">
+            <div class="form-group" id="incentive-per-closer-field" style="display: {{ ($target->user->isSalesManager() || $target->user->isSalesExecutive() || $target->user->isAssistantSalesManager()) ? 'block' : 'none' }};">
                 <label>Incentive per Closer (₹)</label>
                 <input type="number" name="incentive_per_closer" id="incentive_per_closer" step="0.01" min="0" value="{{ old('incentive_per_closer', $target->incentive_per_closer ?? '') }}" placeholder="0.00">
                 <small style="color: #666;">Incentive amount per closer for Managers and Sales Executives</small>

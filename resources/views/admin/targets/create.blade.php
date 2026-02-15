@@ -107,7 +107,7 @@
             <div class="form-group" id="closers-field" style="display: none;">
                 <label>Closers</label>
                 <input type="number" name="target_closers" value="{{ old('target_closers', $existingTarget->target_closers ?? 0) }}" min="0" placeholder="0">
-                <small style="color: #666;">Only for Senior Managers and Sales Executives</small>
+                <small style="color: #666;">For Senior Managers, Assistant Sales Managers, and Sales Executives</small>
             </div>
 
             <!-- Incentive Rates Section -->
@@ -183,8 +183,8 @@
             if (selectedOption && selectedOption.value) {
                 const role = selectedOption.getAttribute('data-role');
                 
-                // Hide prospect targets for Senior Managers
-                if (role === 'sales_manager') {
+                // Hide prospect targets for Senior Managers and Assistant Sales Managers
+                if (role === 'sales_manager' || role === 'assistant_sales_manager') {
                     prospectTargetsSection.style.display = 'none';
                     // Set prospect fields to 0 for managers
                     document.getElementById('target_prospects_extract').value = 0;
@@ -194,15 +194,15 @@
                     prospectTargetsSection.style.display = 'block';
                 }
                 
-                // Show closers field for Senior Managers and Sales Executives
-                if (role === 'sales_manager' || role === 'sales_executive') {
+                // Show closers field for Senior Managers, Assistant Sales Managers, and Sales Executives
+                if (role === 'sales_manager' || role === 'sales_executive' || role === 'assistant_sales_manager') {
                     closersField.style.display = 'block';
                 } else {
                     closersField.style.display = 'none';
                 }
                 
-                // Show incentive per closer for Senior Managers and Sales Executives
-                if (role === 'sales_manager' || role === 'sales_executive') {
+                // Show incentive per closer for Senior Managers, Assistant Sales Managers, and Sales Executives
+                if (role === 'sales_manager' || role === 'sales_executive' || role === 'assistant_sales_manager') {
                     incentivePerCloserField.style.display = 'block';
                 } else {
                     incentivePerCloserField.style.display = 'none';
