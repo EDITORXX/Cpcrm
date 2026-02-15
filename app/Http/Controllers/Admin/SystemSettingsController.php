@@ -159,17 +159,18 @@ class SystemSettingsController extends Controller
         $mailers = config('mail.mailers');
         $mailerKeys = is_array($mailers) ? array_keys($mailers) : [];
         $from = config('mail.from');
+        $smtp = $mailers['smtp'] ?? [];
         $envMail = [
-            'MAIL_MAILER' => env('MAIL_MAILER'),
-            'MAIL_HOST' => env('MAIL_HOST'),
-            'MAIL_PORT' => env('MAIL_PORT'),
-            'MAIL_USERNAME' => env('MAIL_USERNAME'),
+            'MAIL_MAILER' => env('MAIL_MAILER') ?: ('(not set → ' . config('mail.default') . ')'),
+            'MAIL_HOST' => env('MAIL_HOST') ?: '(e.g. smtp.hostinger.com)',
+            'MAIL_PORT' => env('MAIL_PORT') ?: '587',
+            'MAIL_USERNAME' => env('MAIL_USERNAME') ?: 'support@crm.bihtech.com',
             'MAIL_PASSWORD' => env('MAIL_PASSWORD') ? '(set)' : '(empty)',
-            'MAIL_ENCRYPTION' => env('MAIL_ENCRYPTION'),
-            'MAIL_FROM_ADDRESS' => env('MAIL_FROM_ADDRESS'),
-            'MAIL_FROM_NAME' => env('MAIL_FROM_NAME'),
+            'MAIL_ENCRYPTION' => env('MAIL_ENCRYPTION') !== null && env('MAIL_ENCRYPTION') !== '' ? env('MAIL_ENCRYPTION') : 'tls',
+            'MAIL_FROM_ADDRESS' => env('MAIL_FROM_ADDRESS') ?: config('mail.from.address'),
+            'MAIL_FROM_NAME' => env('MAIL_FROM_NAME') ?: config('mail.from.name'),
         ];
-        return view('admin.system-settings.mail-debug', compact('default', 'mailerKeys', 'from', 'envMail'));
+        return view('admin.system-settings.mail-debug', compact('default', 'mailerKeys', 'from', 'envMail', 'smtp'));
     }
 
     /**

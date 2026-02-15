@@ -31,9 +31,14 @@
                     <tr><td class="px-4 py-2 border-b font-medium">config('mail.default')</td><td class="px-4 py-2 border-b">{{ $default ?? '(null)' }}</td></tr>
                     <tr><td class="px-4 py-2 border-b font-medium">config('mail.mailers') keys</td><td class="px-4 py-2 border-b">{{ implode(', ', $mailerKeys ?: ['(none)']) }}</td></tr>
                     <tr><td class="px-4 py-2 border-b font-medium">config('mail.from')</td><td class="px-4 py-2 border-b">{{ ($from['address'] ?? '') . ' / ' . ($from['name'] ?? '') }}</td></tr>
+                    @if(!empty($smtp['host']))
+                    <tr><td class="px-4 py-2 font-medium">smtp host (effective)</td><td>{{ $smtp['host'] }} : {{ $smtp['port'] ?? '' }}</td></tr>
+                    @endif
                 </tbody>
             </table>
         </div>
+        <p class="mt-3 text-xs text-gray-500">Localhost: Use <strong>MAIL_MAILER=log</strong> in .env – no connection needed, emails go to <code>storage/logs/laravel.log</code>. Same from address (support@crm.bihtech.com / Base CRM) shows when not set in .env.</p>
+        <p class="mt-1 text-xs text-amber-600">Connection refused? Set <strong>MAIL_MAILER=log</strong> in .env and run <code>php artisan config:clear</code>.</p>
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

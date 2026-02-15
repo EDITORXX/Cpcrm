@@ -2,15 +2,15 @@
 
 return [
 
-    'default' => env('MAIL_MAILER', 'smtp'),
+    'default' => env('MAIL_MAILER') ?: (env('APP_ENV') === 'local' ? 'log' : 'smtp'),
 
     'mailers' => [
         'smtp' => [
             'transport' => 'smtp',
             'url' => env('MAIL_URL'),
-            'host' => env('MAIL_HOST', 'smtp.mailgun.org'),
-            'port' => env('MAIL_PORT', 587),
-            'encryption' => env('MAIL_ENCRYPTION', 'tls'),
+            'host' => env('MAIL_HOST') === 'mailpit' ? '127.0.0.1' : (env('MAIL_HOST') ?: '127.0.0.1'),
+            'port' => (int) (env('MAIL_PORT') ?: 1025),
+            'encryption' => env('MAIL_ENCRYPTION') ?: null,
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
             'timeout' => null,
@@ -52,8 +52,8 @@ return [
     ],
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Example'),
+        'address' => env('MAIL_FROM_ADDRESS', 'support@crm.bihtech.com'),
+        'name' => env('MAIL_FROM_NAME', 'Base CRM'),
     ],
 
     'markdown' => [
