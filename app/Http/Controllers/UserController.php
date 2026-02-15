@@ -175,6 +175,8 @@ class UserController extends Controller
         }
 
         try {
+            $user->refresh();
+            $user->load(['role', 'manager']);
             $tempPassword = Str::random(10);
             $user->update(['password' => Hash::make($tempPassword)]);
             app(NewUserMailService::class)->sendCredentialsEmail($user, $tempPassword);
@@ -318,8 +320,8 @@ class UserController extends Controller
             ]);
         }
 
-        return redirect()->route('users.index')
-            ->with('success', 'User updated successfully.');
+        return redirect()->route('users.show', $user)
+            ->with('success', 'User updated successfully. You can now send credentials email with the new details.');
     }
 
     public function destroy(User $user)

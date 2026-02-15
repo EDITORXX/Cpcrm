@@ -69,6 +69,14 @@
                     @endif
                 </div>
             </div>
+            @if(auth()->user()->canManageUsers())
+            <div class="mt-4 pt-4 border-t border-gray-100 flex flex-wrap gap-2">
+                <a href="{{ route('users.edit', $user) }}" class="inline-flex items-center px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors">
+                    Edit user details
+                </a>
+                <span class="text-gray-400 text-sm">Edit name, email, role, manager, phone, status. After saving, use “Send credentials email” to send updated details to the user.</span>
+            </div>
+            @endif
         </div>
 
         <!-- Details Grid -->
