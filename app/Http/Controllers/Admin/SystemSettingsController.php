@@ -112,6 +112,14 @@ class SystemSettingsController extends Controller
             'email' => 'required|email',
         ]);
 
+        $defaultMailer = config('mail.default');
+        if (empty($defaultMailer)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mail not configured. Set MAIL_MAILER in .env (e.g. MAIL_MAILER=smtp).',
+            ], 400);
+        }
+
         try {
             $appName = config('app.name');
             $loginUrl = url('/login');
