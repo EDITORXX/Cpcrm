@@ -10,6 +10,7 @@ use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -161,6 +162,27 @@ class UserController extends Controller
         $user->load(['role', 'manager', 'teamMembers.role']);
 
         return view('users.show', compact('user'));
+    }
+
+    /**
+     * Send credentials email to existing user (new temp password, then email).
+     */
+    public function sendCredentialsEmail(User $user)
+    {
+        $currentUser = request()->user();
+        if (!$currentUser->canManageUsers()) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        try {
+            $tempPassword = Str::random(10);
+            $user->update(['password' => Hash::make($tempPassword)]);
+            app(NewUserMailService::class)->sendCredentialsEmail($user, $tempPassword);
+            return redirect()->back()->with('success', 'Credentials email sent to ' . $user->email);
+        } catch (\Exception $e) {
+            Log::error('Send credentials email failed: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to send: ' . $e->getMessage());
+        }
     }
 
     public function edit(User $user)

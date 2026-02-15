@@ -30,4 +30,21 @@ class NewUserMailService
 
         return true;
     }
+
+    /**
+     * Send credentials email to an existing user (admin-triggered, no setting check).
+     */
+    public function sendCredentialsEmail(User $user, string $plainPassword): void
+    {
+        $user->load(['role', 'manager']);
+        $roleName = $user->role ? $user->role->name : '—';
+        $managerName = $user->manager ? $user->manager->name : null;
+
+        $user->notify(new NewUserWelcomeNotification(
+            $user,
+            $plainPassword,
+            $roleName,
+            $managerName
+        ));
+    }
 }

@@ -304,6 +304,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/test/lead-notification/simulate', [\App\Http\Controllers\TestLeadNotificationController::class, 'simulate'])->name('test.lead-notification.simulate');
     
     // Users Management
+    Route::post('users/{user}/send-credentials-email', [\App\Http\Controllers\UserController::class, 'sendCredentialsEmail'])->name('users.send-credentials-email');
     Route::resource('users', \App\Http\Controllers\UserController::class);
     
     // Builders Management (CRM/Admin only)

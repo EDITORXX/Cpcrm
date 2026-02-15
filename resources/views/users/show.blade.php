@@ -7,10 +7,24 @@
     <a href="{{ route('users.edit', $user) }}" class="px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 text-sm font-medium">
         Edit User
     </a>
+    @if(auth()->user()->canManageUsers())
+    <form action="{{ route('users.send-credentials-email', $user) }}" method="POST" class="inline ml-2" onsubmit="return confirm('Send email with new temporary password to {{ $user->email }}?');">
+        @csrf
+        <button type="submit" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors duration-200 text-sm font-medium">
+            Send credentials email
+        </button>
+    </form>
+    @endif
 @endsection
 
 @section('content')
     <div class="max-w-4xl mx-auto">
+        @if(session('success'))
+            <div class="mb-4 p-4 rounded-lg bg-green-50 text-green-800 border border-green-200">{{ session('success') }}</div>
+        @endif
+        @if(session('error'))
+            <div class="mb-4 p-4 rounded-lg bg-red-50 text-red-800 border border-red-200">{{ session('error') }}</div>
+        @endif
         <!-- User Profile Card -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
             <div class="flex items-start">
