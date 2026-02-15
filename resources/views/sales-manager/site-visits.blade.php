@@ -116,14 +116,16 @@
         transition: all 0.3s;
         text-decoration: none;
         display: inline-block;
-        margin-left: 8px;
     }
     .btn-primary {
         background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
         color: white;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        background: #205A44;
-        color: white;
+    }
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     }
     .btn-success {
         background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
@@ -157,10 +159,23 @@
         border-radius: 12px;
         margin-bottom: 20px;
         display: flex;
-        gap: 16px;
+        gap: 12px;
+        flex-wrap: wrap;
         align-items: center;
     }
-    .filters select {
+    .filters .filter-select,
+    .filters .filter-btn {
+        flex: 1;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    .mobile-text {
+        display: none;
+    }
+    .desktop-text {
+        display: inline;
+    }
+    .filter-select {
         padding: 8px 12px;
         border: 2px solid #e0e0e0;
         border-radius: 6px;
@@ -179,41 +194,96 @@
     #customDateInputs.show {
         display: flex;
     }
+    @media (max-width: 768px) {
+        #visitsContainer {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        .visit-card {
+            padding: 16px;
+        }
+        .visit-info h3 {
+            font-size: 16px;
+        }
+        .visit-info p {
+            font-size: 13px;
+        }
+        .filters {
+            flex-direction: row;
+            flex-wrap: nowrap;
+            gap: 4px;
+        }
+        .filters .filter-select,
+        .filters .filter-btn {
+            width: 25%;
+            flex: 0 0 25%;
+            padding: 8px 6px;
+            font-size: 12px;
+            box-sizing: border-box;
+        }
+        .filters label {
+            display: none;
+        }
+        div[style*="display: flex"][style*="justify-content: space-between"] > h2 {
+            display: none !important;
+        }
+        div[style*="display: flex"][style*="justify-content: space-between"] > a.btn-primary {
+            display: none !important;
+        }
+        .filters .filter-btn.btn.btn-primary {
+            display: flex !important;
+        }
+        .filters .filter-closer {
+            display: none !important;
+        }
+        div[style*="display: flex"][style*="justify-content: space-between"] {
+            margin-bottom: 0 !important;
+        }
+        .mobile-text {
+            display: inline;
+        }
+        .desktop-text {
+            display: none;
+        }
+        .filters input[type="date"] {
+            width: 100%;
+            padding: 10px;
+        }
+        #customDateInputs {
+            width: 100%;
+            flex-direction: column;
+        }
+        .modal-content {
+            width: 95% !important;
+            max-width: 95% !important;
+            padding: 16px !important;
+        }
+    }
 </style>
 @endpush
 
 @section('content')
-<div>
+<div class="mb-6">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
         <h2 class="text-2xl font-bold" style="color: #063A1C;">Site Visits</h2>
-        <a href="{{ route('sales-manager.site-visits.create') }}" class="btn btn-primary">
+        <a href="{{ route('sales-manager.site-visits.create') }}" class="btn btn-primary desktop-text">
             <i class="fas fa-plus mr-2"></i>Schedule Site Visit
         </a>
     </div>
 
     <div class="filters">
-        <label>Status:</label>
-        <select id="statusFilter" onchange="loadSiteVisits()">
-            <option value="">All</option>
+        <select id="statusFilter" class="filter-select" onchange="loadSiteVisits()">
+            <option value="">All Status</option>
             <option value="scheduled">Scheduled</option>
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
         </select>
-        <label>Verification:</label>
-        <select id="verificationFilter" onchange="loadSiteVisits()">
-            <option value="">All</option>
+        <select id="verificationFilter" class="filter-select" onchange="loadSiteVisits()">
+            <option value="">All Verifica</option>
             <option value="pending">Pending</option>
             <option value="verified">Verified</option>
             <option value="rejected">Rejected</option>
         </select>
-        <label>Closer Status:</label>
-        <select id="closerFilter" onchange="loadSiteVisits()">
-            <option value="">All</option>
-            <option value="pending">Pending</option>
-            <option value="verified">Verified</option>
-            <option value="rejected">Rejected</option>
-        </select>
-        <label>Date:</label>
         <select id="dateFilter" class="filter-select" onchange="toggleCustomDate(); loadSiteVisits();">
             <option value="">All Dates</option>
             <option value="today">Today</option>
@@ -221,6 +291,17 @@
             <option value="this_month">This Month</option>
             <option value="this_year">This Year</option>
             <option value="custom">Custom Date</option>
+        </select>
+        <a href="{{ route('sales-manager.site-visits.create') }}" class="filter-btn btn btn-primary" style="text-align: center; padding: 10px 16px; white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <i class="fas fa-map-marker-alt"></i>
+            <span class="desktop-text">Schedule Site Visit</span>
+            <span class="mobile-text">Visit</span>
+        </a>
+        <select id="closerFilter" class="filter-select filter-closer" onchange="loadSiteVisits()" style="min-width: 120px;">
+            <option value="">Closer</option>
+            <option value="pending">Pending</option>
+            <option value="verified">Verified</option>
+            <option value="rejected">Rejected</option>
         </select>
         <div id="customDateInputs">
             <input type="date" id="dateFrom" class="filter-select" onchange="loadSiteVisits()">
