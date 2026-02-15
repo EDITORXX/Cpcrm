@@ -547,6 +547,8 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/user-notifications/update', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'updateUserNotificationSettings'])->name('user-notifications.update');
             Route::get('/test-email', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'testEmailPage'])->name('test-email');
             Route::post('/test-email', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'sendTestEmail'])->name('test-email.send');
+            Route::get('/mail-debug', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'mailDebugPage'])->name('mail-debug');
+            Route::post('/mail-debug/send', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'sendTestEmailDebug'])->name('mail-debug.send');
             Route::post('/files/upload', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'uploadFiles'])->name('files.upload');
             Route::post('/files/deploy', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'deployFiles'])->name('files.deploy');
             Route::post('/migrations/run', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'runMigrations'])->name('migrations.run');

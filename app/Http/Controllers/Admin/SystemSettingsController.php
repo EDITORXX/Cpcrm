@@ -151,6 +151,62 @@ class SystemSettingsController extends Controller
     }
 
     /**
+     * Mail debug page: show config and send test with full error detail
+     */
+    public function mailDebugPage()
+    {
+        $default = config('mail.default');
+        $mailers = config('mail.mailers');
+        $mailerKeys = is_array($mailers) ? array_keys($mailers) : [];
+        $from = config('mail.from');
+        $envMail = [
+            'MAIL_MAILER' => env('MAIL_MAILER'),
+            'MAIL_HOST' => env('MAIL_HOST'),
+            'MAIL_PORT' => env('MAIL_PORT'),
+            'MAIL_USERNAME' => env('MAIL_USERNAME'),
+            'MAIL_PASSWORD' => env('MAIL_PASSWORD') ? '(set)' : '(empty)',
+            'MAIL_ENCRYPTION' => env('MAIL_ENCRYPTION'),
+            'MAIL_FROM_ADDRESS' => env('MAIL_FROM_ADDRESS'),
+            'MAIL_FROM_NAME' => env('MAIL_FROM_NAME'),
+        ];
+        return view('admin.system-settings.mail-debug', compact('default', 'mailerKeys', 'from', 'envMail'));
+    }
+
+    /**
+     * Send test email and return full error detail for debug page
+     */
+    public function sendTestEmailDebug(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $mailerName = config('mail.default') ?: env('MAIL_MAILER') ?: 'smtp';
+        $mailerName = is_string($mailerName) ? $mailerName : 'smtp';
+
+        try {
+            $appName = config('app.name');
+            $user = (object) ['name' => 'Test User', 'email' => $request->email, 'phone' => '—', 'is_active' => true];
+            Mail::mailer($mailerName)->send('emails.new-user-welcome', [
+                'user' => $user,
+                'plainPassword' => 'Test@12345',
+                'roleName' => 'Sales Executive',
+                'managerName' => 'John Manager',
+                'loginUrl' => url('/login'),
+                'appName' => $appName,
+            ], function ($message) use ($request, $appName) {
+                $message->to($request->email)->subject('[' . $appName . '] Test – Sample welcome email');
+            });
+            return response()->json(['success' => true, 'message' => 'Email sent to ' . $request->email]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'error_class' => get_class($e),
+                'error_detail' => $e->getMessage() . "\n\n" . $e->getFile() . ':' . $e->getLine(),
+            ], 500);
+        }
+    }
+
+    /**
      * Upload files (zip or regular files)
      */
     public function uploadFiles(Request $request)

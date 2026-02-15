@@ -250,6 +250,9 @@
             <a href="{{ route('admin.system-settings.test-email') }}" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors inline-flex items-center">
                 <i class="fas fa-envelope mr-2"></i> Test email (send sample)
             </a>
+            <a href="{{ route('admin.system-settings.mail-debug') }}" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium transition-colors inline-flex items-center">
+                <i class="fas fa-bug mr-2"></i> Mail debug (see config &amp; errors)
+            </a>
         </div>
     </div>
 
