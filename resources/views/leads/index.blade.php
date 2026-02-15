@@ -154,20 +154,11 @@
     <style>
         .leads-grid {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            /* Auto-fit cards based on available content width (fixes nav text mode clipping) */
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
             gap: 1.5rem;
             max-width: 100%;
             min-width: 0;
-        }
-        @media (max-width: 1280px) {
-            .leads-grid {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-        }
-        @media (max-width: 1024px) {
-            .leads-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
         }
         @media (max-width: 640px) {
             .leads-grid {
@@ -218,7 +209,8 @@
             overflow: hidden;
         }
         .lead-card-footer {
-            display: flex !important;
+            display: grid !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 0.5rem;
             margin-top: auto;
             padding-top: 1rem;
@@ -226,14 +218,41 @@
             width: 100%;
             min-width: 0;
         }
+        body.nav-text .lead-card-footer {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        body.nav-text .lead-card-footer form {
+            grid-column: 1 / -1;
+        }
+        @media (max-width: 1200px) {
+            .lead-card-footer {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .lead-card-footer form {
+                grid-column: 1 / -1;
+            }
+        }
+        @media (max-width: 420px) {
+            .lead-card-footer {
+                grid-template-columns: 1fr;
+            }
+            .lead-card-footer form {
+                grid-column: auto;
+            }
+        }
         .lead-card-footer a,
         .lead-card-footer button {
-            flex: 1;
             min-width: 0;
             white-space: nowrap;
             display: flex !important;
             align-items: center;
             justify-content: center;
+        }
+        .lead-card-footer a span,
+        .lead-card-footer button span {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         /* Short Details Modal Styles */
