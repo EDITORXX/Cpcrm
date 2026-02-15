@@ -258,8 +258,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/{id}', [\App\Http\Controllers\Api\CallLogController::class, 'update']);
     });
 
-    // Sales Manager routes (accessible by Admin, CRM, Sales Head, and Sales Manager)
-    Route::prefix('sales-manager')->middleware('role:admin,crm,sales_head,sales_manager')->group(function () {
+    // Sales Manager routes (Admin, CRM, Sales Head, Senior Manager, Manager, Assistant Sales Manager)
+    Route::prefix('sales-manager')->middleware('role:admin,crm,sales_head,sales_manager,senior_manager,assistant_sales_manager')->group(function () {
         // Profile
         Route::get('/profile', [\App\Http\Controllers\Api\SalesManagerController::class, 'getProfile']);
         Route::put('/profile', [\App\Http\Controllers\Api\SalesManagerController::class, 'updateProfile']);
