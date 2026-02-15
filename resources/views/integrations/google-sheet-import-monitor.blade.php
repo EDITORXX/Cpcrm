@@ -12,6 +12,13 @@
 
 @section('content')
 <div class="max-w-7xl mx-auto space-y-6">
+    @if(!empty($migrationWarning))
+        <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-yellow-800">
+            <div class="font-semibold mb-1">Migration required</div>
+            <div class="text-sm">{{ $migrationWarning }}</div>
+        </div>
+    @endif
+
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h2 class="text-xl font-semibold text-gray-900 mb-4">Cron State by Sheet</h2>
         <div class="overflow-x-auto">

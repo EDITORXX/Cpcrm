@@ -9,6 +9,7 @@ use App\Models\GoogleSheetsConfig;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class GoogleSheetImportRunner
 {
@@ -47,10 +48,40 @@ class GoogleSheetImportRunner
             return $result;
         }
 
-        $state = GoogleSheetImportState::firstOrCreate(
-            ['google_sheets_config_id' => $config->id],
-            ['last_processed_row' => max((int) ($config->last_synced_row ?? 1), 1)]
-        );
+        $hasStateTable = Schema::hasTable('google_sheet_import_state');
+        $hasLogsTable = Schema::hasTable('google_sheet_import_logs');
+        if (!$hasStateTable || !$hasLogsTable) {
+            $missing = [];
+            if (!$hasStateTable) {
+                $missing[] = 'google_sheet_import_state';
+            }
+            if (!$hasLogsTable) {
+                $missing[] = 'google_sheet_import_logs';
+            }
+
+            $result['status'] = 'failed';
+            $result['success'] = false;
+            $result['errors'] = 1;
+            $result['message'] = 'Missing required tables: ' . implode(', ', $missing) . '. Run: php artisan migrate --force';
+            $result['duration_ms'] = (int) round((microtime(true) - $startedMicro) * 1000);
+            optional($lock)->release();
+            return $result;
+        }
+
+        try {
+            $state = GoogleSheetImportState::firstOrCreate(
+                ['google_sheets_config_id' => $config->id],
+                ['last_processed_row' => max((int) ($config->last_synced_row ?? 1), 1)]
+            );
+        } catch (\Throwable $e) {
+            $result['status'] = 'failed';
+            $result['success'] = false;
+            $result['errors'] = 1;
+            $result['message'] = 'Unable to initialize import state: ' . $e->getMessage();
+            $result['duration_ms'] = (int) round((microtime(true) - $startedMicro) * 1000);
+            optional($lock)->release();
+            return $result;
+        }
         $result['last_processed_row_before'] = (int) $state->last_processed_row;
 
         $lastError = null;
