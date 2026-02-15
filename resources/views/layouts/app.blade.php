@@ -372,6 +372,39 @@
         #sidebar.sidebar-text #projectsMenuIcon {
             display: inline-block !important;
         }
+        /* Final mode guards: body mode always wins, prevents mixed icon/text state */
+        body.nav-text #sidebar {
+            width: 256px !important;
+            min-width: 256px !important;
+            max-width: 256px !important;
+        }
+        body.nav-text #sidebar nav {
+            padding: 0 20px !important;
+        }
+        body.nav-text #sidebar h2,
+        body.nav-text #sidebar p {
+            display: block !important;
+        }
+        body.nav-text #sidebar .sidebar-link {
+            justify-content: flex-start !important;
+            padding: 12px 16px !important;
+            font-size: 14px !important;
+        }
+        body.nav-text #sidebar .sidebar-link i {
+            margin-right: 10px !important;
+            font-size: 14px !important;
+            width: 20px !important;
+            text-align: left !important;
+        }
+        body.nav-text #leadsMenuIcon,
+        body.nav-text #projectsMenuIcon {
+            display: inline-block !important;
+        }
+        body.nav-icons #sidebar {
+            width: 64px !important;
+            min-width: 64px !important;
+            max-width: 64px !important;
+        }
         body.sidebar-hidden #mainContent {
             margin-left: 0 !important;
         }
