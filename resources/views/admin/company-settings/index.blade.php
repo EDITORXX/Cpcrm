@@ -53,16 +53,6 @@
                         <p class="text-xs text-[#B3B5B4] mt-1">Enter your company name</p>
                     </div>
 
-                    <div>
-                        <label for="industry_type" class="block text-sm font-medium text-brand-primary mb-2">
-                            Industry Type
-                        </label>
-                        <input type="text" name="industry_type" id="industry_type" 
-                               value="{{ $companyProfile['basic']['industry_type'] ?? '' }}"
-                               class="w-full px-4 py-2 bg-white border border-[#E5DED4] rounded-lg focus:ring-2 focus:ring-brand focus:border-brand text-brand-primary">
-                        <p class="text-xs text-[#B3B5B4] mt-1">Type of industry your company operates in</p>
-                    </div>
-
                 </div>
             </div>
 

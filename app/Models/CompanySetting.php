@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 use App\Services\ColorTemplateService;
 
 class CompanySetting extends Model
@@ -131,16 +132,17 @@ class CompanySetting extends Model
             // Create new setting with default structure
             $setting = new self();
             $setting->setting_key = $key;
-            
+            $setting->display_label = Str::title(str_replace('_', ' ', $key));
+
             // Determine category and type based on key
             if (str_contains($key, 'color') || str_contains($key, 'gradient') || $key === 'color_template' || $key === 'use_gradient') {
                 $setting->category = 'branding';
                 $setting->group = 'colors';
-                $setting->setting_type = $key === 'use_gradient' ? 'boolean' : 'string';
+                $setting->setting_type = $key === 'use_gradient' ? 'boolean' : 'text';
             } else {
                 $setting->category = 'company_profile';
                 $setting->group = 'general';
-                $setting->setting_type = 'string';
+                $setting->setting_type = 'text';
             }
         }
         
