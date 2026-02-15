@@ -3,6 +3,7 @@ const CACHE_NAME = 'real-estate-crm-v1';
 const urlsToCache = [
   '/',
   '/login',
+  '/install-app',
   '/favicon.ico',
   '/manifest.json'
 ];
@@ -53,6 +54,46 @@ self.addEventListener('activate', (event) => {
     })
   );
   return self.clients.claim();
+});
+
+// Push notification - show notification when app is in background (Android PWA)
+self.addEventListener('push', function(event) {
+  if (!event.data) return;
+  var data = {};
+  try {
+    data = event.data.json();
+  } catch (e) {
+    data = { title: 'Base CRM', body: event.data.text() || 'New update' };
+  }
+  var title = data.title || 'Base CRM';
+  var options = {
+    body: data.body || data.message || 'New notification',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: data.tag || 'crm-notification',
+    data: { url: data.url || '/', ...(data.data || {}) },
+    requireInteraction: !!data.requireInteraction
+  };
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
+// Click on notification - open app to URL
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  var url = event.notification.data && event.notification.data.url ? event.notification.data.url : '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+      for (var i = 0; i < clientList.length; i++) {
+        if (clientList[i].url && 'focus' in clientList[i]) {
+          clientList[i].navigate(url);
+          return clientList[i].focus();
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+    })
+  );
 });
 
 // Fetch event - serve from cache, fallback to network

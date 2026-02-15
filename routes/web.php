@@ -34,6 +34,11 @@ Route::get('/legacy-home', function () {
     return view('welcome');
 })->name('legacy.home');
 
+// PWA Install Page - single URL for 1-click install (Android) + notification permission
+Route::get('/install-app', function () {
+    return view('install-app');
+})->name('install-app');
+
 // PWA Test Page
 Route::get('/pwa-test', function () {
     return view('pwa-test');
