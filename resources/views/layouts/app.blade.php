@@ -318,6 +318,60 @@
         body.nav-text #mainContent {
             margin-left: 256px !important;
         }
+        /* Failsafe: also support mode via sidebar classes */
+        #sidebar.sidebar-icons {
+            width: 64px !important;
+            min-width: 64px !important;
+            max-width: 64px !important;
+        }
+        #sidebar.sidebar-icons nav {
+            padding: 0 12px !important;
+        }
+        #sidebar.sidebar-icons h2,
+        #sidebar.sidebar-icons p {
+            display: none !important;
+        }
+        #sidebar.sidebar-icons .sidebar-link {
+            justify-content: center !important;
+            padding: 12px !important;
+            font-size: 0 !important;
+        }
+        #sidebar.sidebar-icons .sidebar-link i {
+            margin-right: 0 !important;
+            font-size: 18px;
+            width: 20px;
+            text-align: center;
+        }
+        #sidebar.sidebar-icons #leadsMenuIcon,
+        #sidebar.sidebar-icons #projectsMenuIcon {
+            display: none !important;
+        }
+        #sidebar.sidebar-text {
+            width: 256px !important;
+            min-width: 256px !important;
+            max-width: 256px !important;
+        }
+        #sidebar.sidebar-text nav {
+            padding: 0 20px !important;
+        }
+        #sidebar.sidebar-text h2,
+        #sidebar.sidebar-text p {
+            display: block !important;
+        }
+        #sidebar.sidebar-text .sidebar-link {
+            justify-content: flex-start !important;
+            padding: 12px 16px !important;
+            font-size: 14px !important;
+        }
+        #sidebar.sidebar-text .sidebar-link i {
+            margin-right: 10px !important;
+            font-size: 14px !important;
+            width: 20px !important;
+        }
+        #sidebar.sidebar-text #leadsMenuIcon,
+        #sidebar.sidebar-text #projectsMenuIcon {
+            display: inline-block !important;
+        }
         body.sidebar-hidden #mainContent {
             margin-left: 0 !important;
         }
@@ -1155,8 +1209,15 @@
 
             const normalized = (mode === 'text') ? 'text' : 'icons';
 
-            body.classList.toggle('nav-icons', normalized === 'icons');
-            body.classList.toggle('nav-text', normalized === 'text');
+            // Keep exactly one mode class on body
+            body.classList.remove('nav-icons', 'nav-text');
+            body.classList.add(normalized === 'icons' ? 'nav-icons' : 'nav-text');
+
+            // Failsafe: mirror mode directly on sidebar as well
+            if (sidebar) {
+                sidebar.classList.remove('sidebar-icons', 'sidebar-text');
+                sidebar.classList.add(normalized === 'icons' ? 'sidebar-icons' : 'sidebar-text');
+            }
 
             // Keep main content aligned with sidebar width
             const sidebarHidden = body.classList.contains('sidebar-hidden') || (sidebar && sidebar.classList.contains('sidebar-hidden'));
