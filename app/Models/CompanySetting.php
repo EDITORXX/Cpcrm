@@ -122,6 +122,27 @@ class CompanySetting extends Model
     }
 
     /**
+     * Get company_profile group for a setting key (must match view: basic, contact, legal).
+     */
+    protected static function getCompanyProfileGroupForKey(string $key): string
+    {
+        $basic = ['company_name', 'company_size'];
+        $contact = ['address', 'city', 'state', 'pincode', 'country', 'phone', 'landline', 'email', 'website'];
+        $legal = ['gst_number', 'pan_number', 'registration_number', 'tax_id', 'cin'];
+
+        if (in_array($key, $basic)) {
+            return 'basic';
+        }
+        if (in_array($key, $contact)) {
+            return 'contact';
+        }
+        if (in_array($key, $legal)) {
+            return 'legal';
+        }
+        return 'general';
+    }
+
+    /**
      * Set setting value by key.
      */
     public static function set(string $key, $value, ?int $userId = null): self
@@ -134,14 +155,14 @@ class CompanySetting extends Model
             $setting->setting_key = $key;
             $setting->display_label = Str::title(str_replace('_', ' ', $key));
 
-            // Determine category and type based on key
+            // Determine category, group and type based on key (must match seeder/view: basic, contact, legal)
             if (str_contains($key, 'color') || str_contains($key, 'gradient') || $key === 'color_template' || $key === 'use_gradient') {
                 $setting->category = 'branding';
                 $setting->group = 'colors';
                 $setting->setting_type = $key === 'use_gradient' ? 'boolean' : 'text';
             } else {
                 $setting->category = 'company_profile';
-                $setting->group = 'general';
+                $setting->group = self::getCompanyProfileGroupForKey($key);
                 $setting->setting_type = 'text';
             }
         }
@@ -182,6 +203,18 @@ class CompanySetting extends Model
                 $grouped[$group] = [];
             }
             $grouped[$group][$setting->setting_key] = $setting->value;
+        }
+
+        // Redistribute company_profile 'general' into basic/contact/legal so view shows saved data
+        if ($category === 'company_profile' && !empty($grouped['general'])) {
+            foreach ($grouped['general'] as $key => $value) {
+                $targetGroup = self::getCompanyProfileGroupForKey($key);
+                if (!isset($grouped[$targetGroup])) {
+                    $grouped[$targetGroup] = [];
+                }
+                $grouped[$targetGroup][$key] = $value;
+            }
+            unset($grouped['general']);
         }
 
         return $grouped;
