@@ -7,8 +7,9 @@ use App\Models\SystemSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use ZipArchive;
 
@@ -90,6 +91,58 @@ class SystemSettingsController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Show test email page (send sample welcome mail to any email)
+     */
+    public function testEmailPage()
+    {
+        return view('admin.system-settings.test-email');
+    }
+
+    /**
+     * Send a sample welcome email to the given address (1-click test)
+     */
+    public function sendTestEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        try {
+            $appName = config('app.name');
+            $loginUrl = url('/login');
+            $user = (object) [
+                'name' => 'Test User',
+                'email' => $request->email,
+                'phone' => '+91 98765 43210',
+                'is_active' => true,
+            ];
+
+            Mail::send('emails.new-user-welcome', [
+                'user' => $user,
+                'plainPassword' => 'Test@12345',
+                'roleName' => 'Sales Executive',
+                'managerName' => 'John Manager',
+                'loginUrl' => $loginUrl,
+                'appName' => $appName,
+            ], function ($message) use ($request, $appName) {
+                $message->to($request->email)
+                    ->subject('[' . $appName . '] Test – Sample welcome email');
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Test email sent to ' . $request->email . '. Check inbox (and spam).',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Test email failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send: ' . $e->getMessage(),
             ], 500);
         }
     }
