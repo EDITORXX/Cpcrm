@@ -93,6 +93,16 @@ class GoogleSheetsConfig extends Model
         return $this->hasMany(GoogleSheetsColumnMapping::class, 'google_sheets_config_id')->orderBy('display_order');
     }
 
+    public function importState(): HasOne
+    {
+        return $this->hasOne(GoogleSheetImportState::class, 'google_sheets_config_id');
+    }
+
+    public function importLogs(): HasMany
+    {
+        return $this->hasMany(GoogleSheetImportLog::class, 'google_sheets_config_id');
+    }
+
     /**
      * Extract sheet ID from full Google Sheets URL
      */

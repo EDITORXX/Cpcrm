@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\GoogleSheetsConfig;
-use App\Services\GoogleSheetsService;
+use App\Services\GoogleSheetImportRunner;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -14,7 +14,7 @@ class SyncGoogleSheets extends Command
      *
      * @var string
      */
-    protected $signature = 'google-sheets:sync {--force : Force sync even if interval not reached}';
+    protected $signature = 'google-sheets:sync {--force : Force sync even if interval not reached} {--timeout=50 : Hard timeout in seconds per sheet}';
 
     /**
      * The console command description.
@@ -23,12 +23,12 @@ class SyncGoogleSheets extends Command
      */
     protected $description = 'Sync Google Sheets based on auto-sync settings';
 
-    protected $sheetsService;
+    protected $importRunner;
 
-    public function __construct(GoogleSheetsService $sheetsService)
+    public function __construct(GoogleSheetImportRunner $importRunner)
     {
         parent::__construct();
-        $this->sheetsService = $sheetsService;
+        $this->importRunner = $importRunner;
     }
 
     /**
@@ -94,10 +94,21 @@ class SyncGoogleSheets extends Command
             try {
                 $this->info("Syncing config ID: {$config->id} ({$config->sheet_name})...");
                 
-                $result = $this->sheetsService->syncGoogleSheets($config);
-                
-                $this->info("  ✓ Imported: {$result['imported']}, Skipped: {$result['skipped']}");
-                $synced++;
+                $timeout = max((int) $this->option('timeout'), 5);
+                $result = $this->importRunner->run($config, 'cron', $timeout);
+
+                if ($result['status'] === 'no_changes') {
+                    $this->info("  ⏭ No new rows (last processed: {$result['last_processed_row_after']}, duration: {$result['duration_ms']}ms)");
+                    $skipped++;
+                    continue;
+                }
+
+                $this->info("  ✓ Status: {$result['status']} | Imported: {$result['imported']} | Errors: {$result['errors']} | Duration: {$result['duration_ms']}ms");
+                if ($result['success']) {
+                    $synced++;
+                } else {
+                    $errors++;
+                }
 
             } catch (\Exception $e) {
                 $this->error("  ✗ Error syncing config ID {$config->id}: " . $e->getMessage());

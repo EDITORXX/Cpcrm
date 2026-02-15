@@ -282,6 +282,34 @@ class GoogleSheetsService
     }
 
     /**
+     * Fetch lightweight metadata needed for incremental import checks.
+     * We compute last non-empty row by reading a single anchor column only.
+     */
+    public function fetchSheetLastRow(
+        string $sheetId,
+        string $sheetName,
+        string $anchorColumn = 'A',
+        ?string $apiKey = null,
+        ?string $serviceAccountPath = null
+    ): int {
+        $anchor = strtoupper(trim($anchorColumn));
+        if (!preg_match('/^[A-Z]+$/', $anchor)) {
+            $anchor = 'A';
+        }
+
+        $columnValues = $this->fetchSheetData(
+            $sheetId,
+            $sheetName,
+            "{$anchor}:{$anchor}",
+            $apiKey,
+            $serviceAccountPath
+        );
+
+        // Includes header row when present. Keep minimum 1 (header row baseline).
+        return max(count($columnValues), 1);
+    }
+
+    /**
      * Sync Google Sheets - incremental sync with row tracking
      */
     public function syncGoogleSheets($configOrId): array

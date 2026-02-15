@@ -486,6 +486,10 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/delete/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'delete'])->name('delete');
             Route::post('/toggle/{id}', [\App\Http\Controllers\Admin\MetaSheetController::class, 'toggle'])->name('toggle');
         });
+
+        // Google Sheet import cron monitor
+        Route::get('/google-sheet-import-monitor', [\App\Http\Controllers\Admin\GoogleSheetImportMonitorController::class, 'index'])
+            ->name('google-sheet-import-monitor');
         
         Route::get('/facebook', function () {
             return view('integrations.coming-soon', ['integration' => 'Facebook Meta']);

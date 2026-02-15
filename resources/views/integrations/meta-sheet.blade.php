@@ -5,6 +5,10 @@
 
 @section('header-actions')
     <div class="flex flex-wrap items-center gap-2">
+        <a href="{{ route('integrations.google-sheet-import-monitor') }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm font-medium">
+            <i class="fas fa-heartbeat mr-2"></i>
+            Import Monitor
+        </a>
         <a href="{{ route('integrations.meta-sheet.create') }}" class="px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 text-sm font-medium">
             <i class="fas fa-plus mr-2"></i>
             Add New Meta Sheet
