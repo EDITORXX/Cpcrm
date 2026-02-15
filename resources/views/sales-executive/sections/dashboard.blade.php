@@ -120,6 +120,8 @@
     .dashboard-container {
         width: 100%;
         max-width: 100%;
+        overflow: visible;
+        padding-bottom: 24px;
     }
 
     /* Dashboard Cards Grid */
@@ -589,10 +591,9 @@
         </div>
         @endif
     </div>
-</div>
 
-<!-- Incentives Section -->
-<div class="bg-white rounded-lg shadow p-6 mb-6" id="Sales ExecutiveIncentivesSection">
+    <!-- Incentives Section (below cards - ensure visible on desktop and phone) -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6" id="Sales ExecutiveIncentivesSection" style="margin-top: 24px;">
     <h2 class="text-xl font-bold text-gray-900 mb-4">
         <i class="fas fa-money-bill-wave mr-2 text-green-600"></i>Earn Incentive
     </h2>
@@ -635,7 +636,9 @@
             <p class="text-gray-500 text-sm">No verified incentives yet</p>
         </div>
     </div>
+    </div>
 </div>
+<!-- /dashboard-container -->
 
 <!-- Incentive Amount Modal (centered, mobile & desktop) -->
 <div id="incentiveAmountModal" class="incentive-modal-overlay" style="display: none;" aria-hidden="true">

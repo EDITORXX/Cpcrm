@@ -1262,13 +1262,14 @@ function getColumnIndex(columnName) {
 
 /**
  * Setup trigger (run once)
+ * Must use .forSpreadsheet() before .onEdit() - TriggerBuilder does not have .onEdit() directly.
  */
 function setupTrigger() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   ScriptApp.newTrigger('onEdit')
+    .forSpreadsheet(ss)
     .onEdit()
     .create();
-  
   Logger.log('Trigger setup complete!');
 }
 SCRIPT;

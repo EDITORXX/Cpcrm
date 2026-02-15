@@ -486,9 +486,17 @@
         API_BASE_URL = '{{ url("/api/Sales Executive") }}';
     }
     
-    // Get token from localStorage
+    // Get token from localStorage, or from page meta (session/auth) so profile works without redirect
     function getToken() {
-        return localStorage.getItem('sales-executive_token');
+        var token = localStorage.getItem('sales-executive_token');
+        if (!token) {
+            var meta = document.querySelector('meta[name="api-token"]');
+            token = meta ? (meta.getAttribute('content') || '').trim() : '';
+            if (token) {
+                localStorage.setItem('sales-executive_token', token);
+            }
+        }
+        return token || null;
     }
 
     // API call helper

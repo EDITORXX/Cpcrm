@@ -580,8 +580,11 @@
         body.sidebar-nav-expanded .sidebar-nav-toggle .toggle-label {
             display: inline;
         }
+        /* Sidebar toggle button hidden - use header "Text Nav" / "Icon Nav" button on desktop instead */
+        #sidebarNavToggle { display: none !important; }
         @media (max-width: 767px) {
             .sidebar-nav-toggle { display: none !important; }
+            .header-nav-toggle-desktop { display: none !important; }
         }
         
         @media (max-width: 1024px) {
@@ -856,6 +859,11 @@
             </div>
             <div class="header-actions">
                 <div class="header-actions-row">
+                    <!-- Icon/Text Nav toggle (desktop only - same as CRM) -->
+                    <button type="button" id="headerNavModeToggle" class="header-nav-toggle-desktop btn" title="Toggle navigation (icons/text)" style="display: inline-flex; align-items: center; padding: 10px 12px; font-size: 14px; background: #205A44; color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.3s;">
+                        <i class="fas fa-align-left" style="margin-right: 6px;"></i>
+                        <span id="headerNavModeToggleLabel">Text Nav</span>
+                    </button>
                     <!-- Date/Time Clock - always visible in header right -->
                     <div class="header-clock-wrap" style="flex-shrink: 0; min-width: 140px;">
                         <div id="datetimeClock" style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px 12px; font-family: 'Courier New', monospace; font-weight: 600; font-size: 12px; color: #063A1C; min-width: 140px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
@@ -958,21 +966,27 @@
             @endphp
             @if($token)
                 localStorage.setItem('sales-executive_token', '{{ $token }}');
-                try {
-                    const userData = @json($user);
-                    localStorage.setItem('sales-executive_user', JSON.stringify(userData));
-                    // Store password for auto-fill in change password form
-                    @php
-                        $storedPassword = session('user_password_for_change');
-                    @endphp
-                    @if($storedPassword)
-                        localStorage.setItem('user_current_password', '{{ $storedPassword }}');
-                    @endif
-                    console.log('Token initialized from session');
-                } catch (e) {
-                    console.error('Error setting user data in localStorage:', e);
-                }
+            @else
+                // Session has no API token (e.g. web login); use meta tag so profile/API calls work
+                (function() {
+                    var meta = document.querySelector('meta[name="api-token"]');
+                    var t = meta ? (meta.getAttribute('content') || '').trim() : '';
+                    if (t) localStorage.setItem('sales-executive_token', t);
+                })();
             @endif
+            try {
+                const userData = @json($user);
+                localStorage.setItem('sales-executive_user', JSON.stringify(userData));
+                @php
+                    $storedPassword = session('user_password_for_change');
+                @endphp
+                @if($storedPassword)
+                    localStorage.setItem('user_current_password', '{{ $storedPassword }}');
+                @endif
+                if ('{{ $token ? "1" : "" }}') console.log('Token initialized from session');
+            } catch (e) {
+                console.error('Error setting user data in localStorage:', e);
+            }
         @endif
         
         // Get token from localStorage
@@ -1224,10 +1238,14 @@
                 if (label) label.textContent = expanded ? 'Collapse' : 'Expand';
                 if (icon) icon.className = expanded ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
             }
+            // Header nav toggle label (CRM style: Text Nav / Icon Nav)
+            var headerLabel = document.getElementById('headerNavModeToggleLabel');
+            if (headerLabel) headerLabel.textContent = expanded ? 'Icon Nav' : 'Text Nav';
         }
         (function applySidebarNavPreference() {
             try {
-                if (localStorage.getItem('sales_executive_sidebar_expanded') === '1') {
+                var expanded = localStorage.getItem('sales_executive_sidebar_expanded') === '1';
+                if (expanded) {
                     document.body.classList.add('sidebar-nav-expanded');
                     var mainContent = document.getElementById('mainContent');
                     if (mainContent && window.innerWidth > 767) {
@@ -1242,7 +1260,23 @@
                         if (icon) icon.className = 'fas fa-chevron-right';
                     }
                 }
+                // Header nav toggle label (CRM style)
+                var headerLabel = document.getElementById('headerNavModeToggleLabel');
+                if (headerLabel) headerLabel.textContent = expanded ? 'Icon Nav' : 'Text Nav';
             } catch (e) {}
+        })();
+        // Header nav toggle click (desktop) - same behaviour as sidebar toggle
+        (function initHeaderNavToggle() {
+            var headerBtn = document.getElementById('headerNavModeToggle');
+            if (headerBtn && !headerBtn.dataset.navBound) {
+                headerBtn.dataset.navBound = '1';
+                headerBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleSidebarNav();
+                    return false;
+                });
+            }
         })();
 
         // Initialize on page load

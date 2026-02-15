@@ -126,7 +126,7 @@ function setupTrigger() {
   ScriptApp.getProjectTriggers().forEach(t => {
     if (t.getHandlerFunction() === 'onEdit') ScriptApp.deleteTrigger(t);
   });
-  ScriptApp.newTrigger('onEdit').onEdit().create();
+  ScriptApp.newTrigger('onEdit').forSpreadsheet(SpreadsheetApp.getActiveSpreadsheet()).onEdit().create();
   ScriptApp.newTrigger('checkForNewLeads').timeBased().everyMinutes(1).create();
 }
 

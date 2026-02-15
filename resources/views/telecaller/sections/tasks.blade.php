@@ -61,6 +61,29 @@
         color: white;
         border-color: #10b981;
     }
+
+    /* Task filter dropdowns (Status, Type, View) - all screens */
+    .task-filters-row .task-filter-select {
+        min-width: 140px;
+        padding: 10px 36px 10px 14px;
+        border: 2px solid #205A44;
+        border-radius: 8px;
+        background: white;
+        color: #063A1C;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23063A1C' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+    }
+    .task-filters-row .task-filter-select:focus {
+        outline: none;
+        border-color: #063A1C;
+        box-shadow: 0 0 0 3px rgba(6, 58, 28, 0.1);
+    }
+
     .tasks-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -299,23 +322,12 @@
             align-items: center;
         }
         
-        /* Hide desktop buttons on mobile */
-        .filter-buttons-desktop {
-            display: none !important;
+        .task-filters-row .filter-group {
+            flex: 1 1 100%;
         }
-        
-        /* Show dropdowns on mobile - 50% each (2 filters) + toggle icon */
-        .filter-dropdowns-mobile {
-            display: flex !important;
+        .task-filters-row .task-filter-select {
             flex: 1;
-            gap: 8px;
             min-width: 0;
-            width: 100%;
-        }
-        
-        .task-filter-select {
-            flex: 1;
-            width: 50% !important;
         }
         
         .view-toggle-icon-btn {
@@ -363,20 +375,9 @@
             margin-top: 8px;
         }
         
-        .filter-btn {
-            display: none;
-        }
     }
     
-    /* Desktop: Show buttons, hide mobile dropdowns */
     @media (min-width: 769px) {
-        .filter-buttons-desktop {
-            display: flex !important;
-        }
-        .filter-dropdowns-mobile {
-            display: none !important;
-        }
-        
         /* Desktop date filter styles */
         .date-filter-desktop {
             display: block;
@@ -1041,37 +1042,20 @@
 
 @section('content')
     <div class="tasks-container">
-        <!-- Filter and View Switcher Header -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
-            <!-- Desktop: Button Filters -->
-            <div class="filter-buttons-desktop" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <span style="font-size: 14px; color: #063A1C; font-weight: 500; margin-right: 4px;">Status:</span>
-                    <button class="filter-btn active" onclick="filterTasks('pending', event)">Pending</button>
-                    <button class="filter-btn" onclick="filterTasks('completed', event)">Completed</button>
-                    <button class="filter-btn" onclick="filterTasks('rescheduled', event)">Rescheduled</button>
-                    <button class="filter-btn" onclick="filterTasks('all', event)">All</button>
-                </div>
-                <div style="display: flex; gap: 8px; align-items: center; margin-left: 12px;">
-                    <span style="font-size: 14px; color: #063A1C; font-weight: 500; margin-right: 4px;">Type:</span>
-                    <button class="filter-btn-type active" onclick="filterTaskType('all', event)">All</button>
-                    <button class="filter-btn-type" onclick="filterTaskType('calling', event)">Calling</button>
-                    <button class="filter-btn-type" onclick="filterTaskType('pre_meeting_reminder', event)">Meeting</button>
-                    <button class="filter-btn-type" onclick="filterTaskType('follow_up', event)">Follow Up</button>
-                    <button class="filter-btn-type" onclick="filterTaskType('cnp_retry', event)">CNP Retry</button>
-                    <button class="filter-btn-type" onclick="filterTaskType('call_again', event)">Call Again</button>
-                </div>
-            </div>
-            
-            <!-- Mobile: Dropdown Filters (50% each - 2 filters) + Toggle Icon -->
-            <div class="filter-dropdowns-mobile" style="display: none; flex: 1; gap: 8px; width: 100%; align-items: center;">
-                <select id="taskStatusFilterDropdown" class="task-filter-select" style="flex: 1; width: 50%;">
+        <!-- Filter and View: Dropdowns (Status, Type, View) -->
+        <div class="task-filters-row" style="display: flex; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+            <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
+                <label style="font-size: 14px; color: #063A1C; font-weight: 500; white-space: nowrap;">Status:</label>
+                <select id="taskStatusFilterDropdown" class="task-filter-select">
                     <option value="pending">Pending</option>
                     <option value="completed">Completed</option>
                     <option value="rescheduled">Rescheduled</option>
                     <option value="all">All</option>
                 </select>
-                <select id="taskTypeFilterDropdown" class="task-filter-select" style="flex: 1; width: 50%;">
+            </div>
+            <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
+                <label style="font-size: 14px; color: #063A1C; font-weight: 500; white-space: nowrap;">Type:</label>
+                <select id="taskTypeFilterDropdown" class="task-filter-select">
                     <option value="all">All</option>
                     <option value="calling">Calling</option>
                     <option value="pre_meeting_reminder">Meeting</option>
@@ -1079,26 +1063,18 @@
                     <option value="cnp_retry">CNP Retry</option>
                     <option value="call_again">Call Again</option>
                 </select>
-                <button id="listViewToggle" onclick="toggleListView()" class="view-toggle-icon-btn" style="width: 48px; height: 48px; padding: 0; border: 2px solid #205A44; border-radius: 8px; background: white; color: #063A1C; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; flex-shrink: 0;">
-                    <i class="fas fa-th" id="toggleIcon"></i>
-                </button>
             </div>
-            
-            <!-- View Switcher (Hidden on mobile) -->
-            <div class="view-switcher-container" style="display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 14px; color: #063A1C; font-weight: 500;">View:</span>
-                <div class="view-switcher" style="display: inline-flex; border: 2px solid #e0e0e0; border-radius: 8px; overflow: hidden; background: white;">
-                    <button class="view-btn" id="view-list" onclick="switchView('list')" style="padding: 8px 16px; border: none; background: #205A44; color: white; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.3s;">
-                        <i class="fas fa-list"></i> List
-                    </button>
-                    <button class="view-btn" id="view-kanban" onclick="switchView('kanban')" style="padding: 8px 16px; border: none; background: white; color: #063A1C; cursor: pointer; font-size: 14px; font-weight: 500; border-left: 1px solid #e0e0e0; transition: all 0.3s;">
-                        <i class="fas fa-columns"></i> Kanban
-                    </button>
-                    <button class="view-btn" id="view-calendar" onclick="switchView('calendar')" style="padding: 8px 16px; border: none; background: white; color: #063A1C; cursor: pointer; font-size: 14px; font-weight: 500; border-left: 1px solid #e0e0e0; transition: all 0.3s;">
-                        <i class="fas fa-calendar"></i> Calendar
-                    </button>
-                </div>
+            <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
+                <label style="font-size: 14px; color: #063A1C; font-weight: 500; white-space: nowrap;">View:</label>
+                <select id="taskViewDropdown" class="task-filter-select">
+                    <option value="list">List</option>
+                    <option value="kanban">Kanban</option>
+                    <option value="calendar">Calendar</option>
+                </select>
             </div>
+            <button id="listViewToggle" onclick="toggleListView()" class="view-toggle-icon-btn" style="width: 48px; height: 48px; padding: 0; border: 2px solid #205A44; border-radius: 8px; background: white; color: #063A1C; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; flex-shrink: 0;" title="Toggle list/grid">
+                <i class="fas fa-th" id="toggleIcon"></i>
+            </button>
         </div>
 
         <!-- Task Views Container -->
@@ -1820,19 +1796,8 @@
     function filterTasks(status, event = null) {
         currentStatus = status;
         
-        // Update desktop filter buttons
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.remove('active');
-            if (event && event.target === btn) {
-                btn.classList.add('active');
-            }
-        });
-        
-        // Update mobile dropdown
         const filterDropdown = document.getElementById('taskStatusFilterDropdown');
-        if (filterDropdown) {
-            filterDropdown.value = status;
-        }
+        if (filterDropdown) filterDropdown.value = status;
         
         // Reload current view (on mobile, always show list view)
         if (window.innerWidth <= 768 || currentView === 'list') {
@@ -1847,19 +1812,8 @@
     function filterTaskType(taskType, event = null) {
         currentTaskType = taskType;
         
-        // Update desktop filter buttons
-        document.querySelectorAll('.filter-btn-type').forEach(btn => {
-            btn.classList.remove('active');
-            if (event && event.target === btn) {
-                btn.classList.add('active');
-            }
-        });
-        
-        // Update mobile dropdown
         const typeFilterDropdown = document.getElementById('taskTypeFilterDropdown');
-        if (typeFilterDropdown) {
-            typeFilterDropdown.value = taskType;
-        }
+        if (typeFilterDropdown) typeFilterDropdown.value = taskType;
         
         // Reload current view
         if (window.innerWidth <= 768 || currentView === 'list') {
@@ -2696,19 +2650,8 @@
         currentView = view;
         localStorage.setItem('telecaller_task_view', view);
         
-        // Update button states
-        document.querySelectorAll('.view-btn').forEach(btn => {
-            btn.classList.remove('active');
-            btn.style.background = 'white';
-            btn.style.color = '#063A1C';
-        });
-        
-        const activeBtn = document.getElementById(`view-${view}`);
-        if (activeBtn) {
-            activeBtn.classList.add('active');
-            activeBtn.style.background = '#205A44';
-            activeBtn.style.color = 'white';
-        }
+        const viewDropdown = document.getElementById('taskViewDropdown');
+        if (viewDropdown) viewDropdown.value = view;
         
         // Show/hide view containers
         const listView = document.getElementById('list-view-container');
@@ -3031,6 +2974,14 @@
                 filterTaskType(taskType, e);
             });
             typeFilterDropdown.value = (currentTaskType && currentTaskType !== 'all') ? currentTaskType : 'all';
+        }
+
+        const viewDropdown = document.getElementById('taskViewDropdown');
+        if (viewDropdown) {
+            viewDropdown.value = currentView;
+            viewDropdown.addEventListener('change', function() {
+                switchView(this.value);
+            });
         }
         
         // Initialize toggle button state
