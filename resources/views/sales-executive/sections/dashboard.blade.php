@@ -691,8 +691,8 @@
     // Load Sales Executive Incentives and Eligible Site Visits
     async function loadSales ExecutiveIncentives() {
         try {
-            const API_BASE_URL = '{{ url("/api/Sales Executive") }}';
-            const token = localStorage.getItem('sales-executive_token') || '{{ session("sales_executive_api_token") ?? session("api_token") ?? "" }}';
+            const API_BASE_URL = '{{ url("/api/telecaller") }}';
+            const token = localStorage.getItem('sales-executive_token') || '{{ session("sales_executive_api_token") ?? session("telecaller_api_token") ?? session("api_token") ?? "" }}';
 
             // Load dashboard data for incentives
             const dashboardResponse = await fetch('{{ url("/api/dashboard") }}', {
@@ -858,8 +858,8 @@
         closeIncentiveModal();
 
         try {
-            const API_BASE_URL = '{{ url("/api/Sales Executive") }}';
-            const token = localStorage.getItem('sales-executive_token') || '{{ session("sales_executive_api_token") ?? session("api_token") ?? "" }}';
+            const API_BASE_URL = '{{ url("/api/telecaller") }}';
+            const token = localStorage.getItem('sales-executive_token') || '{{ session("sales_executive_api_token") ?? session("telecaller_api_token") ?? session("api_token") ?? "" }}';
 
             const response = await fetch(`${API_BASE_URL}/site-visits/${siteVisitId}/request-incentive`, {
                 method: 'POST',

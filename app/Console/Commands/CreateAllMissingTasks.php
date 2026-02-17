@@ -84,8 +84,10 @@ class CreateAllMissingTasks extends Command
             }
         }
         
-        // Also check for telecallers and sales executives
-        $allAssignments = LeadAssignment::with(['lead', 'assignedTo.role'])->get();
+        // Also check for telecallers and sales executives (only active assignments)
+        $allAssignments = LeadAssignment::with(['lead', 'assignedTo.role'])
+            ->where('is_active', true)
+            ->get();
         
         foreach ($allAssignments as $assignment) {
             $lead = $assignment->lead;

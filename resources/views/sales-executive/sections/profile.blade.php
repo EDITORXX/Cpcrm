@@ -480,10 +480,10 @@
 <script>
     // Check if API_BASE_URL is already declared (from layout)
     if (typeof API_BASE_URL === 'undefined') {
-        var API_BASE_URL = '{{ url("/api/Sales Executive") }}';
+        var API_BASE_URL = '{{ url("/api/telecaller") }}';
     } else {
         // Override with Sales Executive-specific endpoint
-        API_BASE_URL = '{{ url("/api/Sales Executive") }}';
+        API_BASE_URL = '{{ url("/api/telecaller") }}';
     }
     
     // Get token from localStorage, or from page meta (session/auth) so profile works without redirect

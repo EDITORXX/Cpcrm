@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Sales Executive - Base CRM')</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="api-token" content="{{ session('sales_executive_api_token') ?? session('api_token') ?? (auth()->check() ? auth()->user()->createToken('web-token')->plainTextToken : '') }}">
+    <meta name="api-token" content="{{ session('sales_executive_api_token') ?? session('telecaller_api_token') ?? session('api_token') ?? (auth()->check() ? auth()->user()->createToken('web-token')->plainTextToken : '') }}">
     <meta name="user-id" content="{{ auth()->check() ? auth()->user()->id : '' }}">
     <meta name="pusher-key" content="{{ config('broadcasting.connections.pusher.key') }}">
     <meta name="pusher-cluster" content="{{ config('broadcasting.connections.pusher.options.cluster', 'mt1') }}">
@@ -961,7 +961,7 @@
         // Initialize token from session on page load for web-logged-in Sales Executives
         @if(auth()->check() && auth()->user()->isSalesExecutive())
             @php
-                $token = session('sales_executive_api_token') ?? session('api_token');
+                $token = session('sales_executive_api_token') ?? session('telecaller_api_token') ?? session('api_token');
                 $user = auth()->user()->load('role', 'manager');
             @endphp
             @if($token)

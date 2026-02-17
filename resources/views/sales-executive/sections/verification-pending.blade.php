@@ -314,7 +314,7 @@
 
 @push('scripts')
 <script>
-    var API_BASE_URL = '{{ url("/api/Sales Executive") }}';
+    var API_BASE_URL = '{{ url("/api/telecaller") }}';
     let currentStatus = 'pending';
     let currentDateFilter = 'today';
     let customStartDate = '';
@@ -331,7 +331,7 @@
                 return token;
             }
         }
-        var sessionToken = '{{ session("sales_executive_api_token") ?? session("api_token") ?? "" }}';
+        var sessionToken = '{{ session("sales_executive_api_token") ?? session("telecaller_api_token") ?? session("api_token") ?? "" }}';
         if (sessionToken) {
             localStorage.setItem('sales-executive_token', sessionToken);
             return sessionToken;

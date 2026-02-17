@@ -187,7 +187,10 @@
         background: #e0f2e8 !important;
     }
 
-    /* Task filter dropdowns (Status, Type, View) - all screens */
+    /* Task filter dropdowns (Status, Type, View) - one line, all screens */
+    .task-filters-row {
+        flex-wrap: nowrap;
+    }
     .task-filters-row .task-filter-select {
         min-width: 140px;
         padding: 10px 36px 10px 14px;
@@ -371,12 +374,27 @@
             align-items: center;
         }
         
+        /* One horizontal line, each dropdown 33.33% - Status, Type, View bagal mein */
+        .task-filters-row {
+            flex-wrap: nowrap !important;
+            gap: 8px;
+        }
         .task-filters-row .filter-group {
-            flex: 1 1 100%;
+            flex: 0 0 calc((100% - 16px) / 3) !important;
+            min-width: 0 !important;
+            max-width: none;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+        .task-filters-row .filter-group label {
+            display: none !important;
         }
         .task-filters-row .task-filter-select {
-            flex: 1;
-            min-width: 0;
+            flex: 1 1 100% !important;
+            min-width: 0 !important;
+            width: 100% !important;
         }
         
         .view-toggle-icon-btn {
@@ -390,6 +408,12 @@
         
         .view-toggle-icon-btn:active {
             background: #e0f2e8 !important;
+        }
+
+        /* Hide list/grid toggle in mobile view */
+        #listViewToggle,
+        #listViewToggle i#toggleIcon {
+            display: none !important;
         }
 
         .task-filter-select,
@@ -1092,7 +1116,7 @@
 @section('content')
     <div class="tasks-container">
         <!-- Filter and View: Dropdowns (Status, Type, View) -->
-        <div class="task-filters-row" style="display: flex; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+        <div class="task-filters-row" style="display: flex; align-items: center; margin-bottom: 20px; gap: 12px;">
             <div class="filter-group" style="display: flex; align-items: center; gap: 8px;">
                 <label style="font-size: 14px; color: #063A1C; font-weight: 500; white-space: nowrap;">Status:</label>
                 <select id="taskStatusFilterDropdown" class="task-filter-select">
@@ -1121,7 +1145,7 @@
                     <option value="calendar">Calendar</option>
                 </select>
             </div>
-            <button id="listViewToggle" onclick="toggleListView()" class="view-toggle-icon-btn" style="width: 48px; height: 48px; padding: 0; border: 2px solid #205A44; border-radius: 8px; background: white; color: #063A1C; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; flex-shrink: 0;" title="Toggle list/grid">
+            <button id="listViewToggle" onclick="toggleListView()" class="view-toggle-icon-btn list-view-toggle-mobile-hide" style="width: 48px; height: 48px; padding: 0; border: 2px solid #205A44; border-radius: 8px; background: white; color: #063A1C; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; flex-shrink: 0;" title="Toggle list/grid">
                 <i class="fas fa-th" id="toggleIcon"></i>
             </button>
         </div>
@@ -1464,7 +1488,7 @@
 <!-- FullCalendar JS -->
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js'></script>
 <script>
-    var API_BASE_URL = '{{ url("/api/Sales Executive") }}';
+    var API_BASE_URL = '{{ url("/api/telecaller") }}';
     let currentTaskId = null;
     let currentLeadData = null;
     let currentStatus = 'pending';
@@ -1493,7 +1517,7 @@
                 return token;
             }
         }
-        var sessionToken = '{{ session("sales_executive_api_token") ?? session("api_token") ?? "" }}';
+        var sessionToken = '{{ session("sales_executive_api_token") ?? session("telecaller_api_token") ?? session("api_token") ?? "" }}';
         if (sessionToken) {
             localStorage.setItem('sales-executive_token', sessionToken);
             return sessionToken;
@@ -3376,7 +3400,7 @@
                 throw new Error('API call function not available. Please refresh the page.');
             }
             
-            // Note: apiCall already uses API_BASE_URL which is /api/Sales Executive
+            // Note: apiCall already uses API_BASE_URL which is /api/telecaller
             const endpoint = `/tasks/${taskId}/submit-for-verification`;
             console.log('Submitting form to endpoint:', endpoint, data);
             

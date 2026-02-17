@@ -518,7 +518,7 @@
 @push('scripts')
 <script>
     // Override API_BASE_URL for Sales Executive-specific endpoints
-    API_BASE_URL = '{{ url("/api/Sales Executive") }}';
+    API_BASE_URL = '{{ url("/api/telecaller") }}';
     let currentPage = 1;
     let searchTimeout = null;
 
@@ -534,7 +534,7 @@
                 return token;
             }
         }
-        var sessionToken = '{{ session("sales_executive_api_token") ?? session("api_token") ?? "" }}';
+        var sessionToken = '{{ session("sales_executive_api_token") ?? session("telecaller_api_token") ?? session("api_token") ?? "" }}';
         if (sessionToken) {
             localStorage.setItem('sales-executive_token', sessionToken);
             return sessionToken;
@@ -703,7 +703,7 @@
         const startDate = urlParams.get('start_date') || '';
         const endDate = urlParams.get('end_date') || '';
 
-        let endpoint = `/telecaller/leads?per_page=50&page=${page}&date_range=${encodeURIComponent(dateRange)}`;
+        let endpoint = `/leads?per_page=50&page=${page}&date_range=${encodeURIComponent(dateRange)}`;
         if (startDate) endpoint += `&start_date=${encodeURIComponent(startDate)}`;
         if (endDate) endpoint += `&end_date=${encodeURIComponent(endDate)}`;
         if (search) {
