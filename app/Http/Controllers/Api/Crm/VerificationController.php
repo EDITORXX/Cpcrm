@@ -97,16 +97,18 @@ class VerificationController extends Controller
 
         $user = $request->user();
 
-        // Only Senior Managers can verify prospects
-        if (!$user->isSalesManager()) {
-            return response()->json(['message' => 'Forbidden. Only managers can verify prospects.'], 403);
+        if ($user->isAdmin()) {
+            return response()->json(['message' => 'Forbidden. Admin cannot verify prospects.'], 403);
         }
 
-        // Check if the prospect's telecaller is under this manager's team
+        if (!$user->isSalesManager() && !$user->isAssistantSalesManager()) {
+            return response()->json(['message' => 'Forbidden. Only the telecaller\'s manager (ASM or Sales Manager) can verify prospects.'], 403);
+        }
+
         $telecaller = $prospect->telecaller;
         if (!$telecaller || $telecaller->manager_id !== $user->id) {
             return response()->json([
-                'message' => 'Forbidden. You can only verify prospects created by your team members.'
+                'message' => 'Forbidden. You can only verify prospects created by your team members.',
             ], 403);
         }
 
@@ -141,16 +143,18 @@ class VerificationController extends Controller
 
         $user = $request->user();
 
-        // Only Senior Managers can reject prospects
-        if (!$user->isSalesManager()) {
-            return response()->json(['message' => 'Forbidden. Only managers can reject prospects.'], 403);
+        if ($user->isAdmin()) {
+            return response()->json(['message' => 'Forbidden. Admin cannot reject prospects.'], 403);
         }
 
-        // Check if the prospect's telecaller is under this manager's team
+        if (!$user->isSalesManager() && !$user->isAssistantSalesManager()) {
+            return response()->json(['message' => 'Forbidden. Only the telecaller\'s manager (ASM or Sales Manager) can reject prospects.'], 403);
+        }
+
         $telecaller = $prospect->telecaller;
         if (!$telecaller || $telecaller->manager_id !== $user->id) {
             return response()->json([
-                'message' => 'Forbidden. You can only reject prospects created by your team members.'
+                'message' => 'Forbidden. You can only reject prospects created by your team members.',
             ], 403);
         }
 

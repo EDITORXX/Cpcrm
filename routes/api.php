@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\TargetController;
 use App\Http\Controllers\Api\InterestedProjectNameController;
 use App\Http\Controllers\Api\PabblyWebhookController;
 use App\Http\Controllers\Api\IncentiveController;
+use App\Http\Controllers\Api\LeadsPendingResponseController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -178,6 +179,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard/urgent-tasks', [\App\Http\Controllers\Api\TelecallerDashboardController::class, 'urgentTasks']);
         Route::get('/dashboard/schedule', [\App\Http\Controllers\Api\TelecallerDashboardController::class, 'schedule']);
         Route::get('/dashboard/performance', [\App\Http\Controllers\Api\TelecallerDashboardController::class, 'performance']);
+        Route::get('/leads-pending-response', [LeadsPendingResponseController::class, 'forCurrentUser']);
         
         // Leads & Calls
         Route::get('/leads', [TelecallerController::class, 'getLeads']);
@@ -261,6 +263,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Sales Manager routes (Admin, CRM, Sales Head, Senior Manager, Manager, Assistant Sales Manager)
     Route::prefix('sales-manager')->middleware('role:admin,crm,sales_head,sales_manager,senior_manager,assistant_sales_manager')->group(function () {
         // Profile
+        Route::get('/leads-pending-response', [LeadsPendingResponseController::class, 'forCurrentUser']);
         Route::get('/profile', [\App\Http\Controllers\Api\SalesManagerController::class, 'getProfile']);
         Route::put('/profile', [\App\Http\Controllers\Api\SalesManagerController::class, 'updateProfile']);
         Route::post('/profile/picture', [\App\Http\Controllers\Api\SalesManagerController::class, 'uploadProfilePicture']);
@@ -514,14 +517,18 @@ Route::middleware('auth:sanctum')->group(function () {
                     return response()->json(['error' => 'Unauthorized'], 401);
                 }
 
-                // Get all pending meetings - only 'pending' verification_status
+                // Get all pending meetings - verification_status 'pending' (or null for legacy)
                 // Optimize: Eager load relationships and select only needed columns
-                $meetings = \App\Models\Meeting::where('verification_status', 'pending')
-                    ->where('status', 'completed')
+                $meetings = \App\Models\Meeting::where('status', 'completed')
+                    ->where(function ($q) {
+                        $q->where('verification_status', 'pending')
+                          ->orWhereNull('verification_status');
+                    })
+                    ->orderBy('completed_at', 'desc')
                     ->with([
                         'lead:id,name,phone',
                         'prospect:id,customer_name',
-                        'creator:id,name',
+                        'creator:id,name,manager_id',
                         'assignedTo:id,name'
                     ])
                     ->select([
@@ -533,7 +540,14 @@ Route::middleware('auth:sanctum')->group(function () {
                         'photos', 'completion_proof_photos'
                     ])
                     ->get()
-                    ->map(function($meeting) {
+                    ->map(function($meeting) use ($user) {
+                    $creator = $meeting->creator;
+                    $canVerify = false;
+                    if (!$user->isAdmin()) {
+                        if ($creator) {
+                            $canVerify = $creator->manager_id === null ? $user->isCrm() : $user->isSeniorOf($creator);
+                        }
+                    }
                     return [
                         'id' => $meeting->id,
                         'customer_name' => $meeting->customer_name,
@@ -559,20 +573,26 @@ Route::middleware('auth:sanctum')->group(function () {
                         'prospect' => $meeting->prospect ? ['id' => $meeting->prospect->id, 'customer_name' => $meeting->prospect->customer_name] : null,
                         'creator' => $meeting->creator ? ['id' => $meeting->creator->id, 'name' => $meeting->creator->name] : null,
                         'assignedTo' => $meeting->assignedTo ? ['id' => $meeting->assignedTo->id, 'name' => $meeting->assignedTo->name] : null,
+                        'can_verify' => $canVerify,
                     ];
                 });
                 
-                // Get all pending site visits - only 'pending' verification_status
+                // Get all pending site visits - verification_status 'pending' (or null for legacy)
+                // Exclude site visits that are in "closer" flow (they appear under Closer Requests tab)
                 // Optimize: Eager load relationships and select only needed columns
-                $siteVisits = \App\Models\SiteVisit::where('verification_status', 'pending')
-                    ->where('status', 'completed')
+                $siteVisits = \App\Models\SiteVisit::where('status', 'completed')
+                    ->where(function ($q) {
+                        $q->where('verification_status', 'pending')
+                          ->orWhereNull('verification_status');
+                    })
                     ->where(function($query) {
                         $query->whereNull('closer_status')
                               ->orWhere('closer_status', '!=', 'pending');
                     })
+                    ->orderBy('completed_at', 'desc')
                     ->with([
                         'lead:id,name,phone',
-                        'creator:id,name',
+                        'creator:id,name,manager_id',
                         'assignedTo:id,name'
                     ])
                     ->select([
@@ -583,7 +603,14 @@ Route::middleware('auth:sanctum')->group(function () {
                         'photos', 'completion_proof_photos'
                     ])
                     ->get()
-                    ->map(function($visit) {
+                    ->map(function($visit) use ($user) {
+                    $creator = $visit->creator;
+                    $canVerify = false;
+                    if (!$user->isAdmin()) {
+                        if ($creator) {
+                            $canVerify = $creator->manager_id === null ? $user->isCrm() : $user->isSeniorOf($creator);
+                        }
+                    }
                     return [
                         'id' => $visit->id,
                         'customer_name' => $visit->customer_name,
@@ -607,6 +634,7 @@ Route::middleware('auth:sanctum')->group(function () {
                         'lead' => $visit->lead ? ['id' => $visit->lead->id, 'name' => $visit->lead->name, 'phone' => $visit->lead->phone] : null,
                         'creator' => $visit->creator ? ['id' => $visit->creator->id, 'name' => $visit->creator->name] : null,
                         'assignedTo' => $visit->assignedTo ? ['id' => $visit->assignedTo->id, 'name' => $visit->assignedTo->name] : null,
+                        'can_verify' => $canVerify,
                     ];
                 });
                 
@@ -631,6 +659,10 @@ Route::middleware('auth:sanctum')->group(function () {
         
         Route::get('/verifications/pending-closers', function (Request $request) {
             try {
+                $user = $request->user();
+                if (!$user) {
+                    return response()->json(['error' => 'Unauthorized'], 401);
+                }
                 $closers = \App\Models\SiteVisit::where('closer_status', 'pending')
                     ->where('verification_status', 'verified')
                     ->with([
@@ -642,11 +674,12 @@ Route::middleware('auth:sanctum')->group(function () {
                         'id', 'customer_name', 'phone', 'scheduled_at', 'completed_at',
                         'status', 'verification_status', 'property_name', 'budget_range',
                         'visit_notes', 'closer_status', 'lead_id', 'created_by', 'assigned_to',
-                        'photos', 'completion_proof_photos', 'closer_request_proof_photos', 'incentive_amount'
+                        'photos', 'completion_proof_photos', 'closer_request_proof_photos', 'incentive_amount',
+                        'closing_verification_status'
                     ])
                     ->with('incentives')
                     ->get()
-                    ->map(function($visit) {
+                    ->map(function($visit) use ($user) {
                         $incentive = $visit->incentives()->where('type', 'closer')->first();
                         return [
                             'id' => $visit->id,
@@ -661,6 +694,7 @@ Route::middleware('auth:sanctum')->group(function () {
                             'budget_range' => $visit->budget_range,
                             'visit_notes' => $visit->visit_notes,
                             'closer_status' => $visit->closer_status,
+                            'closing_verification_status' => $visit->closing_verification_status ?? null,
                             'incentive_amount' => $visit->incentive_amount ?? ($incentive ? $incentive->amount : 0),
                             'incentive_id' => $incentive ? $incentive->id : null,
                             'photos' => $visit->photos ?? [],
@@ -669,6 +703,8 @@ Route::middleware('auth:sanctum')->group(function () {
                             'lead' => $visit->lead ? ['id' => $visit->lead->id, 'name' => $visit->lead->name, 'phone' => $visit->lead->phone] : null,
                             'creator' => $visit->creator ? ['id' => $visit->creator->id, 'name' => $visit->creator->name] : null,
                             'assignedTo' => $visit->assignedTo ? ['id' => $visit->assignedTo->id, 'name' => $visit->assignedTo->name] : null,
+                            'can_verify' => $user->isSalesHead(),
+                            'can_verify_closing' => $user->isCrm(),
                         ];
                     });
                 

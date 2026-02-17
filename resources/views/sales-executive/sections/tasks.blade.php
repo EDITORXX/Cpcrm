@@ -763,15 +763,15 @@
     .btn-not-interested:hover { background: #ef4444; color: white; }
     .btn-cnp { border-color: #f59e0b; color: #f59e0b; }
     .btn-cnp:hover { background: #f59e0b; color: white; }
-    .Sales Executive-time-option-btn {
+    .salesExecutive-time-option-btn {
         transition: all 0.2s ease;
     }
-    .Sales Executive-time-option-btn:hover {
+    .salesExecutive-time-option-btn:hover {
         border-color: #f59e0b !important;
         background: #fff9e6 !important;
         transform: translateY(-1px);
     }
-    .Sales Executive-time-option-btn.selected {
+    .salesExecutive-time-option-btn.selected {
         border-color: #f59e0b !important;
         background: #f59e0b !important;
         color: white !important;
@@ -1305,11 +1305,11 @@
     </div>
 
     <!-- CNP Time Selection Modal -->
-    <div id="Sales ExecutiveCnpTimeSelectionModal" class="modal">
+    <div id="SalesExecutiveCnpTimeSelectionModal" class="modal">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h3>Select Retry Time for CNP</h3>
-                <button class="close-modal" onclick="cancelSales ExecutiveCnpTimeSelection()">&times;</button>
+                <button class="close-modal" onclick="cancelSalesExecutiveCnpTimeSelection()">&times;</button>
             </div>
             <div class="modal-body">
                 <div style="padding: 20px;">
@@ -1319,35 +1319,35 @@
                     
                     <!-- Quick Time Options -->
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
-                        <button type="button" class="Sales Executive-time-option-btn" onclick="selectSales ExecutiveCnpTime(15)" data-minutes="15" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                        <button type="button" class="salesExecutive-time-option-btn" onclick="selectSalesExecutiveCnpTime(15)" data-minutes="15" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
                             15 Minutes
                         </button>
-                        <button type="button" class="Sales Executive-time-option-btn" onclick="selectSales ExecutiveCnpTime(30)" data-minutes="30" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                        <button type="button" class="salesExecutive-time-option-btn" onclick="selectSalesExecutiveCnpTime(30)" data-minutes="30" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
                             30 Minutes
                         </button>
-                        <button type="button" class="Sales Executive-time-option-btn" onclick="selectSales ExecutiveCnpTime(60)" data-minutes="60" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                        <button type="button" class="salesExecutive-time-option-btn" onclick="selectSalesExecutiveCnpTime(60)" data-minutes="60" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
                             1 Hour
                         </button>
-                        <button type="button" class="Sales Executive-time-option-btn" onclick="selectSales ExecutiveCnpTime(120)" data-minutes="120" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                        <button type="button" class="salesExecutive-time-option-btn" onclick="selectSalesExecutiveCnpTime(120)" data-minutes="120" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
                             2 Hours
                         </button>
                     </div>
                     
                     <!-- Custom Option -->
                     <div style="margin-bottom: 20px;">
-                        <button type="button" class="Sales Executive-time-option-btn" onclick="showSales ExecutiveCustomTimePicker()" id="Sales ExecutiveCustomTimeOptionBtn" style="width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                        <button type="button" class="salesExecutive-time-option-btn" onclick="showSalesExecutiveCustomTimePicker()" id="salesExecutiveCustomTimeOptionBtn" style="width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
                             Custom Date & Time
                         </button>
                     </div>
                     
                     <!-- Custom Date-Time Picker (hidden by default) -->
-                    <div id="Sales ExecutiveCustomTimePickerContainer" style="display: none; padding: 16px; background: #f8f9fa; border-radius: 8px; margin-bottom: 20px;">
+                    <div id="salesExecutiveCustomTimePickerContainer" style="display: none; padding: 16px; background: #f8f9fa; border-radius: 8px; margin-bottom: 20px;">
                         <div style="margin-bottom: 12px;">
                             <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
                                 <strong>Date</strong> <span style="color: #d32f2f;">*</span>
                             </label>
                             <input type="date" 
-                                   id="Sales ExecutiveCnpCustomDate" 
+                                   id="SalesExecutiveCnpCustomDate" 
                                    min=""
                                    style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
                         </div>
@@ -1356,7 +1356,7 @@
                                 <strong>Time</strong> <span style="color: #d32f2f;">*</span>
                             </label>
                             <input type="time" 
-                                   id="Sales ExecutiveCnpCustomTime"
+                                   id="SalesExecutiveCnpCustomTime"
                                    style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
                         </div>
                         <small style="display: block; margin-top: 8px; color: #666; font-size: 12px;">
@@ -1365,18 +1365,18 @@
                     </div>
                     
                     <!-- Selected Time Display -->
-                    <div id="Sales ExecutiveSelectedTimeDisplay" style="padding: 12px; background: #e8f5e9; border-radius: 6px; margin-bottom: 20px; display: none;">
+                    <div id="salesExecutiveSelectedTimeDisplay" style="padding: 12px; background: #e8f5e9; border-radius: 6px; margin-bottom: 20px; display: none;">
                         <p style="font-size: 14px; color: #2e7d32; margin: 0;">
-                            <strong>Selected:</strong> <span id="Sales ExecutiveSelectedTimeText"></span>
+                            <strong>Selected:</strong> <span id="salesExecutiveSelectedTimeText"></span>
                         </p>
                     </div>
                 </div>
             </div>
             <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; padding: 16px 20px; border-top: 1px solid #e0e0e0;">
-                <button type="button" onclick="cancelSales ExecutiveCnpTimeSelection()" style="padding: 10px 20px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer; font-size: 14px; font-weight: 500;">
+                <button type="button" onclick="cancelSalesExecutiveCnpTimeSelection()" style="padding: 10px 20px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer; font-size: 14px; font-weight: 500;">
                     Cancel
                 </button>
-                <button type="button" onclick="confirmSales ExecutiveCnpTimeSelection()" style="padding: 10px 20px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                <button type="button" onclick="confirmSalesExecutiveCnpTimeSelection()" style="padding: 10px 20px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
                     Confirm
                 </button>
             </div>
@@ -1384,11 +1384,11 @@
     </div>
 
     <!-- CNP Time Selection Modal -->
-    <div id="Sales ExecutiveCnpTimeSelectionModal" class="modal">
+    <div id="SalesExecutiveCnpTimeSelectionModal" class="modal">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h3>Select Retry Time for CNP</h3>
-                <button class="close-modal" onclick="cancelSales ExecutiveCnpTimeSelection()">&times;</button>
+                <button class="close-modal" onclick="cancelSalesExecutiveCnpTimeSelection()">&times;</button>
             </div>
             <div class="modal-body">
                 <div style="padding: 20px;">
@@ -1398,35 +1398,35 @@
                     
                     <!-- Quick Time Options -->
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
-                        <button type="button" class="Sales Executive-time-option-btn" onclick="selectSales ExecutiveCnpTime(15)" data-minutes="15" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                        <button type="button" class="salesExecutive-time-option-btn" onclick="selectSalesExecutiveCnpTime(15)" data-minutes="15" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
                             15 Minutes
                         </button>
-                        <button type="button" class="Sales Executive-time-option-btn" onclick="selectSales ExecutiveCnpTime(30)" data-minutes="30" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                        <button type="button" class="salesExecutive-time-option-btn" onclick="selectSalesExecutiveCnpTime(30)" data-minutes="30" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
                             30 Minutes
                         </button>
-                        <button type="button" class="Sales Executive-time-option-btn" onclick="selectSales ExecutiveCnpTime(60)" data-minutes="60" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                        <button type="button" class="salesExecutive-time-option-btn" onclick="selectSalesExecutiveCnpTime(60)" data-minutes="60" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
                             1 Hour
                         </button>
-                        <button type="button" class="Sales Executive-time-option-btn" onclick="selectSales ExecutiveCnpTime(120)" data-minutes="120" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                        <button type="button" class="salesExecutive-time-option-btn" onclick="selectSalesExecutiveCnpTime(120)" data-minutes="120" style="padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
                             2 Hours
                         </button>
                     </div>
                     
                     <!-- Custom Option -->
                     <div style="margin-bottom: 20px;">
-                        <button type="button" class="Sales Executive-time-option-btn" onclick="showSales ExecutiveCustomTimePicker()" id="Sales ExecutiveCustomTimeOptionBtn" style="width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                        <button type="button" class="salesExecutive-time-option-btn" onclick="showSalesExecutiveCustomTimePicker()" id="salesExecutiveCustomTimeOptionBtn" style="width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; color: #333; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
                             Custom Date & Time
                         </button>
                     </div>
                     
                     <!-- Custom Date-Time Picker (hidden by default) -->
-                    <div id="Sales ExecutiveCustomTimePickerContainer" style="display: none; padding: 16px; background: #f8f9fa; border-radius: 8px; margin-bottom: 20px;">
+                    <div id="salesExecutiveCustomTimePickerContainer" style="display: none; padding: 16px; background: #f8f9fa; border-radius: 8px; margin-bottom: 20px;">
                         <div style="margin-bottom: 12px;">
                             <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
                                 <strong>Date</strong> <span style="color: #d32f2f;">*</span>
                             </label>
                             <input type="date" 
-                                   id="Sales ExecutiveCnpCustomDate" 
+                                   id="SalesExecutiveCnpCustomDate" 
                                    min=""
                                    style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
                         </div>
@@ -1435,7 +1435,7 @@
                                 <strong>Time</strong> <span style="color: #d32f2f;">*</span>
                             </label>
                             <input type="time" 
-                                   id="Sales ExecutiveCnpCustomTime"
+                                   id="SalesExecutiveCnpCustomTime"
                                    style="width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
                         </div>
                         <small style="display: block; margin-top: 8px; color: #666; font-size: 12px;">
@@ -1444,18 +1444,18 @@
                     </div>
                     
                     <!-- Selected Time Display -->
-                    <div id="Sales ExecutiveSelectedTimeDisplay" style="padding: 12px; background: #e8f5e9; border-radius: 6px; margin-bottom: 20px; display: none;">
+                    <div id="salesExecutiveSelectedTimeDisplay" style="padding: 12px; background: #e8f5e9; border-radius: 6px; margin-bottom: 20px; display: none;">
                         <p style="font-size: 14px; color: #2e7d32; margin: 0;">
-                            <strong>Selected:</strong> <span id="Sales ExecutiveSelectedTimeText"></span>
+                            <strong>Selected:</strong> <span id="salesExecutiveSelectedTimeText"></span>
                         </p>
                     </div>
                 </div>
             </div>
             <div class="modal-footer" style="display: flex; gap: 12px; justify-content: flex-end; padding: 16px 20px; border-top: 1px solid #e0e0e0;">
-                <button type="button" onclick="cancelSales ExecutiveCnpTimeSelection()" style="padding: 10px 20px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer; font-size: 14px; font-weight: 500;">
+                <button type="button" onclick="cancelSalesExecutiveCnpTimeSelection()" style="padding: 10px 20px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer; font-size: 14px; font-weight: 500;">
                     Cancel
                 </button>
-                <button type="button" onclick="confirmSales ExecutiveCnpTimeSelection()" style="padding: 10px 20px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                <button type="button" onclick="confirmSalesExecutiveCnpTimeSelection()" style="padding: 10px 20px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
                     Confirm
                 </button>
             </div>
@@ -1495,7 +1495,7 @@
     let currentTaskType = null; // Track current task type filter (null = all types)
     let currentTasksArray = []; // Store tasks array globally for button clicks
     let calendarInstance = null; // FullCalendar instance
-    let isListView = localStorage.getItem('Sales Executive_task_list_view') === 'true'; // Track list/grid view
+    let isListView = localStorage.getItem('salesExecutive_task_list_view') === 'true'; // Track list/grid view
 
     // Helper function to show notifications (fallback to alert if custom notification not available)
     function showAlert(message, type = 'success', duration = 2500) {
@@ -1577,7 +1577,7 @@
             if (response.status === 401) {
                 console.error('Unauthorized - clearing token');
                 localStorage.removeItem('sales-executive_token');
-                localStorage.removeItem('Sales Executive_user');
+                localStorage.removeItem('salesExecutive_user');
                 setTimeout(() => {
                     window.location.href = '{{ route("login") }}';
                 }, 2000);
@@ -1666,9 +1666,9 @@
         applyListView();
         contentDiv.innerHTML = '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i><p>Loading tasks...</p></div>';
 
-        // Read date_range from URL (header dropdown) so Today filter shows only today's tasks
+        // Read date_range from URL (header dropdown). Default 'all' so all pending tasks show; user can filter by Today.
         const urlParams = new URLSearchParams(window.location.search);
-        const dateRange = urlParams.get('date_range') || 'today';
+        const dateRange = urlParams.get('date_range') || 'all';
         const startDate = urlParams.get('start_date') || '';
         const endDate = urlParams.get('end_date') || '';
 
@@ -1681,9 +1681,14 @@
         }
         console.log('Loading tasks from:', API_BASE_URL + endpoint);
         console.log('Token exists:', !!getToken());
-        
+
+        const TASKS_LOAD_TIMEOUT_MS = 20000;
+        let result;
         try {
-            const result = await apiCall(endpoint);
+            result = await Promise.race([
+                apiCall(endpoint),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout. Server took too long to respond.')), TASKS_LOAD_TIMEOUT_MS))
+            ]);
             console.log('API Result:', result);
 
             if (!result) {
@@ -2046,9 +2051,9 @@
     }
 
     // CNP Time Selection Variables for Sales Executive
-    let selectedSales ExecutiveCnpMinutes = null;
-    let selectedSales ExecutiveCnpDateTime = null;
-    let isSales ExecutiveCustomTimeSelected = false;
+    let selectedSalesExecutiveCnpMinutes = null;
+    let selectedSalesExecutiveCnpDateTime = null;
+    let isSalesExecutiveCustomTimeSelected = false;
     let currentCnpCount = 0;
     
     async function handleCNP() {
@@ -2058,38 +2063,38 @@
         // If CNP count >= 2, task will be completed (no retry task created)
         if (currentCnpCount >= 2) {
             showConfirmModal('Mark as CNP? Task will be completed automatically.', function() {
-                executeSales ExecutiveCNP(null, null, currentCnpCount);
+                executeSalesExecutiveCNP(null, null, currentCnpCount);
             });
             return;
         }
         
         // Open time selection modal for CNP count < 2
-        openSales ExecutiveCnpTimeSelectionModal();
+        openSalesExecutiveCnpTimeSelectionModal();
     }
     
     // Open Sales Executive CNP Time Selection Modal
-    function openSales ExecutiveCnpTimeSelectionModal() {
-        const modal = document.getElementById('Sales ExecutiveCnpTimeSelectionModal');
+    function openSalesExecutiveCnpTimeSelectionModal() {
+        const modal = document.getElementById('SalesExecutiveCnpTimeSelectionModal');
         if (modal) {
             modal.classList.add('active');
             // Reset selections
-            selectedSales ExecutiveCnpMinutes = null;
-            selectedSales ExecutiveCnpDateTime = null;
-            isSales ExecutiveCustomTimeSelected = false;
-            document.getElementById('Sales ExecutiveCustomTimePickerContainer').style.display = 'none';
-            document.getElementById('Sales ExecutiveSelectedTimeDisplay').style.display = 'none';
+            selectedSalesExecutiveCnpMinutes = null;
+            selectedSalesExecutiveCnpDateTime = null;
+            isSalesExecutiveCustomTimeSelected = false;
+            document.getElementById('salesExecutiveCustomTimePickerContainer').style.display = 'none';
+            document.getElementById('salesExecutiveSelectedTimeDisplay').style.display = 'none';
             // Clear button selections
-            document.querySelectorAll('.Sales Executive-time-option-btn').forEach(btn => {
+            document.querySelectorAll('.salesExecutive-time-option-btn').forEach(btn => {
                 btn.classList.remove('selected');
             });
             // Set minimum date to today
             const today = new Date().toISOString().split('T')[0];
-            const dateInput = document.getElementById('Sales ExecutiveCnpCustomDate');
+            const dateInput = document.getElementById('SalesExecutiveCnpCustomDate');
             if (dateInput) {
                 dateInput.min = today;
                 dateInput.value = '';
             }
-            const timeInput = document.getElementById('Sales ExecutiveCnpCustomTime');
+            const timeInput = document.getElementById('SalesExecutiveCnpCustomTime');
             if (timeInput) {
                 timeInput.value = '';
             }
@@ -2097,20 +2102,20 @@
     }
     
     // Select quick time option for Sales Executive (15 min, 30 min, 1 hr, 2 hr)
-    function selectSales ExecutiveCnpTime(minutes) {
-        selectedSales ExecutiveCnpMinutes = minutes;
-        selectedSales ExecutiveCnpDateTime = null;
-        isSales ExecutiveCustomTimeSelected = false;
+    function selectSalesExecutiveCnpTime(minutes) {
+        selectedSalesExecutiveCnpMinutes = minutes;
+        selectedSalesExecutiveCnpDateTime = null;
+        isSalesExecutiveCustomTimeSelected = false;
         
         // Hide custom picker
-        document.getElementById('Sales ExecutiveCustomTimePickerContainer').style.display = 'none';
+        document.getElementById('salesExecutiveCustomTimePickerContainer').style.display = 'none';
         
         // Clear custom inputs
-        document.getElementById('Sales ExecutiveCnpCustomDate').value = '';
-        document.getElementById('Sales ExecutiveCnpCustomTime').value = '';
+        document.getElementById('SalesExecutiveCnpCustomDate').value = '';
+        document.getElementById('SalesExecutiveCnpCustomTime').value = '';
         
         // Remove selected class from all buttons
-        document.querySelectorAll('.Sales Executive-time-option-btn').forEach(btn => {
+        document.querySelectorAll('.salesExecutive-time-option-btn').forEach(btn => {
             btn.classList.remove('selected');
         });
         
@@ -2129,31 +2134,31 @@
             hour12: true
         });
         
-        document.getElementById('Sales ExecutiveSelectedTimeText').textContent = `Retry call in ${minutes} minutes (${formattedTime})`;
-        document.getElementById('Sales ExecutiveSelectedTimeDisplay').style.display = 'block';
+        document.getElementById('salesExecutiveSelectedTimeText').textContent = `Retry call in ${minutes} minutes (${formattedTime})`;
+        document.getElementById('salesExecutiveSelectedTimeDisplay').style.display = 'block';
     }
     
     // Show custom date-time picker for Sales Executive
-    function showSales ExecutiveCustomTimePicker() {
-        isSales ExecutiveCustomTimeSelected = true;
-        selectedSales ExecutiveCnpMinutes = null;
+    function showSalesExecutiveCustomTimePicker() {
+        isSalesExecutiveCustomTimeSelected = true;
+        selectedSalesExecutiveCnpMinutes = null;
         
         // Remove selected class from quick option buttons
-        document.querySelectorAll('.Sales Executive-time-option-btn[data-minutes]').forEach(btn => {
+        document.querySelectorAll('.salesExecutive-time-option-btn[data-minutes]').forEach(btn => {
             btn.classList.remove('selected');
         });
         
         // Show custom picker container
-        const customContainer = document.getElementById('Sales ExecutiveCustomTimePickerContainer');
+        const customContainer = document.getElementById('salesExecutiveCustomTimePickerContainer');
         customContainer.style.display = 'block';
         
         // Hide selected time display initially
-        document.getElementById('Sales ExecutiveSelectedTimeDisplay').style.display = 'none';
+        document.getElementById('salesExecutiveSelectedTimeDisplay').style.display = 'none';
         
         // Set minimum date to today and default time to next hour
         const today = new Date().toISOString().split('T')[0];
-        const dateInput = document.getElementById('Sales ExecutiveCnpCustomDate');
-        const timeInput = document.getElementById('Sales ExecutiveCnpCustomTime');
+        const dateInput = document.getElementById('SalesExecutiveCnpCustomDate');
+        const timeInput = document.getElementById('SalesExecutiveCnpCustomTime');
         
         if (dateInput) {
             dateInput.min = today;
@@ -2172,7 +2177,7 @@
         
         // Add change listeners to update selected time display
         if (dateInput && timeInput) {
-            const updateSales ExecutiveCustomTimeDisplay = () => {
+            const updateSalesExecutiveCustomTimeDisplay = () => {
                 const date = dateInput.value;
                 const time = timeInput.value;
                 if (date && time) {
@@ -2186,30 +2191,30 @@
                             minute: '2-digit',
                             hour12: true
                         });
-                        document.getElementById('Sales ExecutiveSelectedTimeText').textContent = `Retry call on ${formattedTime}`;
-                        document.getElementById('Sales ExecutiveSelectedTimeDisplay').style.display = 'block';
-                        selectedSales ExecutiveCnpDateTime = dateTime.toISOString();
+                        document.getElementById('salesExecutiveSelectedTimeText').textContent = `Retry call on ${formattedTime}`;
+                        document.getElementById('salesExecutiveSelectedTimeDisplay').style.display = 'block';
+                        selectedSalesExecutiveCnpDateTime = dateTime.toISOString();
                     } else {
-                        document.getElementById('Sales ExecutiveSelectedTimeDisplay').style.display = 'none';
+                        document.getElementById('salesExecutiveSelectedTimeDisplay').style.display = 'none';
                     }
                 } else {
-                    document.getElementById('Sales ExecutiveSelectedTimeDisplay').style.display = 'none';
+                    document.getElementById('salesExecutiveSelectedTimeDisplay').style.display = 'none';
                 }
             };
             
             // Remove existing listeners and add new ones
-            dateInput.removeEventListener('change', updateSales ExecutiveCustomTimeDisplay);
-            timeInput.removeEventListener('change', updateSales ExecutiveCustomTimeDisplay);
-            dateInput.addEventListener('change', updateSales ExecutiveCustomTimeDisplay);
-            timeInput.addEventListener('change', updateSales ExecutiveCustomTimeDisplay);
+            dateInput.removeEventListener('change', updateSalesExecutiveCustomTimeDisplay);
+            timeInput.removeEventListener('change', updateSalesExecutiveCustomTimeDisplay);
+            dateInput.addEventListener('change', updateSalesExecutiveCustomTimeDisplay);
+            timeInput.addEventListener('change', updateSalesExecutiveCustomTimeDisplay);
             
             // Initial update
-            updateSales ExecutiveCustomTimeDisplay();
+            updateSalesExecutiveCustomTimeDisplay();
         }
     }
     
     // Confirm Sales Executive CNP time selection and submit
-    async function confirmSales ExecutiveCnpTimeSelection() {
+    async function confirmSalesExecutiveCnpTimeSelection() {
         if (!currentTaskId) {
             showAlert('Task ID not found', 'error');
             return;
@@ -2217,7 +2222,7 @@
         
         // If CNP count >= 2, no retry task needed (task will be completed)
         if (currentCnpCount >= 2) {
-            executeSales ExecutiveCNP(null, null, currentCnpCount);
+            executeSalesExecutiveCNP(null, null, currentCnpCount);
             return;
         }
         
@@ -2225,9 +2230,9 @@
         let retryMinutes = null;
         
         // Validate selection
-        if (isSales ExecutiveCustomTimeSelected) {
-            const dateInput = document.getElementById('Sales ExecutiveCnpCustomDate');
-            const timeInput = document.getElementById('Sales ExecutiveCnpCustomTime');
+        if (isSalesExecutiveCustomTimeSelected) {
+            const dateInput = document.getElementById('SalesExecutiveCnpCustomDate');
+            const timeInput = document.getElementById('SalesExecutiveCnpCustomTime');
             const date = dateInput.value;
             const time = timeInput.value;
             
@@ -2245,19 +2250,19 @@
             }
             
             retryAt = selectedDateTime.toISOString();
-        } else if (selectedSales ExecutiveCnpMinutes !== null) {
-            retryMinutes = selectedSales ExecutiveCnpMinutes;
+        } else if (selectedSalesExecutiveCnpMinutes !== null) {
+            retryMinutes = selectedSalesExecutiveCnpMinutes;
         } else {
             showAlert('Please select a retry time option', 'warning');
             return;
         }
         
-        executeSales ExecutiveCNP(retryAt, retryMinutes, currentCnpCount);
+        executeSalesExecutiveCNP(retryAt, retryMinutes, currentCnpCount);
     }
     
     // Execute Sales Executive CNP with selected time
-    async function executeSales ExecutiveCNP(retryAt, retryMinutes, cnpCount) {
-        closeSales ExecutiveCnpTimeSelectionModal();
+    async function executeSalesExecutiveCNP(retryAt, retryMinutes, cnpCount) {
+        closeSalesExecutiveCnpTimeSelectionModal();
         closeConfirmModal();
         
         if (!currentTaskId) {
@@ -2329,24 +2334,24 @@
     }
     
     // Cancel Sales Executive CNP time selection
-    function cancelSales ExecutiveCnpTimeSelection() {
-        closeSales ExecutiveCnpTimeSelectionModal();
+    function cancelSalesExecutiveCnpTimeSelection() {
+        closeSalesExecutiveCnpTimeSelectionModal();
     }
     
     // Close Sales Executive CNP time selection modal
-    function closeSales ExecutiveCnpTimeSelectionModal() {
-        const modal = document.getElementById('Sales ExecutiveCnpTimeSelectionModal');
+    function closeSalesExecutiveCnpTimeSelectionModal() {
+        const modal = document.getElementById('SalesExecutiveCnpTimeSelectionModal');
         if (modal) {
             modal.classList.remove('active');
             // Reset selections
-            selectedSales ExecutiveCnpMinutes = null;
-            selectedSales ExecutiveCnpDateTime = null;
-            isSales ExecutiveCustomTimeSelected = false;
-            document.getElementById('Sales ExecutiveCustomTimePickerContainer').style.display = 'none';
-            document.getElementById('Sales ExecutiveSelectedTimeDisplay').style.display = 'none';
-            document.getElementById('Sales ExecutiveCnpCustomDate').value = '';
-            document.getElementById('Sales ExecutiveCnpCustomTime').value = '';
-            document.querySelectorAll('.Sales Executive-time-option-btn').forEach(btn => {
+            selectedSalesExecutiveCnpMinutes = null;
+            selectedSalesExecutiveCnpDateTime = null;
+            isSalesExecutiveCustomTimeSelected = false;
+            document.getElementById('salesExecutiveCustomTimePickerContainer').style.display = 'none';
+            document.getElementById('salesExecutiveSelectedTimeDisplay').style.display = 'none';
+            document.getElementById('SalesExecutiveCnpCustomDate').value = '';
+            document.getElementById('SalesExecutiveCnpCustomTime').value = '';
+            document.querySelectorAll('.salesExecutive-time-option-btn').forEach(btn => {
                 btn.classList.remove('selected');
             });
         }
@@ -2718,7 +2723,7 @@
     });
 
     // View switching functionality
-    let currentView = localStorage.getItem('Sales Executive_task_view') || 'list';
+    let currentView = localStorage.getItem('salesExecutive_task_view') || 'list';
     
     function switchView(view) {
         // Force list view on mobile
@@ -2727,7 +2732,7 @@
         }
         
         currentView = view;
-        localStorage.setItem('Sales Executive_task_view', view);
+        localStorage.setItem('salesExecutive_task_view', view);
         
         const viewDropdown = document.getElementById('taskViewDropdown');
         if (viewDropdown) viewDropdown.value = view;
@@ -2754,7 +2759,7 @@
     // Toggle between list and grid view (mobile only)
     function toggleListView() {
         isListView = !isListView;
-        localStorage.setItem('Sales Executive_task_list_view', isListView);
+        localStorage.setItem('salesExecutive_task_list_view', isListView);
         applyListView();
     }
     

@@ -557,6 +557,47 @@
             </div>
         </div>
     </div>
+
+    <!-- 7. No response yet -->
+    <div class="rounded-lg shadow p-6 dashboard-card">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-sm">No response yet</p>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1" id="smNoResponseYetCount">0</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leads allocated – no response yet (SM/ASM) -->
+<div class="bg-white rounded-lg shadow p-6 mb-6">
+    <h2 class="text-xl font-bold text-gray-900 mb-2">
+        <i class="fas fa-inbox mr-2 text-[#063A1C]"></i>Leads allocated – no response yet
+    </h2>
+    <p class="text-sm text-gray-600 mb-4">Leads assigned to you on which you haven't responded yet.</p>
+    <div class="flex flex-wrap items-center gap-2 mb-4">
+        <label for="sm-leads-pending-date-range" class="text-sm font-medium text-gray-700">Date range:</label>
+        <select id="sm-leads-pending-date-range" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#063A1C] focus:border-[#063A1C]">
+            <option value="this_week">This week</option>
+            <option value="this_month" selected>This month</option>
+            <option value="all_time">All time</option>
+        </select>
+    </div>
+    <div class="overflow-x-auto rounded-lg border border-gray-200">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Lead name</th>
+                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Phone</th>
+                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Assigned at</th>
+                    <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Action</th>
+                </tr>
+            </thead>
+            <tbody id="sm-leads-pending-response-tbody" class="bg-white divide-y divide-gray-200">
+                <tr><td colspan="4" class="px-4 py-6 text-center text-gray-500">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <!-- Recent Tasks Section (Mobile View) -->
@@ -879,6 +920,41 @@
         }
     }
 
+    async function loadSmLeadsPendingResponse() {
+        const tbody = document.getElementById('sm-leads-pending-response-tbody');
+        const countEl = document.getElementById('smNoResponseYetCount');
+        const dateRange = document.getElementById('sm-leads-pending-date-range')?.value || 'this_month';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-6 text-center text-gray-500">Loading...</td></tr>';
+        try {
+            const data = await apiCall('/leads-pending-response?date_range=' + encodeURIComponent(dateRange));
+            if (!data || data.error) {
+                if (countEl) countEl.textContent = '0';
+                if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-6 text-center text-red-600">Error loading data.</td></tr>';
+                return;
+            }
+            const count = data.pending_count ?? 0;
+            const leads = data.leads || [];
+            if (countEl) countEl.textContent = count;
+            const leadShowBase = '{{ url("/leads") }}';
+            if (!tbody) return;
+            if (leads.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-6 text-center text-gray-500">No leads pending response.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = leads.map(function(l) {
+                const name = (l.name || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const phone = (l.phone || '—');
+                const masked = phone.length > 4 ? phone.slice(0, 2) + '****' + phone.slice(-4) : phone;
+                const assignedAt = l.assigned_at ? new Date(l.assigned_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+                return '<tr><td class="px-4 py-3 text-sm text-gray-900">' + name + '</td><td class="px-4 py-3 text-sm text-gray-600">' + masked + '</td><td class="px-4 py-3 text-sm text-gray-600">' + assignedAt + '</td><td class="px-4 py-3"><a href="' + leadShowBase + '/' + (l.lead_id || '') + '" class="text-[#063A1C] font-medium hover:underline">View</a></td></tr>';
+            }).join('');
+        } catch (err) {
+            console.error('Error loading leads pending response:', err);
+            if (countEl) countEl.textContent = '0';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-6 text-center text-red-600">Error loading data.</td></tr>';
+        }
+    }
+
     async function loadDashboardData() {
         try {
             console.log('Loading dashboard data...');
@@ -903,6 +979,9 @@
             } else {
                 console.error('Profile API failed or no team_stats:', profile);
             }
+
+            // Load leads pending response (count + table)
+            loadSmLeadsPendingResponse();
 
             // Load dashboard data for incentives and targets
             try {
@@ -1208,6 +1287,9 @@
     (function() {
         loadDashboardData();
         loadRecentTasks();
+
+        const smPendingDateRange = document.getElementById('sm-leads-pending-date-range');
+        if (smPendingDateRange) smPendingDateRange.addEventListener('change', loadSmLeadsPendingResponse);
         
         // Reload recent tasks on window resize
         let resizeTimer;

@@ -492,25 +492,25 @@ class SalesManagerController extends Controller
     }
 
     /**
-     * Get achievements (target vs achieved) for sales manager
+     * Get achievements (target vs achieved) for sales manager / ASM.
+     * When no target record exists (e.g. for ASM), use an in-memory target so achieved counts still show.
      */
     public function getAchievements(Request $request)
     {
         $user = $request->user();
-        
-        // Get current month's target
+
         $target = Target::where('user_id', $user->id)
             ->whereYear('target_month', Carbon::now()->year)
             ->whereMonth('target_month', Carbon::now()->month)
             ->first();
 
         if (!$target) {
-            return response()->json([
-                'success' => true,
-                'message' => 'No target set for current month',
-                'meetings' => ['target' => 0, 'achieved' => 0, 'percentage' => 0],
-                'site_visits' => ['target' => 0, 'achieved' => 0, 'percentage' => 0],
-                'closers' => ['target' => 0, 'achieved' => 0, 'percentage' => 0],
+            $target = new Target([
+                'user_id' => $user->id,
+                'target_month' => Carbon::now()->startOfMonth(),
+                'target_meetings' => 0,
+                'target_visits' => 0,
+                'target_closers' => 0,
             ]);
         }
 
@@ -797,9 +797,13 @@ class SalesManagerController extends Controller
             $dateFilter = $request->input('date_filter');
             $hasDateFilter = $dateFilter && $dateFilter !== 'all';
 
-            // Filter by status - only if explicitly provided and not 'all'
+            // Filter by status
+            // For ASM: "All Tasks" = only pending/in_progress (verification complete = task completed = hide from list)
             $statusFilter = $request->input('status');
-            if ($statusFilter && $statusFilter !== 'all' && $statusFilter !== '') {
+            if (!$statusFilter || $statusFilter === 'all' || $statusFilter === '') {
+                // Default / All: exclude completed so verified items disappear from ASM view
+                $query->where('status', '!=', 'completed');
+            } elseif ($statusFilter && $statusFilter !== 'all' && $statusFilter !== '') {
                 // Explicitly exclude completed tasks from pending/overdue views
                 if (in_array($statusFilter, ['pending', 'overdue', 'rescheduled'])) {
                     $query->where('status', '!=', 'completed');

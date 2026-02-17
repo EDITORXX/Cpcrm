@@ -474,21 +474,10 @@
     </div>
 </div>
 
-<!-- Verify Site Visit Modal -->
+<!-- Verify Site Visit Modal (Lead Status hidden - not needed for verification) -->
 <div id="verifySiteVisitModal" class="modal">
     <div class="modal-content">
         <h3 class="text-xl font-bold mb-4">Verify Site Visit</h3>
-        <div class="form-group">
-            <label for="verifySiteVisitLeadStatus">Lead Status <span style="color: #ef4444;">*</span></label>
-            <select id="verifySiteVisitLeadStatus" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Select Lead Status</option>
-                <option value="hot">Hot</option>
-                <option value="warm">Warm</option>
-                <option value="cold">Cold</option>
-                <option value="junk">Junk</option>
-            </select>
-            <small style="color: #6b7280; font-size: 12px;">Classify this lead based on their interest level.</small>
-        </div>
         <div class="form-group">
             <label for="verifySiteVisitNotes">Notes (Optional)</label>
             <textarea id="verifySiteVisitNotes" placeholder="Enter any additional notes..." rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
@@ -553,6 +542,7 @@
 
 @push('scripts')
 <script>
+    const currentUserCanVerifyClosing = @json(auth()->user()->isCrm());
     const API_BASE_URL = '{{ url("/api/crm") }}';
     let currentType = 'meetings';
     let currentItemId = null;
@@ -934,9 +924,10 @@
                         </div>` : ''}
                     </div>
                     <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 8px;">
-                        <button class="btn-view-details" onclick="showDetailsModal('meeting', ${meeting.id})">
+                        <button class="btn-view-details" onclick="showDetailsModal('meeting', ${meeting.id}, ${meeting.can_verify ? 'true' : 'false'})">
                             <i class="fas fa-eye mr-2"></i>View Details
                         </button>
+                        ${meeting.can_verify ? `
                         <div style="display: flex; gap: 8px;">
                             <button class="btn btn-success" style="flex: 1; padding: 8px 12px; font-size: 13px;" onclick="verifyMeeting(${meeting.id})">
                                 <i class="fas fa-check mr-2"></i>Verify
@@ -945,6 +936,7 @@
                                 <i class="fas fa-times mr-2"></i>Reject
                             </button>
                         </div>
+                        ` : '<p class="text-sm text-gray-500">View only</p>'}
                     </div>
                 </div>
             `).join('');
@@ -970,8 +962,9 @@
 
             const data = await response.json();
             // Only show site visits with pending verification (not closer)
+            // Treat verification_status 'pending' or null as pending
             const siteVisits = (data.site_visits || []).filter(sv => 
-                sv.verification_status === 'pending' && sv.status === 'completed' && sv.closer_status !== 'pending'
+                (sv.verification_status === 'pending' || sv.verification_status == null) && sv.status === 'completed' && sv.closer_status !== 'pending'
             );
 
                 document.getElementById('visitsCount').textContent = siteVisits.length;
@@ -1020,9 +1013,10 @@
                         </div>` : ''}
                     </div>
                     <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 8px;">
-                        <button class="btn-view-details" onclick="showDetailsModal('site-visit', ${visit.id})">
+                        <button class="btn-view-details" onclick="showDetailsModal('site-visit', ${visit.id}, ${visit.can_verify ? 'true' : 'false'})">
                             <i class="fas fa-eye mr-2"></i>View Details
                         </button>
+                        ${visit.can_verify ? `
                         <div style="display: flex; gap: 8px;">
                             <button class="btn btn-success" style="flex: 1; padding: 8px 12px; font-size: 13px;" onclick="showVerifySiteVisitModal(${visit.id})">
                                 <i class="fas fa-check mr-2"></i>Verify
@@ -1031,6 +1025,7 @@
                                 <i class="fas fa-times mr-2"></i>Reject
                             </button>
                         </div>
+                        ` : '<p class="text-sm text-gray-500">View only</p>'}
                     </div>
                 </div>
             `).join('');
@@ -1072,7 +1067,6 @@
     function showVerifySiteVisitModal(id) {
         currentVerifySiteVisitId = id;
         document.getElementById('verifySiteVisitModal').classList.add('show');
-        document.getElementById('verifySiteVisitLeadStatus').value = '';
         document.getElementById('verifySiteVisitNotes').value = '';
     }
     
@@ -1091,18 +1085,11 @@
         // Otherwise use currentVerifySiteVisitId from modal
         if (!currentVerifySiteVisitId) return;
         
-        const leadStatus = document.getElementById('verifySiteVisitLeadStatus').value;
         const notes = document.getElementById('verifySiteVisitNotes').value.trim();
-        
-        if (!leadStatus) {
-            alert('Please select a lead status');
-            return;
-        }
 
         const result = await apiCall(`/site-visits/${currentVerifySiteVisitId}/verify`, {
             method: 'POST',
             body: JSON.stringify({
-                lead_status: leadStatus,
                 notes: notes
             }),
         });
@@ -1196,7 +1183,7 @@
     let currentDetailsId = null;
     let currentDetailsType = null;
 
-    async function showDetailsModal(type, id) {
+    async function showDetailsModal(type, id, canVerify) {
         currentDetailsType = type;
         currentDetailsId = id;
         
@@ -1227,8 +1214,8 @@
             </div>
         `;
         
-        // Show verify/reject buttons only for non-prospects
-        if (type === 'prospect') {
+        // Show verify/reject buttons only when user can verify (not prospect, and canVerify !== false)
+        if (type === 'prospect' || canVerify === false || canVerify === 'false') {
             verifyBtn.style.display = 'none';
             rejectBtn.style.display = 'none';
         } else {
@@ -1911,9 +1898,10 @@
                         </div>` : ''}
                     </div>
                     <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid #e5e7eb; display: flex; flex-direction: column; gap: 8px;">
-                        <button class="btn-view-details" onclick="showDetailsModal('closer', ${visit.id})">
+                        <button class="btn-view-details" onclick="showDetailsModal('closer', ${visit.id}, ${visit.can_verify ? 'true' : 'false'})">
                             <i class="fas fa-eye mr-2"></i>View Details
                         </button>
+                        ${visit.can_verify ? `
                         <div style="display: flex; gap: 8px;">
                             <button class="btn btn-success" style="flex: 1; padding: 8px 12px; font-size: 13px;" onclick="showVerifyCloserModal(${visit.id})">
                                 <i class="fas fa-check mr-2"></i>Verify Closer
@@ -1922,6 +1910,7 @@
                                 <i class="fas fa-times mr-2"></i>Reject
                             </button>
                         </div>
+                        ` : '<p class="text-sm text-gray-500">View only</p>'}
                     </div>
                 </div>
                 `;
@@ -2127,6 +2116,7 @@
                         <button class="btn-view-details" onclick="showClosingVerificationDetails(${visit.id})">
                             <i class="fas fa-eye mr-2"></i>View KYC Details & Documents
                         </button>
+                        ${(visit.can_verify_closing !== undefined ? visit.can_verify_closing : currentUserCanVerifyClosing) ? `
                         <div style="display: flex; gap: 8px;">
                             <button class="btn btn-success" style="flex: 1; padding: 8px 12px; font-size: 13px;" onclick="verifyClosing(${visit.id})">
                                 <i class="fas fa-check mr-2"></i>Verify Closing
@@ -2135,6 +2125,7 @@
                                 <i class="fas fa-times mr-2"></i>Reject
                             </button>
                         </div>
+                        ` : '<p class="text-sm text-gray-500">View only</p>'}
                     </div>
                 </div>
                 `;
@@ -2340,9 +2331,9 @@
             const meetingsCount = (meetingsData.meetings || []).length;
             document.getElementById('meetingsCount').textContent = meetingsCount;
 
-            // Count pending site visits (excluding closers)
+            // Count pending site visits (excluding closers); treat null verification_status as pending
             const visitsCount = (meetingsData.site_visits || []).filter(sv => 
-                sv.verification_status === 'pending' && sv.status === 'completed' && (!sv.closer_status || sv.closer_status !== 'pending')
+                (sv.verification_status === 'pending' || sv.verification_status == null) && sv.status === 'completed' && (!sv.closer_status || sv.closer_status !== 'pending')
             ).length;
             document.getElementById('visitsCount').textContent = visitsCount;
 

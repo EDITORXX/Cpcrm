@@ -14,6 +14,7 @@ use App\Models\ActivityLog;
 use App\Models\SlaTracking;
 use App\Models\SmartImportLeadAssignment;
 use App\Helpers\DashboardHelper;
+use App\Services\LeadsPendingResponseService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -653,6 +654,9 @@ class TelecallerDashboardService
             ->whereBetween('created_at', [$startDate, $endDate])
             ->count();
 
+        // Leads allocated to me on which I haven't responded yet (this_month for card)
+        $leadsPendingResponse = app(LeadsPendingResponseService::class)->getCountForUser($userId, 'this_month');
+
         // Get target data for telecaller - default to current month
         // If targetMonth parameter is provided, use it; otherwise use current month
         $targetMonthDate = $targetMonth ? Carbon::parse($targetMonth . '-01')->startOfMonth() : Carbon::now()->startOfMonth();
@@ -701,6 +705,7 @@ class TelecallerDashboardService
             'remaining_tasks' => $remainingTasks,
             'overdue_tasks' => $overdueTasks,
             'prospects' => $prospects,
+            'leads_pending_response' => $leadsPendingResponse,
             'targets' => $targetsData,
         ];
     }

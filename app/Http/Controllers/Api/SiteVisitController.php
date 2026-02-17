@@ -367,17 +367,33 @@ class SiteVisitController extends Controller
                 }
             }
 
-            // Send verification notification to CRM/Admin
+            // Notify only allowed verifiers: seniors of creator, or CRM when creator has no senior. Do not notify Admin.
             try {
-                $crmUsers = User::whereHas('role', function($q) {
-                    $q->whereIn('slug', ['admin', 'crm']);
-                })->get();
-
-                foreach ($crmUsers as $crmUser) {
-                    $actionUrl = url('/crm/verifications');
-                    $customerName = $siteVisit->customer_name ?? ($siteVisit->lead ? $siteVisit->lead->name : 'Customer');
+                $siteVisit->load('creator');
+                $creator = $siteVisit->creator;
+                $toNotify = collect();
+                if ($creator) {
+                    if ($creator->manager_id === null) {
+                        $toNotify = User::whereHas('role', fn ($q) => $q->where('slug', 'crm'))
+                            ->where('is_active', true)->get();
+                    } else {
+                        $current = $creator->manager_id;
+                        $seen = [];
+                        while ($current && !isset($seen[$current])) {
+                            $seen[$current] = true;
+                            $manager = User::find($current);
+                            if ($manager && $manager->is_active) {
+                                $toNotify->push($manager);
+                            }
+                            $current = $manager ? $manager->manager_id : null;
+                        }
+                    }
+                }
+                $actionUrl = url('/crm/verifications');
+                $customerName = $siteVisit->customer_name ?? ($siteVisit->lead ? $siteVisit->lead->name : 'Customer');
+                foreach ($toNotify as $verificationUser) {
                     $this->notificationService->notifyNewVerification(
-                        $crmUser,
+                        $verificationUser,
                         'site_visit',
                         'New Site Visit Verification',
                         "Site visit for '{$customerName}' requires verification",
@@ -389,7 +405,6 @@ class SiteVisitController extends Controller
                     );
                 }
             } catch (\Exception $e) {
-                // Log notification error but don't fail the request
                 Log::error('Error sending site visit verification notifications: ' . $e->getMessage());
             }
 
@@ -480,14 +495,35 @@ class SiteVisitController extends Controller
     }
 
     /**
-     * Verify a site visit (CRM/Admin only)
+     * Verify a site visit. Creator's senior verifies; if creator has no senior, CRM verifies. Admin cannot verify.
      */
     public function verify(Request $request, SiteVisit $siteVisit)
     {
         $user = $request->user();
 
-        if (!$user->isAdmin() && !$user->isCrm()) {
-            return response()->json(['message' => 'Forbidden'], 403);
+        if ($user->isAdmin()) {
+            return response()->json(['message' => 'Forbidden. Admin cannot verify site visits.'], 403);
+        }
+
+        $siteVisit->load('creator');
+        $creator = $siteVisit->creator;
+        if (!$creator) {
+            return response()->json(['message' => 'Site visit creator not found'], 404);
+        }
+
+        $creatorHasNoSenior = $creator->manager_id === null;
+        if ($user->isCrm()) {
+            if (!$creatorHasNoSenior) {
+                return response()->json([
+                    'message' => 'Forbidden. CRM can only verify when creator has no senior. A senior must verify this site visit.',
+                ], 403);
+            }
+        } else {
+            if (!$user->isSeniorOf($creator)) {
+                return response()->json([
+                    'message' => 'Forbidden. Only a senior of the visit creator (or CRM when creator has no senior) can verify this site visit.',
+                ], 403);
+            }
         }
 
         if ($siteVisit->verification_status === 'verified') {
@@ -506,7 +542,7 @@ class SiteVisitController extends Controller
 
         $validator = Validator::make($request->all(), [
             'notes' => 'nullable|string',
-            'lead_status' => 'required|in:hot,warm,cold,junk',
+            'lead_status' => 'nullable|in:hot,warm,cold,junk',
         ]);
 
         if ($validator->fails()) {
@@ -573,14 +609,35 @@ class SiteVisitController extends Controller
     }
 
     /**
-     * Reject a site visit (CRM/Admin only)
+     * Reject a site visit. Creator's senior or CRM (when no senior) can reject. Admin cannot.
      */
     public function reject(Request $request, SiteVisit $siteVisit)
     {
         $user = $request->user();
 
-        if (!$user->isAdmin() && !$user->isCrm()) {
-            return response()->json(['message' => 'Forbidden'], 403);
+        if ($user->isAdmin()) {
+            return response()->json(['message' => 'Forbidden. Admin cannot reject site visits.'], 403);
+        }
+
+        $siteVisit->load('creator');
+        $creator = $siteVisit->creator;
+        if (!$creator) {
+            return response()->json(['message' => 'Site visit creator not found'], 404);
+        }
+
+        $creatorHasNoSenior = $creator->manager_id === null;
+        if ($user->isCrm()) {
+            if (!$creatorHasNoSenior) {
+                return response()->json([
+                    'message' => 'Forbidden. CRM can only reject when creator has no senior. A senior must reject this site visit.',
+                ], 403);
+            }
+        } else {
+            if (!$user->isSeniorOf($creator)) {
+                return response()->json([
+                    'message' => 'Forbidden. Only a senior of the visit creator (or CRM when creator has no senior) can reject this site visit.',
+                ], 403);
+            }
         }
 
         $validator = Validator::make($request->all(), [
@@ -614,15 +671,14 @@ class SiteVisitController extends Controller
     }
 
     /**
-     * Verify closer (CRM/Admin only)
+     * Verify closer (Sales Head only)
      */
     public function verifyCloser(Request $request, SiteVisit $siteVisit)
     {
         $user = $request->user();
 
-        // Allow Admin, CRM, and Sales Head to verify closers
-        if (!$user->isAdmin() && !$user->isCrm() && !$user->isSalesHead()) {
-            return response()->json(['message' => 'Forbidden'], 403);
+        if (!$user->isSalesHead()) {
+            return response()->json(['message' => 'Forbidden. Only Sales Head can verify closers.'], 403);
         }
 
         if ($siteVisit->closer_status === 'verified') {
@@ -666,26 +722,9 @@ class SiteVisitController extends Controller
         
         if ($incentive) {
             $incentive->amount = $adjustedAmount;
-            // Mark as verified based on who is verifying
-            if ($user->isCrm() || $user->isAdmin()) {
-                $incentive->status = 'verified';
-                $incentive->crm_verified_by = $user->id;
-                $incentive->crm_verified_at = now();
-                // If sales head already verified, keep that
-                if (!$incentive->sales_head_verified_by && $user->isSalesHead()) {
-                    $incentive->sales_head_verified_by = $user->id;
-                    $incentive->sales_head_verified_at = now();
-                }
-            } elseif ($user->isSalesHead()) {
-                $incentive->sales_head_verified_by = $user->id;
-                $incentive->sales_head_verified_at = now();
-                // If already verified by CRM, mark as fully verified
-                if ($incentive->crm_verified_by) {
-                    $incentive->status = 'verified';
-                } else {
-                    $incentive->status = 'pending_crm';
-                }
-            }
+            $incentive->sales_head_verified_by = $user->id;
+            $incentive->sales_head_verified_at = now();
+            $incentive->status = 'verified';
             $incentive->save();
         }
         
@@ -700,14 +739,14 @@ class SiteVisitController extends Controller
     }
 
     /**
-     * Reject closer (CRM/Admin only)
+     * Reject closer (Sales Head only)
      */
     public function rejectCloser(Request $request, SiteVisit $siteVisit)
     {
         $user = $request->user();
 
-        if (!$user->isAdmin() && !$user->isCrm()) {
-            return response()->json(['message' => 'Forbidden'], 403);
+        if (!$user->isSalesHead()) {
+            return response()->json(['message' => 'Forbidden. Only Sales Head can reject closers.'], 403);
         }
 
         $validator = Validator::make($request->all(), [
@@ -739,15 +778,14 @@ class SiteVisitController extends Controller
     }
 
     /**
-     * Verify closing (CRM/Admin only) - Verifies closing request with KYC details
+     * Verify closing (CRM only) - Verifies closing request with KYC details. Admin cannot verify.
      */
     public function verifyClosing(Request $request, SiteVisit $siteVisit)
     {
         $user = $request->user();
 
-        // Only CRM/Admin can verify closing
-        if (!$user->isAdmin() && !$user->isCrm()) {
-            return response()->json(['message' => 'Forbidden. Only CRM/Admin can verify closing.'], 403);
+        if (!$user->isCrm()) {
+            return response()->json(['message' => 'Forbidden. Only CRM can verify closing.'], 403);
         }
 
         if ($siteVisit->closing_verification_status === 'verified') {
@@ -805,9 +843,8 @@ class SiteVisitController extends Controller
     {
         $user = $request->user();
 
-        // Only CRM/Admin can reject closing
-        if (!$user->isAdmin() && !$user->isCrm()) {
-            return response()->json(['message' => 'Forbidden. Only CRM/Admin can reject closing.'], 403);
+        if (!$user->isCrm()) {
+            return response()->json(['message' => 'Forbidden. Only CRM can reject closing.'], 403);
         }
 
         $validator = Validator::make($request->all(), [

@@ -464,6 +464,12 @@
             <div class="dashboard-card-value">{{ $cardStats['prospects'] ?? 0 }}</div>
         </div>
 
+        <!-- No response yet Card -->
+        <div class="dashboard-card">
+            <div class="dashboard-card-title">No response yet</div>
+            <div class="dashboard-card-value">{{ $cardStats['leads_pending_response'] ?? 0 }}</div>
+        </div>
+
         @if(isset($cardStats['targets']))
         <!-- Desktop: Separate Target Cards -->
         <!-- Calling Target Card -->
@@ -592,6 +598,37 @@
         @endif
     </div>
 
+    <!-- Leads allocated – no response yet -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6" style="margin-top: 24px;">
+        <h2 class="text-xl font-bold text-gray-900 mb-2">
+            <i class="fas fa-inbox mr-2 text-[#063A1C]"></i>Leads allocated – no response yet
+        </h2>
+        <p class="text-sm text-gray-600 mb-4">Leads assigned to you on which you haven't responded yet.</p>
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+            <label for="se-leads-pending-date-range" class="text-sm font-medium text-gray-700">Date range:</label>
+            <select id="se-leads-pending-date-range" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#063A1C] focus:border-[#063A1C]">
+                <option value="this_week">This week</option>
+                <option value="this_month" selected>This month</option>
+                <option value="all_time">All time</option>
+            </select>
+        </div>
+        <div class="overflow-x-auto rounded-lg border border-gray-200">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Lead name</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Phone</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Assigned at</th>
+                        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="se-leads-pending-response-tbody" class="bg-white divide-y divide-gray-200">
+                    <tr><td colspan="4" class="px-4 py-6 text-center text-gray-500">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- Incentives Section (below cards - ensure visible on desktop and phone) -->
     <div class="bg-white rounded-lg shadow p-6 mb-6" id="Sales ExecutiveIncentivesSection" style="margin-top: 24px;">
     <h2 class="text-xl font-bold text-gray-900 mb-4">
@@ -689,7 +726,7 @@
     }
 
     // Load Sales Executive Incentives and Eligible Site Visits
-    async function loadSales ExecutiveIncentives() {
+    async function loadSalesExecutiveIncentives() {
         try {
             const API_BASE_URL = '{{ url("/api/telecaller") }}';
             const token = localStorage.getItem('sales-executive_token') || '{{ session("sales_executive_api_token") ?? session("telecaller_api_token") ?? session("api_token") ?? "" }}';
@@ -707,12 +744,12 @@
                 
                 // Load incentives
                 if (dashboardData.incentives) {
-                    loadSales ExecutiveIncentivesData(dashboardData.incentives);
+                    loadSalesExecutiveIncentivesData(dashboardData.incentives);
                 }
 
                 // Load incentive potential
                 if (dashboardData.incentive_potential) {
-                    loadSales ExecutiveIncentivePotential(dashboardData.incentive_potential);
+                    loadSalesExecutiveIncentivePotential(dashboardData.incentive_potential);
                 }
             }
 
@@ -735,7 +772,7 @@
         }
     }
 
-    function loadSales ExecutiveIncentivesData(incentives) {
+    function loadSalesExecutiveIncentivesData(incentives) {
         // Pending incentives
         const pendingList = document.getElementById('Sales ExecutivePendingIncentivesList');
         if (incentives.pending && incentives.pending.length > 0) {
@@ -776,7 +813,7 @@
         }
     }
 
-    function loadSales ExecutiveIncentivePotential(potential) {
+    function loadSalesExecutiveIncentivePotential(potential) {
         document.getElementById('Sales ExecutiveIncentivePotential').textContent = `₹${parseFloat(potential.potential || 0).toFixed(2)}`;
         document.getElementById('Sales ExecutiveIncentivePotentialDetails').textContent = 
             `Target: ${potential.target_visits || 0} Visits × ₹${parseFloat(potential.incentive_per_visit || 0).toFixed(2)} = ₹${parseFloat(potential.potential || 0).toFixed(2)}`;
@@ -875,7 +912,7 @@
 
             if (result && result.success) {
                 showMessageModal('Incentive requested successfully! Awaiting verification.', 'success');
-                loadSales ExecutiveIncentives();
+                loadSalesExecutiveIncentives();
             } else {
                 showMessageModal(result.message || 'Failed to request incentive', 'error');
             }
@@ -885,9 +922,46 @@
         }
     }
 
+    async function loadSeLeadsPendingResponse() {
+        const tbody = document.getElementById('se-leads-pending-response-tbody');
+        if (!tbody) return;
+        const API_BASE_URL = '{{ url("/api/telecaller") }}';
+        const token = localStorage.getItem('sales-executive_token') || document.querySelector('meta[name="api-token"]')?.getAttribute('content') || '';
+        const dateRange = document.getElementById('se-leads-pending-date-range')?.value || 'this_month';
+        try {
+            tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-6 text-center text-gray-500">Loading...</td></tr>';
+            const url = `${API_BASE_URL}/leads-pending-response?date_range=${encodeURIComponent(dateRange)}`;
+            const res = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || data.message || 'Failed to load');
+            const leads = data.leads || [];
+            const leadShowBase = '{{ url("/leads") }}';
+            if (leads.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-6 text-center text-gray-500">No leads pending response.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = leads.map(function(l) {
+                const name = (l.name || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const phone = (l.phone || '—');
+                const masked = phone.length > 4 ? phone.slice(0, 2) + '****' + phone.slice(-4) : phone;
+                const assignedAt = l.assigned_at ? new Date(l.assigned_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+                return '<tr><td class="px-4 py-3 text-sm text-gray-900">' + name + '</td><td class="px-4 py-3 text-sm text-gray-600">' + masked + '</td><td class="px-4 py-3 text-sm text-gray-600">' + assignedAt + '</td><td class="px-4 py-3"><a href="' + leadShowBase + '/' + (l.lead_id || '') + '" class="text-[#063A1C] font-medium hover:underline">View</a></td></tr>';
+            }).join('');
+        } catch (err) {
+            console.error('Error loading leads pending response:', err);
+            tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-6 text-center text-red-600">Error loading data.</td></tr>';
+        }
+    }
+
     // Load on page load + bind modal buttons
     document.addEventListener('DOMContentLoaded', function() {
-        loadSales ExecutiveIncentives();
+        loadSalesExecutiveIncentives();
+        loadSeLeadsPendingResponse();
+
+        const pendingDateRange = document.getElementById('se-leads-pending-date-range');
+        if (pendingDateRange) pendingDateRange.addEventListener('change', loadSeLeadsPendingResponse);
 
         const modal = document.getElementById('incentiveAmountModal');
         const input = document.getElementById('incentiveAmountInput');

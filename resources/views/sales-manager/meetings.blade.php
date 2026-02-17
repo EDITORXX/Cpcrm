@@ -7,7 +7,7 @@
 <style>
     #meetingsContainer {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 1.25rem;
     }
     .meeting-card {
@@ -174,8 +174,8 @@
     
     @media (max-width: 768px) {
         #meetingsContainer {
-            grid-template-columns: 1fr;
-            gap: 1rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
         }
         
         .meeting-card {
@@ -722,6 +722,7 @@
                                 ${meeting.verification_status === 'pending' ? `
                                     <div style="text-align: center; padding: 8px;">
                                         <span class="badge badge-pending">Awaiting Verification</span>
+                                        ${meeting.pending_verification_with ? `<div class="mt-1 text-xs text-gray-600" style="margin-top: 4px;">Pending with: ${(meeting.pending_verification_with || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>` : ''}
                                     </div>
                                 ` : ''}
                                 <button class="btn btn-danger" onclick="showMarkDeadModal('meeting', ${meeting.id})">

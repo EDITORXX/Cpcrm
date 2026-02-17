@@ -795,6 +795,7 @@
             </button>
         </div>
         @php
+            $defaultDateRange = request()->get('date_range') ?? (request()->routeIs('sales-executive.tasks') ? 'all' : 'today');
             $dateParams = array_filter(request()->only(['date_range', 'start_date', 'end_date']));
             $dateQuery = !empty($dateParams) ? '?' . http_build_query($dateParams) : '';
         @endphp
@@ -843,11 +844,11 @@
                         <!-- Date Range Selector - Mobile (replaces role) -->
                         <div class="header-date-range-selector-mobile" id="headerDateRangeSelectorMobile" style="display: none;">
                             <select id="headerDateRangeSelectMobile" onchange="handleHeaderDateRangeChange(event)" style="padding: 2px 5px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 10px; background: white; color: #063A1C; cursor: pointer; outline: none; width: 100%; max-width: 120px; height: 24px; margin-top: 4px;">
-                                <option value="today" {{ (request()->get('date_range') ?? 'today') === 'today' ? 'selected' : '' }}>Today</option>
-                                <option value="this_week" {{ request()->get('date_range') === 'this_week' ? 'selected' : '' }}>This Week</option>
-                                <option value="this_month" {{ request()->get('date_range') === 'this_month' ? 'selected' : '' }}>This Month</option>
-                                <option value="all" {{ request()->get('date_range') === 'all' ? 'selected' : '' }}>All</option>
-                                <option value="custom" {{ request()->get('date_range') === 'custom' ? 'selected' : '' }}>Custom</option>
+                                <option value="today" {{ $defaultDateRange === 'today' ? 'selected' : '' }}>Today</option>
+                                <option value="this_week" {{ $defaultDateRange === 'this_week' ? 'selected' : '' }}>This Week</option>
+                                <option value="this_month" {{ $defaultDateRange === 'this_month' ? 'selected' : '' }}>This Month</option>
+                                <option value="all" {{ $defaultDateRange === 'all' ? 'selected' : '' }}>All</option>
+                                <option value="custom" {{ $defaultDateRange === 'custom' ? 'selected' : '' }}>Custom</option>
                             </select>
                             <div class="header-custom-date-inputs-mobile" id="headerCustomDateInputsMobile" style="display: {{ request()->get('date_range') === 'custom' ? 'flex' : 'none' }}; gap: 3px; margin-top: 3px; flex-direction: column;">
                                 <input type="date" id="headerStartDateMobile" value="{{ request()->get('start_date') ?? '' }}" onchange="handleHeaderCustomDateChange()" style="padding: 2px 4px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 9px; width: 100%; max-width: 120px; height: 22px;">
@@ -873,11 +874,11 @@
                         <!-- Date Range Selector - Small, below clock (only on dashboard) -->
                         <div class="header-date-range-selector" id="headerDateRangeSelector" style="display: none;">
                             <select id="headerDateRangeSelect" onchange="handleHeaderDateRangeChange(event)" style="padding: 2px 5px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 10px; background: white; color: #063A1C; cursor: pointer; outline: none; width: 80px; max-width: 80px; height: 24px;">
-                                <option value="today" {{ (request()->get('date_range') ?? 'today') === 'today' ? 'selected' : '' }}>Today</option>
-                                <option value="this_week" {{ request()->get('date_range') === 'this_week' ? 'selected' : '' }}>This Week</option>
-                                <option value="this_month" {{ request()->get('date_range') === 'this_month' ? 'selected' : '' }}>This Month</option>
-                                <option value="all" {{ request()->get('date_range') === 'all' ? 'selected' : '' }}>All</option>
-                                <option value="custom" {{ request()->get('date_range') === 'custom' ? 'selected' : '' }}>Custom</option>
+                                <option value="today" {{ $defaultDateRange === 'today' ? 'selected' : '' }}>Today</option>
+                                <option value="this_week" {{ $defaultDateRange === 'this_week' ? 'selected' : '' }}>This Week</option>
+                                <option value="this_month" {{ $defaultDateRange === 'this_month' ? 'selected' : '' }}>This Month</option>
+                                <option value="all" {{ $defaultDateRange === 'all' ? 'selected' : '' }}>All</option>
+                                <option value="custom" {{ $defaultDateRange === 'custom' ? 'selected' : '' }}>Custom</option>
                             </select>
                             <div class="header-custom-date-inputs" id="headerCustomDateInputs" style="display: {{ request()->get('date_range') === 'custom' ? 'flex' : 'none' }}; gap: 3px; margin-top: 3px; flex-direction: column;">
                                 <input type="date" id="headerStartDate" value="{{ request()->get('start_date') ?? '' }}" onchange="handleHeaderCustomDateChange()" style="padding: 2px 4px; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 9px; width: 80px; height: 22px;">

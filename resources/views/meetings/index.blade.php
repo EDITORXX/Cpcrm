@@ -443,6 +443,7 @@
                                             </button>
                                         ` : `
                                             <div><span class="badge badge-pending">Awaiting Verification</span></div>
+                                            ${meeting.pending_verification_with ? `<div class="mt-1 text-xs text-gray-600" style="margin-top: 4px;">Pending with: ${String(meeting.pending_verification_with || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>` : ''}
                                         `}
                                     ` : ''}
                                     ${meeting.verification_status === 'verified' ? `
