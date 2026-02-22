@@ -972,8 +972,11 @@
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': 'Bearer ' + token },
                 body: JSON.stringify(body)
             }).then(function(r) {
-                if (statusEl) statusEl.textContent = r.ok ? 'Push enabled.' : 'Failed. Check console.';
-            }).catch(function() { if (statusEl) statusEl.textContent = 'Request failed.'; });
+                if (statusEl) {
+                    if (r.ok) statusEl.textContent = 'Push enabled.';
+                    else statusEl.textContent = 'Failed (' + r.status + '). Try logout and login again.';
+                }
+            }).catch(function(e) { if (statusEl) statusEl.textContent = 'Request failed.'; });
         }
         function doRegisterAndSubscribe() {
             if (statusEl) statusEl.textContent = 'Registering...';
@@ -1087,18 +1090,8 @@
             });
         });
         
-        // Disable Service Worker Cache for Development
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let registration of registrations) {
-                    registration.unregister().then(function(success) {
-                        if (success) {
-                            console.log('Service Worker unregistered successfully');
-                        }
-                    });
-                }
-            });
-        }
+        // Do NOT unregister Service Worker on production – PWA push notifications need it.
+        // (Unregister only on localhost for development cache-disable if needed.)
         
         // Clear browser cache on page load (development mode)
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname.includes('local')) {
