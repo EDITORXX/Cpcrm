@@ -327,6 +327,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Test: PWA Push – select user and send test notification (Admin/CRM only)
     Route::get('/test/pwa-push', [\App\Http\Controllers\TestPwaPushController::class, 'index'])->name('test.pwa-push')->middleware('role:admin,crm');
+    Route::get('/test/pwa-push/diagnose', [\App\Http\Controllers\TestPwaPushController::class, 'diagnose'])->name('test.pwa-diagnose')->middleware('role:admin,crm');
     Route::post('/test/pwa-push/send', [\App\Http\Controllers\TestPwaPushController::class, 'send'])->name('test.pwa-push.send')->middleware('role:admin,crm');
     
     // Users Management
