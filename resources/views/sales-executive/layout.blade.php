@@ -1326,13 +1326,19 @@
                 body: JSON.stringify(body)
             }).catch(function() {});
         }
-        navigator.serviceWorker.register('{{ asset("sw.js") }}?v=' + Date.now()).then(function(reg) {
-            if (Notification.permission !== 'granted') return;
-            reg.pushManager.getSubscription().then(function(sub) {
-                if (sub) { sendSubscriptionToServer(sub); return; }
-                reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) }).then(sendSubscriptionToServer).catch(function() {});
+        function doRegisterAndSubscribe() {
+            navigator.serviceWorker.register('{{ asset("sw.js") }}?v=' + Date.now()).then(function(reg) {
+                reg.pushManager.getSubscription().then(function(sub) {
+                    if (sub) { sendSubscriptionToServer(sub); return; }
+                    reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) }).then(sendSubscriptionToServer).catch(function() {});
+                }).catch(function() {});
             }).catch(function() {});
-        }).catch(function() {});
+        }
+        if (Notification.permission === 'granted') {
+            doRegisterAndSubscribe();
+        } else if (Notification.permission === 'default') {
+            Notification.requestPermission().then(function(p) { if (p === 'granted') doRegisterAndSubscribe(); }).catch(function() {});
+        }
     })();
     </script>
     

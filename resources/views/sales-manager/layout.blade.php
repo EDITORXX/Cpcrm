@@ -15,6 +15,7 @@
     <meta name="user-id" content="{{ auth()->check() ? auth()->user()->id : '' }}">
     <meta name="pusher-key" content="{{ config('broadcasting.connections.pusher.key') }}">
     <meta name="pusher-cluster" content="{{ config('broadcasting.connections.pusher.options.cluster', 'mt1') }}">
+    <meta name="vapid-public-key" content="{{ config('webpush.vapid_public') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -757,6 +758,8 @@
                             <div id="clockDate">-- -- ----</div>
                         </div>
                         <span class="header-user-name-desktop" style="color: #B3B5B4; font-size: 14px; white-space: nowrap;">{{ auth()->user()->name }}</span>
+                        <button type="button" id="btnEnablePush" style="display: none; font-size: 12px; padding: 6px 10px; background: #205A44; color: #fff; border: none; border-radius: 8px; cursor: pointer; white-space: nowrap;">Enable push notifications</button>
+                        <span id="pushStatus" style="font-size: 12px; color: #059669;"></span>
                     </div>
                 </div>
             </div>
@@ -940,6 +943,68 @@
     </script>
 
     @stack('scripts')
+    <!-- PWA Web Push: register SW and subscribe for lead-assigned notifications (Sales Manager / Gold etc.) -->
+    <script>
+    (function() {
+        var vapidPublicKey = document.querySelector('meta[name="vapid-public-key"]') && document.querySelector('meta[name="vapid-public-key"]').content;
+        if (!vapidPublicKey || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+        var btn = document.getElementById('btnEnablePush');
+        var statusEl = document.getElementById('pushStatus');
+        function getAuthToken() {
+            var meta = document.querySelector('meta[name="api-token"]');
+            if (meta && meta.content) return meta.content;
+            try { return localStorage.getItem('telecaller_token') || localStorage.getItem('auth_token') || ''; } catch (e) { return ''; }
+        }
+        function urlBase64ToUint8Array(base64String) {
+            var padding = '='.repeat((4 - base64String.length % 4) % 4);
+            var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            var rawData = window.atob(base64);
+            var outputArray = new Uint8Array(rawData.length);
+            for (var i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+            return outputArray;
+        }
+        function sendSubscriptionToServer(subscription) {
+            var token = getAuthToken();
+            if (!token) { if (statusEl) statusEl.textContent = 'Login again and try.'; return; }
+            var body = subscription.toJSON ? subscription.toJSON() : { endpoint: subscription.endpoint, keys: { p256dh: subscription.getKey('p256dh') ? btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh')))) : '', auth: subscription.getKey('auth') ? btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth')))) : '' } };
+            fetch((typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : (window.location.origin + '/api')) + '/push-subscription', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify(body)
+            }).then(function(r) {
+                if (statusEl) statusEl.textContent = r.ok ? 'Push enabled.' : 'Failed. Check console.';
+            }).catch(function() { if (statusEl) statusEl.textContent = 'Request failed.'; });
+        }
+        function doRegisterAndSubscribe() {
+            if (statusEl) statusEl.textContent = 'Registering...';
+            navigator.serviceWorker.register('{{ asset("sw.js") }}?v=' + Date.now()).then(function(reg) {
+                reg.pushManager.getSubscription().then(function(sub) {
+                    if (sub) { sendSubscriptionToServer(sub); return; }
+                    reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) }).then(function(s) { sendSubscriptionToServer(s); }).catch(function(e) { if (statusEl) statusEl.textContent = 'Subscribe failed: ' + (e.message || 'unknown'); });
+                }).catch(function() { if (statusEl) statusEl.textContent = 'Subscribe error.'; });
+            }).catch(function() { if (statusEl) statusEl.textContent = 'SW error.'; });
+        }
+        function runEnablePush() {
+            if (Notification.permission === 'granted') {
+                doRegisterAndSubscribe();
+            } else if (Notification.permission === 'default') {
+                if (statusEl) statusEl.textContent = 'Allow in browser prompt...';
+                Notification.requestPermission().then(function(p) { if (p === 'granted') doRegisterAndSubscribe(); else if (statusEl) statusEl.textContent = 'Denied.'; }).catch(function() {});
+            } else {
+                if (statusEl) statusEl.textContent = 'Notifications blocked. Enable in browser settings.';
+            }
+        }
+        if (btn) {
+            btn.style.display = 'inline-block';
+            btn.onclick = runEnablePush;
+        }
+        if (Notification.permission === 'granted') {
+            doRegisterAndSubscribe();
+        } else if (Notification.permission === 'default') {
+            Notification.requestPermission().then(function(p) { if (p === 'granted') doRegisterAndSubscribe(); }).catch(function() {});
+        }
+    })();
+    </script>
     <!-- Chatbot Assistant Widget -->
     @include('components.chatbot-widget')
     
