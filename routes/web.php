@@ -324,6 +324,10 @@ Route::middleware(['auth'])->group(function () {
     // Test: Lead assigned notification (1-click test for popup + email)
     Route::get('/test/lead-notification', [\App\Http\Controllers\TestLeadNotificationController::class, 'index'])->name('test.lead-notification');
     Route::post('/test/lead-notification/simulate', [\App\Http\Controllers\TestLeadNotificationController::class, 'simulate'])->name('test.lead-notification.simulate');
+
+    // Test: PWA Push – select user and send test notification (Admin/CRM only)
+    Route::get('/test/pwa-push', [\App\Http\Controllers\TestPwaPushController::class, 'index'])->name('test.pwa-push')->middleware('role:admin,crm');
+    Route::post('/test/pwa-push/send', [\App\Http\Controllers\TestPwaPushController::class, 'send'])->name('test.pwa-push.send')->middleware('role:admin,crm');
     
     // Users Management
     Route::post('users/{user}/send-credentials-email', [\App\Http\Controllers\UserController::class, 'sendCredentialsEmail'])->name('users.send-credentials-email');

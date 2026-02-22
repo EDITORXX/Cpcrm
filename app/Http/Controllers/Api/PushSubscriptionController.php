@@ -39,16 +39,26 @@ class PushSubscriptionController extends Controller
         $keys = $request->input('keys', []);
         $userAgent = $request->userAgent();
 
-        PushSubscription::updateOrCreate(
-            [
-                'user_id' => $user->id,
-                'endpoint' => $endpoint,
-            ],
-            [
-                'keys' => $keys,
-                'user_agent' => $userAgent ? substr($userAgent, 0, 500) : null,
-            ]
-        );
+        try {
+            PushSubscription::updateOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'endpoint' => $endpoint,
+                ],
+                [
+                    'keys' => $keys,
+                    'user_agent' => $userAgent ? substr($userAgent, 0, 500) : null,
+                ]
+            );
+        } catch (\Illuminate\Database\QueryException $e) {
+            if (str_contains($e->getMessage(), "doesn't exist") || $e->getCode() === '42S02') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Push subscriptions table is missing. Run database/push_subscriptions_table.sql in phpMyAdmin.',
+                ], 503);
+            }
+            throw $e;
+        }
 
         return response()->json([
             'success' => true,
@@ -74,9 +84,19 @@ class PushSubscriptionController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
         }
 
-        PushSubscription::where('user_id', $user->id)
-            ->where('endpoint', $endpoint)
-            ->delete();
+        try {
+            PushSubscription::where('user_id', $user->id)
+                ->where('endpoint', $endpoint)
+                ->delete();
+        } catch (\Illuminate\Database\QueryException $e) {
+            if (str_contains($e->getMessage(), "doesn't exist") || $e->getCode() === '42S02') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Push subscriptions table is missing.',
+                ], 503);
+            }
+            throw $e;
+        }
 
         return response()->json([
             'success' => true,
