@@ -10,6 +10,7 @@ use App\Events\NewLeadNotification;
 use App\Events\NewVerificationNotification;
 use App\Events\FollowupNotification;
 use App\Events\AdminBroadcast;
+use App\Jobs\SendWebPushNotificationJob;
 use Illuminate\Support\Facades\Log;
 
 class NotificationService
@@ -79,6 +80,15 @@ class NotificationService
             // Broadcast via Pusher (only on create)
             event(new NewLeadNotification($notification));
 
+            // PWA Web Push (background/closed app)
+            SendWebPushNotificationJob::dispatch(
+                $user->id,
+                'New Leads Allocated',
+                $message,
+                $telecallerTasksUrl,
+                'new-lead-' . $lead->id
+            );
+
             return $notification;
         }
 
@@ -100,6 +110,15 @@ class NotificationService
 
         // Broadcast via Pusher
         event(new NewLeadNotification($notification));
+
+        // PWA Web Push (background/closed app)
+        SendWebPushNotificationJob::dispatch(
+            $user->id,
+            'New Lead Assigned',
+            $message,
+            $actionUrl,
+            'new-lead-' . $lead->id
+        );
 
         return $notification;
     }

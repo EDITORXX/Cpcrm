@@ -9,6 +9,7 @@
     <meta name="user-id" content="{{ auth()->check() ? auth()->user()->id : '' }}">
     <meta name="pusher-key" content="{{ config('broadcasting.connections.pusher.key') }}">
     <meta name="pusher-cluster" content="{{ config('broadcasting.connections.pusher.options.cluster', 'mt1') }}">
+    <meta name="vapid-public-key" content="{{ config('webpush.vapid_public') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -1135,6 +1136,44 @@
         }
     </script>
     <script src="{{ asset('js/telecaller-notifications.js') }}"></script>
+    
+    <!-- PWA Web Push: register SW and subscribe for lead-assigned notifications -->
+    <script>
+    (function() {
+        var vapidPublicKey = document.querySelector('meta[name="vapid-public-key"]') && document.querySelector('meta[name="vapid-public-key"]').content;
+        if (!vapidPublicKey || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+        function getAuthToken() {
+            var meta = document.querySelector('meta[name="api-token"]');
+            if (meta && meta.content) return meta.content;
+            try { return localStorage.getItem('telecaller_token') || localStorage.getItem('auth_token') || ''; } catch (e) { return ''; }
+        }
+        function urlBase64ToUint8Array(base64String) {
+            var padding = '='.repeat((4 - base64String.length % 4) % 4);
+            var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            var rawData = window.atob(base64);
+            var outputArray = new Uint8Array(rawData.length);
+            for (var i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+            return outputArray;
+        }
+        function sendSubscriptionToServer(subscription) {
+            var token = getAuthToken();
+            if (!token) return;
+            var body = subscription.toJSON ? subscription.toJSON() : { endpoint: subscription.endpoint, keys: { p256dh: subscription.getKey('p256dh') ? btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh')))) : '', auth: subscription.getKey('auth') ? btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth')))) : '' } };
+            fetch((typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : (window.location.origin + '/api')) + '/push-subscription', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify(body)
+            }).catch(function() {});
+        }
+        navigator.serviceWorker.register('{{ asset("sw.js") }}?v=' + Date.now()).then(function(reg) {
+            if (Notification.permission !== 'granted') return;
+            reg.pushManager.getSubscription().then(function(sub) {
+                if (sub) { sendSubscriptionToServer(sub); return; }
+                reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) }).then(sendSubscriptionToServer).catch(function() {});
+            }).catch(function() {});
+        }).catch(function() {});
+    })();
+    </script>
     
     <!-- Chatbot Assistant Widget -->
     @include('components.chatbot-widget')

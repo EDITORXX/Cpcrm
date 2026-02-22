@@ -128,6 +128,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/notifications/{notification}/click', [\App\Http\Controllers\Api\NotificationController::class, 'markAsClicked']);
     Route::post('/notifications/mark-all-read', [\App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead']);
 
+    // PWA Web Push subscription (for lead-assigned etc. notifications)
+    Route::post('/push-subscription', [\App\Http\Controllers\Api\PushSubscriptionController::class, 'store']);
+    Route::delete('/push-subscription', [\App\Http\Controllers\Api\PushSubscriptionController::class, 'destroy']);
+
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
 

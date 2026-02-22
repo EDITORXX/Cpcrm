@@ -146,9 +146,9 @@ async function loadNotifications() {
         if (result.success) {
             updateNotificationUI(result.data, result.unread_count);
             
-            // Show browser notifications for new unread notifications
+            // Show browser notifications for new unread notifications (including new lead assigned)
             result.data.forEach(notification => {
-                if (!notification.read_at && (notification.type === 'call_reminder' || notification.type === 'new_verification')) {
+                if (!notification.read_at && (notification.type === 'call_reminder' || notification.type === 'new_verification' || notification.type === 'new_lead')) {
                     // Only show if not already shown
                     if (!shownNotificationIds.has(notification.id)) {
                         const data = notification.data || {};

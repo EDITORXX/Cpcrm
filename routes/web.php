@@ -44,6 +44,11 @@ Route::get('/pwa-test', function () {
     return view('pwa-test');
 })->name('pwa.test');
 
+// PWA Notification Test Page (new lead assigned message + View Lead / See Task)
+Route::get('/pwa-notification-test', function () {
+    return view('pwa-notification-test');
+})->name('pwa.notification-test');
+
 // Save Icons (from client-side canvas)
 Route::post('/save-icons', function (Illuminate\Http\Request $request) {
     try {
