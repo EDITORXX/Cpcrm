@@ -42,12 +42,12 @@ Route::get('/install-app', function () {
 // PWA Test Page
 Route::get('/pwa-test', function () {
     return view('pwa-test');
-})->name('pwa.test');
+})->name('pwa.test')->middleware('restrict.test');
 
 // PWA Notification Test Page (new lead assigned message + View Lead / See Task)
 Route::get('/pwa-notification-test', function () {
     return view('pwa-notification-test');
-})->name('pwa.notification-test');
+})->name('pwa.notification-test')->middleware('restrict.test');
 
 // Save Icons (from client-side canvas)
 Route::post('/save-icons', function (Illuminate\Http\Request $request) {
@@ -201,7 +201,7 @@ Route::get('/generate-icons', function () {
 // Debug/Test route
 Route::get('/test-csrf', function () {
     return view('test-csrf');
-})->name('test.csrf');
+})->name('test.csrf')->middleware('restrict.test');
 
 Route::get('/test/verification-api', function () {
     return view('test-verification-api');
@@ -241,7 +241,7 @@ Route::get('/quick-login/{userId}', [\App\Http\Controllers\Admin\DebugController
 
 // Authentication Routes
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [LoginController::class, 'login']);
+Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::get('/logout', [LoginController::class, 'logout'])->name('logout.get'); // Fallback for expired sessions
 
@@ -322,8 +322,8 @@ Route::middleware(['auth'])->group(function () {
     })->name('dashboard');
 
     // Test: Lead assigned notification (1-click test for popup + email)
-    Route::get('/test/lead-notification', [\App\Http\Controllers\TestLeadNotificationController::class, 'index'])->name('test.lead-notification');
-    Route::post('/test/lead-notification/simulate', [\App\Http\Controllers\TestLeadNotificationController::class, 'simulate'])->name('test.lead-notification.simulate');
+    Route::get('/test/lead-notification', [\App\Http\Controllers\TestLeadNotificationController::class, 'index'])->name('test.lead-notification')->middleware('role:admin,crm');
+    Route::post('/test/lead-notification/simulate', [\App\Http\Controllers\TestLeadNotificationController::class, 'simulate'])->name('test.lead-notification.simulate')->middleware('role:admin,crm');
 
     // Test: PWA Push – select user and send test notification (Admin/CRM only)
     Route::get('/test/pwa-push', [\App\Http\Controllers\TestPwaPushController::class, 'index'])->name('test.pwa-push')->middleware('role:admin,crm');
@@ -504,6 +504,17 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/facebook', function () {
             return view('integrations.coming-soon', ['integration' => 'Facebook Meta']);
         })->name('facebook');
+
+        // Facebook Lead Ads (standalone - direct webhook + Graph API; does not touch Meta Sheet / Form Integration)
+        Route::prefix('facebook-lead-ads')->name('facebook-lead-ads.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\FacebookLeadAdsController::class, 'index'])->name('index');
+            Route::get('/settings', [\App\Http\Controllers\Admin\FacebookLeadAdsController::class, 'settings'])->name('settings');
+            Route::post('/settings', [\App\Http\Controllers\Admin\FacebookLeadAdsController::class, 'updateSettings'])->name('settings.update');
+            Route::post('/test-connection', [\App\Http\Controllers\Admin\FacebookLeadAdsController::class, 'testConnection'])->name('test-connection');
+            Route::get('/forms', [\App\Http\Controllers\Admin\FacebookLeadAdsController::class, 'forms'])->name('forms');
+            Route::get('/mapping/{formId}', [\App\Http\Controllers\Admin\FacebookLeadAdsController::class, 'mapping'])->name('mapping');
+            Route::post('/save-mapping', [\App\Http\Controllers\Admin\FacebookLeadAdsController::class, 'saveMapping'])->name('save-mapping');
+        });
         Route::get('/magic-bricks', function () {
             return view('integrations.coming-soon', ['integration' => 'Magic Bricks']);
         })->name('magic-bricks');

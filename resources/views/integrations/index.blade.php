@@ -163,6 +163,39 @@
             </div>
         </div>
 
+        <!-- Facebook Lead Ads (standalone – direct webhook + Graph API) -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200 cursor-pointer" onclick="window.location.href='{{ route('integrations.facebook-lead-ads.index') }}'">
+            <div class="p-6">
+                <div class="flex items-center justify-center mb-4">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-r from-[#063A1C] to-[#205A44] flex items-center justify-center">
+                        <i class="fab fa-facebook text-white text-2xl"></i>
+                    </div>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Facebook Lead Ads</h3>
+                <p class="text-sm text-gray-500 mb-4">Direct webhook + Graph API. One-click form mapping; leads sync here first (standalone).</p>
+                @php
+                    try {
+                        $fbLeadAdsSettings = \App\Models\FbLeadAdsSettings::getSettings();
+                        $fbLeadAdsConfigured = !empty($fbLeadAdsSettings->page_access_token) && !empty($fbLeadAdsSettings->page_id);
+                    } catch (\Exception $e) {
+                        $fbLeadAdsConfigured = false;
+                    }
+                @endphp
+                <div class="flex items-center mb-4">
+                    @if($fbLeadAdsConfigured)
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Configured</span>
+                    @else
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">Not configured</span>
+                    @endif
+                </div>
+                <button onclick="event.stopPropagation(); window.location.href='{{ route('integrations.facebook-lead-ads.index') }}'" 
+                        class="w-full px-4 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 text-sm font-medium">
+                    <i class="fas fa-cog mr-2"></i>
+                    Configure
+                </button>
+            </div>
+        </div>
+
         <!-- Magic Bricks Integration -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200 cursor-pointer" onclick="window.location.href='{{ route('integrations.magic-bricks') }}'">
             <div class="p-6">
