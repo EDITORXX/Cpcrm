@@ -12,6 +12,52 @@ use Illuminate\Support\Facades\File;
 
 class TestPwaPushController extends Controller
 {
+    public function generateSw()
+    {
+        $c = config('firebase.web');
+        $js = "importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');\n"
+            . "importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');\n\n"
+            . "firebase.initializeApp(" . json_encode([
+                'apiKey'            => $c['api_key'] ?? '',
+                'authDomain'        => $c['auth_domain'] ?? '',
+                'projectId'         => $c['project_id'] ?? '',
+                'storageBucket'     => $c['storage_bucket'] ?? '',
+                'messagingSenderId' => $c['messaging_sender_id'] ?? '',
+                'appId'             => $c['app_id'] ?? '',
+            ], JSON_UNESCAPED_SLASHES) . ");\n\n"
+            . "var messaging = firebase.messaging();\n\n"
+            . "messaging.onBackgroundMessage(function(payload) {\n"
+            . "    var data = payload.data || {};\n"
+            . "    var notification = payload.notification || {};\n"
+            . "    var title = notification.title || data.title || 'New Notification';\n"
+            . "    return self.registration.showNotification(title, {\n"
+            . "        body: notification.body || data.body || '',\n"
+            . "        icon: '/icon-192.png',\n"
+            . "        badge: '/icon-192.png',\n"
+            . "        tag: data.tag || 'crm-notification',\n"
+            . "        requireInteraction: true,\n"
+            . "        data: { url: data.url || data.click_action || '/' }\n"
+            . "    });\n"
+            . "});\n\n"
+            . "self.addEventListener('notificationclick', function(event) {\n"
+            . "    event.notification.close();\n"
+            . "    var url = (event.notification.data && event.notification.data.url) || '/';\n"
+            . "    event.waitUntil(\n"
+            . "        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {\n"
+            . "            for (var i = 0; i < clientList.length; i++) {\n"
+            . "                if (clientList[i].url.indexOf(url) !== -1 && 'focus' in clientList[i]) return clientList[i].focus();\n"
+            . "            }\n"
+            . "            if (clients.openWindow) return clients.openWindow(url);\n"
+            . "        })\n"
+            . "    );\n"
+            . "});\n";
+
+        $path = public_path('firebase-messaging-sw.js');
+        file_put_contents($path, $js);
+
+        return redirect()->route('test.fcm-diagnose')->with('success', 'firebase-messaging-sw.js generated at ' . $path);
+    }
+
     public function fcmDiagnose()
     {
         $saPath = config('firebase.credentials');
@@ -32,6 +78,7 @@ class TestPwaPushController extends Controller
             'sa_file_exists'   => file_exists($saPath),
             'sa_file_readable' => is_readable($saPath),
             'kreait_installed' => class_exists(\Kreait\Firebase\Factory::class),
+            'sw_file_exists'   => file_exists(public_path('firebase-messaging-sw.js')),
             'fcm_token_count'  => FcmToken::count(),
             'my_fcm_count'     => auth()->check() ? FcmToken::where('user_id', auth()->id())->count() : 0,
             'api_token'        => !empty($apiToken),
