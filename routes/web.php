@@ -14,6 +14,49 @@ use App\Http\Controllers\Auth\LoginController;
 |
 */
 
+// Firebase Messaging Service Worker (must be at root scope, config injected dynamically)
+Route::get('/firebase-messaging-sw.js', function () {
+    $c = config('firebase.web');
+    $js = "importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');\n"
+        . "importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');\n\n"
+        . "firebase.initializeApp(" . json_encode([
+            'apiKey'            => $c['api_key'] ?? '',
+            'authDomain'        => $c['auth_domain'] ?? '',
+            'projectId'         => $c['project_id'] ?? '',
+            'storageBucket'     => $c['storage_bucket'] ?? '',
+            'messagingSenderId' => $c['messaging_sender_id'] ?? '',
+            'appId'             => $c['app_id'] ?? '',
+        ]) . ");\n\n"
+        . "var messaging = firebase.messaging();\n\n"
+        . "messaging.onBackgroundMessage(function(payload) {\n"
+        . "    var data = payload.data || {};\n"
+        . "    var notification = payload.notification || {};\n"
+        . "    var title = notification.title || data.title || 'New Notification';\n"
+        . "    var options = {\n"
+        . "        body: notification.body || data.body || '',\n"
+        . "        icon: '/icon-192.png',\n"
+        . "        badge: '/icon-192.png',\n"
+        . "        tag: data.tag || 'crm-notification',\n"
+        . "        requireInteraction: true,\n"
+        . "        data: { url: data.url || data.click_action || '/' }\n"
+        . "    };\n"
+        . "    return self.registration.showNotification(title, options);\n"
+        . "});\n\n"
+        . "self.addEventListener('notificationclick', function(event) {\n"
+        . "    event.notification.close();\n"
+        . "    var url = (event.notification.data && event.notification.data.url) || '/';\n"
+        . "    event.waitUntil(\n"
+        . "        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {\n"
+        . "            for (var i = 0; i < clientList.length; i++) {\n"
+        . "                if (clientList[i].url.indexOf(url) !== -1 && 'focus' in clientList[i]) return clientList[i].focus();\n"
+        . "            }\n"
+        . "            if (clients.openWindow) return clients.openWindow(url);\n"
+        . "        })\n"
+        . "    );\n"
+        . "});\n";
+    return response($js, 200)->header('Content-Type', 'application/javascript')->header('Service-Worker-Allowed', '/');
+});
+
 // Installation Routes (must be before other routes)
 Route::prefix('install')->group(function () {
     Route::get('/', [\App\Http\Controllers\InstallController::class, 'index'])->name('install.index');
