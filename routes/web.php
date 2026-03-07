@@ -15,7 +15,7 @@ use App\Http\Controllers\Auth\LoginController;
 */
 
 // Firebase Messaging Service Worker (must be at root scope, config injected dynamically)
-Route::get('/firebase-messaging-sw.js', function () {
+Route::get('/fcm-sw.js', function () {
     $c = config('firebase.web');
     $js = "importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');\n"
         . "importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js');\n\n"

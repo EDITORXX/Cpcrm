@@ -79,10 +79,10 @@ self.addEventListener('notificationclick', function(event) {
 });
 SWJS;
 
-        $path = public_path('firebase-messaging-sw.js');
+        $path = public_path('fcm-sw.js');
         file_put_contents($path, $js);
 
-        return redirect()->route('test.fcm-diagnose')->with('success', 'firebase-messaging-sw.js generated at ' . $path);
+        return redirect()->route('test.fcm-diagnose')->with('success', 'fcm-sw.js generated at ' . $path);
     }
 
     public function fcmDiagnose()
@@ -105,7 +105,7 @@ SWJS;
             'sa_file_exists'   => file_exists($saPath),
             'sa_file_readable' => is_readable($saPath),
             'kreait_installed' => class_exists(\Kreait\Firebase\Factory::class),
-            'sw_file_exists'   => file_exists(public_path('firebase-messaging-sw.js')),
+            'sw_file_exists'   => file_exists(public_path('fcm-sw.js')),
             'fcm_token_count'  => FcmToken::count(),
             'my_fcm_count'     => auth()->check() ? FcmToken::where('user_id', auth()->id())->count() : 0,
             'api_token'        => !empty($apiToken),

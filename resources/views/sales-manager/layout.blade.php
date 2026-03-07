@@ -994,7 +994,7 @@
 
         function initFcm() {
             if (statusEl) statusEl.textContent = 'Registering...';
-            navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(reg) {
+            navigator.serviceWorker.register('/fcm-sw.js').then(function(reg) {
                 messaging.getToken({ vapidKey: vapidKey, serviceWorkerRegistration: reg }).then(function(token) {
                     if (token) sendFcmTokenToServer(token);
                     else if (statusEl) statusEl.textContent = 'No FCM token received.';

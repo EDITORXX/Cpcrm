@@ -1172,7 +1172,7 @@
             }).catch(function() {});
         }
         function initFcm() {
-            navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(reg) {
+            navigator.serviceWorker.register('/fcm-sw.js').then(function(reg) {
                 messaging.getToken({ vapidKey: vapidMeta.content, serviceWorkerRegistration: reg }).then(function(token) {
                     if (token) sendFcmTokenToServer(token);
                 }).catch(function() {});

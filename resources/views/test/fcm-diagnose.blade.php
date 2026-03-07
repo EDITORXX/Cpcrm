@@ -42,7 +42,7 @@
     <div class="action-bar">
         <form method="POST" action="{{ route('test.fcm-generate-sw') }}" style="display:inline;">
             @csrf
-            <button type="submit" class="btn-run btn-orange">Generate firebase-messaging-sw.js</button>
+            <button type="submit" class="btn-run btn-orange">Generate fcm-sw.js</button>
         </form>
         <button class="btn-run btn-blue" onclick="allowNotification()">Allow Notification Permission</button>
         <button class="btn-run btn-red" onclick="unregisterAllSW()">Unregister All Service Workers</button>
@@ -134,7 +134,7 @@
         </span>
     </div>
     <div class="diag-row">
-        <span class="diag-label">firebase-messaging-sw.js (static file)</span>
+        <span class="diag-label">fcm-sw.js (static file)</span>
         <span class="diag-val">
             @if($serverChecks['sw_file_exists'])
                 <span class="badge-ok">EXISTS</span>
@@ -331,9 +331,9 @@ async function runFullDiag() {
     }
 
     // Check if SW file accessible
-    log('Checking firebase-messaging-sw.js availability...');
+    log('Checking fcm-sw.js availability...');
     try {
-        var swResp = await fetch('/firebase-messaging-sw.js');
+        var swResp = await fetch('/fcm-sw.js');
         var swType = swResp.headers.get('content-type') || '';
         var swBody = await swResp.text();
         log('SW file HTTP ' + swResp.status + ', Content-Type: ' + swType + ', Size: ' + swBody.length + ' bytes', swResp.ok ? 'ok' : 'fail');
@@ -355,7 +355,7 @@ async function runFullDiag() {
     log('Registering service worker...');
     var swReg;
     try {
-        swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        swReg = await navigator.serviceWorker.register('/fcm-sw.js');
         log('Service worker registered! Scope: ' + swReg.scope, 'ok');
     } catch(e) {
         log('Service worker registration FAILED: ' + e.message, 'fail');
