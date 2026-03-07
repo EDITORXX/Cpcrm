@@ -58,9 +58,26 @@
     </div>
 
     <div id="test-result" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6" style="display: none;">
-        <h3 class="font-semibold text-gray-900 mb-2">Pages (select one and save settings with that Page ID)</h3>
+        <h3 class="font-semibold text-gray-900 mb-2">Pages from Meta</h3>
+        <p class="text-sm text-gray-600 mb-3">Add pages to use in Select Form. You can also "Use this page" to fill the fields below for backward compatibility.</p>
         <ul id="pages-list" class="space-y-2"></ul>
     </div>
+
+    @if(isset($addedPages) && $addedPages->isNotEmpty())
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+        <h3 class="font-semibold text-gray-900 mb-2">Added pages</h3>
+        <p class="text-sm text-gray-600 mb-3">These pages appear in Select Form. Remove only clears the token; configured forms stay linked.</p>
+        <ul class="space-y-2" id="added-pages-list">
+            @foreach($addedPages as $p)
+            <li class="flex items-center justify-between py-2 border-b border-gray-100" data-page-id="{{ $p->page_id }}">
+                <span class="font-medium text-gray-800">{{ $p->page_name ?: $p->page_id }}</span>
+                <span class="text-xs text-gray-500">{{ $p->page_id }}</span>
+                <button type="button" class="btn-remove-page px-2 py-1 text-sm text-red-600 hover:bg-red-50 rounded" data-page-id="{{ $p->page_id }}">Remove</button>
+            </li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
 </div>
 
 @php $fbPage = $settings->page_id ? \App\Models\FbPage::where('page_id', $settings->page_id)->first() : null; @endphp
@@ -90,8 +107,28 @@ document.getElementById('btn-test').addEventListener('click', function() {
             resultDiv.style.display = 'block';
             var pages = data.pages || [];
             list.innerHTML = pages.length ? pages.map(function(p) {
-                return '<li class="flex items-center justify-between py-2 border-b border-gray-100"><span>' + (p.name || p.id) + '</span><span class="text-xs text-gray-500">' + p.id + '</span><button type="button" class="text-sm text-blue-600 hover:underline" onclick="document.querySelector(\'input[name=page_id]\').value=\'' + p.id + '\'; document.querySelector(\'input[name=page_name]\').value=\'' + (p.name || '').replace(/'/g, "\\'") + '\';">Use this page</button></li>';
+                var name = (p.name || p.id) + '';
+                var safeName = name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                return '<li class="flex items-center justify-between py-2 border-b border-gray-100"><span>' + name + '</span><span class="text-xs text-gray-500">' + p.id + '</span><span class="flex gap-2"><button type="button" class="text-sm text-blue-600 hover:underline add-page-btn" data-page-id="' + p.id + '" data-page-name="' + safeName + '" data-access-token="' + (p.access_token || '').replace(/"/g, '&quot;') + '">Add page</button><button type="button" class="text-sm text-gray-600 hover:underline" onclick="document.querySelector(\'input[name=page_id]\').value=\'' + p.id + '\'; document.querySelector(\'input[name=page_name]\').value=\'' + safeName + '\';">Use this page</button></span></li>';
             }).join('') : '<li class="text-gray-500">' + (data.message || 'No pages returned.') + '</li>';
+            list.querySelectorAll('.add-page-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var pageId = this.getAttribute('data-page-id');
+                    var pageName = this.getAttribute('data-page-name') || pageId;
+                    var token = this.getAttribute('data-access-token');
+                    if (!token) { alert('No token for this page'); return; }
+                    btn.disabled = true;
+                    fetch('{{ route("integrations.facebook-lead-ads.add-page") }}', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' },
+                        body: JSON.stringify({ page_id: pageId, page_name: pageName, page_access_token: token, _token: document.querySelector('input[name="_token"]').value })
+                    }).then(r => r.json()).then(function(res) {
+                        btn.disabled = false;
+                        if (res.success) { alert(res.message || 'Page added.'); window.location.reload(); }
+                        else { alert(res.message || 'Failed'); }
+                    }).catch(function() { btn.disabled = false; alert('Request failed'); });
+                });
+            });
         } else {
             alert.className = 'p-4 rounded-lg bg-red-50 border border-red-200 text-red-800';
             alert.textContent = data.error || 'Connection failed';
@@ -121,6 +158,23 @@ document.getElementById('settings-form').addEventListener('submit', function(e) 
             alert(data.message || 'Save failed');
         }
     }).catch(function() { alert('Save failed'); });
+});
+document.querySelectorAll('.btn-remove-page').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var pageId = this.getAttribute('data-page-id');
+        if (!pageId || !confirm('Remove this page? You can re-add it from Test connection.')) return;
+        var li = this.closest('li');
+        btn.disabled = true;
+        fetch('{{ route("integrations.facebook-lead-ads.remove-page") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' },
+            body: JSON.stringify({ page_id: pageId, _token: document.querySelector('input[name="_token"]').value })
+        }).then(r => r.json()).then(function(res) {
+            if (res.success && li) li.remove();
+            else if (!res.success) alert(res.message || 'Failed');
+            btn.disabled = false;
+        }).catch(function() { btn.disabled = false; alert('Request failed'); });
+    });
 });
 </script>
 @endsection

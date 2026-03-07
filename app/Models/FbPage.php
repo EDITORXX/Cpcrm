@@ -12,7 +12,12 @@ class FbPage extends Model
     protected $fillable = [
         'page_id',
         'page_name',
+        'page_access_token',
         'token_reference',
+    ];
+
+    protected $hidden = [
+        'page_access_token',
     ];
 
     public function forms(): HasMany

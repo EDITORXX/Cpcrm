@@ -23,6 +23,14 @@ class FacebookGraphService
         );
     }
 
+    /**
+     * Create service from token + graph version (e.g. for a specific FbPage).
+     */
+    public static function fromToken(string $accessToken, string $graphVersion = 'v18.0'): self
+    {
+        return new self($accessToken, $graphVersion);
+    }
+
     protected function url(string $path, array $query = []): string
     {
         $base = rtrim($this->baseUrl, '/') . '/' . ltrim($this->graphVersion . '/' . ltrim($path, '/'), '/');

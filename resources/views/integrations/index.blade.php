@@ -176,7 +176,8 @@
                 @php
                     try {
                         $fbLeadAdsSettings = \App\Models\FbLeadAdsSettings::getSettings();
-                        $fbLeadAdsConfigured = !empty($fbLeadAdsSettings->page_access_token) && !empty($fbLeadAdsSettings->page_id);
+                        $fbLeadAdsConfigured = (!empty($fbLeadAdsSettings->page_access_token) && !empty($fbLeadAdsSettings->page_id))
+                            || \App\Models\FbPage::whereNotNull('page_access_token')->exists();
                     } catch (\Exception $e) {
                         $fbLeadAdsConfigured = false;
                     }

@@ -55,8 +55,9 @@
             @foreach($forms as $form)
             <li class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                 <span class="font-medium text-gray-800">{{ $form->form_name ?: $form->form_id }}</span>
+                <span class="text-xs text-gray-500 mr-2">{{ $form->page?->page_name ?? 'Unknown page' }}</span>
                 <span class="text-xs {{ $form->is_enabled ? 'text-green-600' : 'text-gray-500' }}">{{ $form->is_enabled ? 'Enabled' : 'Disabled' }}</span>
-                <a href="{{ route('integrations.facebook-lead-ads.mapping', ['formId' => $form->form_id, 'form_name' => $form->form_name, 'page_id' => $settings->page_id]) }}" class="text-sm text-blue-600 hover:underline">Edit mapping</a>
+                <a href="{{ route('integrations.facebook-lead-ads.mapping', ['formId' => $form->form_id, 'form_name' => $form->form_name, 'page_id' => $form->page?->page_id]) }}" class="text-sm text-blue-600 hover:underline">Edit mapping</a>
             </li>
             @endforeach
         </ul>

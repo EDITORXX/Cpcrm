@@ -35,17 +35,19 @@ class FetchFacebookLeadDetailsJob implements ShouldQueue
         }
 
         $fbForm = FbForm::with('page')->find($this->fbFormId);
-        if (!$fbForm) {
+        if (!$fbForm || !$fbForm->page) {
+            return;
+        }
+
+        $token = $fbForm->page->page_access_token;
+        if (empty($token)) {
+            $this->failEvent('No token for page');
             return;
         }
 
         $settings = \App\Models\FbLeadAdsSettings::getSettings();
-        if (empty($settings->page_access_token)) {
-            $this->failEvent('No token');
-            return;
-        }
-
-        $client = FacebookGraphService::fromSettings($settings);
+        $graphVersion = $settings->graph_version ?? 'v18.0';
+        $client = FacebookGraphService::fromToken($token, $graphVersion);
         $result = $client->getLeadDetails($this->leadgenId);
 
         if (!$result['success']) {

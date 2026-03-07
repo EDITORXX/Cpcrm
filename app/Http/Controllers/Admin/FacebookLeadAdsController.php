@@ -22,14 +22,12 @@ class FacebookLeadAdsController extends Controller
     public function index()
     {
         $settings = FbLeadAdsSettings::getSettings();
-        $hasToken = !empty($settings->page_access_token);
-        $forms = collect([]);
-        if ($hasToken && $settings->page_id) {
-            $page = FbPage::where('page_id', $settings->page_id)->first();
-            if ($page) {
-                $forms = FbForm::where('fb_page_id', $page->id)->orderBy('form_name')->get();
-            }
-        }
+        $pagesWithToken = FbPage::whereNotNull('page_access_token')->pluck('id');
+        $forms = FbForm::with('page')
+            ->whereIn('fb_page_id', $pagesWithToken)
+            ->orderBy('form_name')
+            ->get();
+        $hasToken = FbPage::whereNotNull('page_access_token')->exists();
         $webhookUrl = url('/api/webhooks/facebook/leads');
 
         $recentLeads = FbLead::with('form')
@@ -47,8 +45,9 @@ class FacebookLeadAdsController extends Controller
     {
         $settings = FbLeadAdsSettings::getSettings();
         $pageName = $settings->page_id ? optional(FbPage::where('page_id', $settings->page_id)->first())->page_name : '';
+        $addedPages = FbPage::whereNotNull('page_access_token')->orderBy('page_name')->get();
 
-        return view('integrations.facebook-lead-ads.settings', compact('settings', 'pageName'));
+        return view('integrations.facebook-lead-ads.settings', compact('settings', 'pageName', 'addedPages'));
     }
 
     /**
@@ -85,6 +84,46 @@ class FacebookLeadAdsController extends Controller
     }
 
     /**
+     * Add a page (from Test connection result). Stores page_id, page_name, page_access_token in fb_pages.
+     */
+    public function addPage(Request $request)
+    {
+        $request->validate([
+            'page_id' => 'required|string|max:50',
+            'page_name' => 'required|string|max:255',
+            'page_access_token' => 'required|string',
+        ]);
+
+        FbPage::updateOrCreate(
+            ['page_id' => $request->page_id],
+            [
+                'page_name' => $request->page_name,
+                'page_access_token' => $request->page_access_token,
+            ]
+        );
+
+        $addedPages = FbPage::whereNotNull('page_access_token')->orderBy('page_name')->get(['id', 'page_id', 'page_name']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Page added.',
+            'added_pages' => $addedPages,
+        ]);
+    }
+
+    /**
+     * Remove page: clear token so it no longer appears in Select Form. Keeps row for existing forms.
+     */
+    public function removePage(Request $request)
+    {
+        $request->validate(['page_id' => 'required|string|max:50']);
+        $page = FbPage::where('page_id', $request->page_id)->first();
+        if ($page) {
+            $page->update(['page_access_token' => null]);
+        }
+        return response()->json(['success' => true, 'message' => 'Page removed.']);
+    }
+
+    /**
      * Test connection: call Graph API, return pages list.
      */
     public function testConnection(Request $request)
@@ -102,28 +141,46 @@ class FacebookLeadAdsController extends Controller
     }
 
     /**
-     * Form selector: show forms for the configured page.
+     * Form selector: with page_id show forms for that page; without page_id show "Choose a page" list.
      */
-    public function forms()
+    public function forms(Request $request)
     {
+        $pageId = $request->query('page_id');
         $settings = FbLeadAdsSettings::getSettings();
-        if (empty($settings->page_access_token) || empty($settings->page_id)) {
+
+        if ($pageId) {
+            $page = FbPage::where('page_id', $pageId)->first();
+            if (!$page || empty($page->page_access_token)) {
+                return redirect()->route('integrations.facebook-lead-ads.forms')
+                    ->with('error', 'Page not found or token missing. Re-add the page from Settings.');
+            }
+            $client = FacebookGraphService::fromToken($page->page_access_token, $settings->graph_version ?? 'v18.0');
+            $result = $client->getLeadgenForms($pageId);
+            if (!$result['success']) {
+                return redirect()->route('integrations.facebook-lead-ads.index')
+                    ->with('error', $result['error'] ?? 'Failed to fetch forms.');
+            }
+            $forms = $result['forms'];
+            $existingFormIds = FbForm::whereIn('form_id', array_column($forms, 'id'))->pluck('form_id', 'id')->toArray();
+            return view('integrations.facebook-lead-ads.forms', [
+                'forms' => $forms,
+                'existingFormIds' => $existingFormIds,
+                'page' => $page,
+                'pages' => null,
+            ]);
+        }
+
+        $pages = FbPage::whereNotNull('page_access_token')->orderBy('page_name')->get();
+        if ($pages->isEmpty()) {
             return redirect()->route('integrations.facebook-lead-ads.settings')
-                ->with('warning', 'Please set token and page first.');
+                ->with('warning', 'Add at least one page (Test connection then Add page) first.');
         }
-
-        $client = FacebookGraphService::fromSettings($settings);
-        $result = $client->getLeadgenForms($settings->page_id);
-
-        if (!$result['success']) {
-            return redirect()->route('integrations.facebook-lead-ads.index')
-                ->with('error', $result['error'] ?? 'Failed to fetch forms.');
-        }
-
-        $forms = $result['forms'];
-        $existingFormIds = FbForm::whereIn('form_id', array_column($forms, 'id'))->pluck('form_id', 'id')->toArray();
-
-        return view('integrations.facebook-lead-ads.forms', compact('forms', 'existingFormIds'));
+        return view('integrations.facebook-lead-ads.forms', [
+            'forms' => [],
+            'existingFormIds' => [],
+            'page' => null,
+            'pages' => $pages,
+        ]);
     }
 
     /**
@@ -132,16 +189,22 @@ class FacebookLeadAdsController extends Controller
     public function mapping(Request $request, string $formId)
     {
         $settings = FbLeadAdsSettings::getSettings();
-        if (empty($settings->page_id)) {
-            return redirect()->route('integrations.facebook-lead-ads.settings');
+        $pageId = $request->query('page_id');
+        $page = null;
+        if ($pageId) {
+            $page = FbPage::where('page_id', $pageId)->first();
         }
-
-        $page = FbPage::where('page_id', $settings->page_id)->first();
         if (!$page) {
-            $page = FbPage::create([
-                'page_id' => $settings->page_id,
-                'page_name' => $request->input('page_name'),
-            ]);
+            $fbFormExisting = FbForm::where('form_id', $formId)->with('page')->first();
+            $page = $fbFormExisting?->page;
+        }
+        if (!$page) {
+            return redirect()->route('integrations.facebook-lead-ads.forms')
+                ->with('error', 'Select a page first, then choose a form.');
+        }
+        if (empty($page->page_access_token)) {
+            return redirect()->route('integrations.facebook-lead-ads.settings')
+                ->with('error', 'Page token missing. Re-add this page from Settings (Test connection → Add page).');
         }
 
         $formName = $request->input('form_name', 'Form ' . $formId);
@@ -149,8 +212,9 @@ class FacebookLeadAdsController extends Controller
             ['form_id' => $formId],
             ['fb_page_id' => $page->id, 'form_name' => $formName]
         );
+        $fbForm->load('page');
 
-        $client = FacebookGraphService::fromSettings($settings);
+        $client = FacebookGraphService::fromToken($page->page_access_token, $settings->graph_version ?? 'v18.0');
         $fieldsResult = $client->getFormFieldsSample($formId);
         $fieldNames = $fieldsResult['fields'] ? array_column($fieldsResult['fields'], 'name') : [];
         if (empty($fieldNames)) {
