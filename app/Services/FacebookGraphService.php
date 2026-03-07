@@ -31,18 +31,50 @@ class FacebookGraphService
     }
 
     /**
-     * Test token and get current user pages (for "Test Connection")
+     * Test token and get pages (for "Test Connection").
+     * Uses GET /me/accounts (User token). If token is a Page token, falls back to GET /me?fields=id,name.
+     * Graph API v18+: /me/accounts returns list of pages; /me with Page token returns the single page.
      */
     public function testConnection(): array
     {
         $response = Http::get($this->url('me/accounts', ['fields' => 'id,name,access_token']));
-        if (!$response->successful()) {
-            Log::warning('Facebook Graph API test failed', ['body' => $response->body()]);
-            return ['success' => false, 'error' => $response->json('error.message', 'Unknown error'), 'pages' => []];
+
+        if ($response->successful()) {
+            $data = $response->json();
+            $pages = $data['data'] ?? [];
+            if (empty($pages)) {
+                return [
+                    'success' => true,
+                    'pages' => [],
+                    'error' => null,
+                    'message' => 'No pages found. Ensure the token has pages_show_list permission and the Facebook account has at least one Page.',
+                ];
+            }
+            return ['success' => true, 'pages' => $pages, 'error' => null];
         }
-        $data = $response->json();
-        $pages = $data['data'] ?? [];
-        return ['success' => true, 'pages' => $pages, 'error' => null];
+
+        $error = $response->json('error', []);
+        $code = $error['code'] ?? null;
+        $message = $error['message'] ?? $response->body() ?: 'Unknown error';
+
+        // (#100) Tried accessing nonexistent field (accounts) = Page Access Token used with /me/accounts.
+        // With Page token, "me" is the Page; fall back to GET /me?fields=id,name and return single page.
+        if ((int) $code === 100 && (str_contains((string) $message, 'accounts') || str_contains((string) $message, 'nonexistent field'))) {
+            $meResponse = Http::get($this->url('me', ['fields' => 'id,name']));
+            if ($meResponse->successful()) {
+                $page = $meResponse->json();
+                $page['access_token'] = $this->accessToken;
+                $pages = [$page];
+                return ['success' => true, 'pages' => $pages, 'error' => null];
+            }
+        }
+
+        Log::warning('Facebook Graph API test failed', ['body' => $response->body()]);
+        return [
+            'success' => false,
+            'error' => $message,
+            'pages' => [],
+        ];
     }
 
     /**

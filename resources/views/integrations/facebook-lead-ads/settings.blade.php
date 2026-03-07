@@ -85,12 +85,13 @@ document.getElementById('btn-test').addEventListener('click', function() {
         var list = document.getElementById('pages-list');
         if (data.success) {
             alert.className = 'p-4 rounded-lg bg-green-50 border border-green-200 text-green-800';
-            alert.textContent = 'Connection successful. Pages listed below.';
+            alert.textContent = data.message || 'Connection successful. Pages listed below.';
             container.style.display = 'block';
             resultDiv.style.display = 'block';
-            list.innerHTML = (data.pages || []).map(function(p) {
+            var pages = data.pages || [];
+            list.innerHTML = pages.length ? pages.map(function(p) {
                 return '<li class="flex items-center justify-between py-2 border-b border-gray-100"><span>' + (p.name || p.id) + '</span><span class="text-xs text-gray-500">' + p.id + '</span><button type="button" class="text-sm text-blue-600 hover:underline" onclick="document.querySelector(\'input[name=page_id]\').value=\'' + p.id + '\'; document.querySelector(\'input[name=page_name]\').value=\'' + (p.name || '').replace(/'/g, "\\'") + '\';">Use this page</button></li>';
-            }).join('') || '<li class="text-gray-500">No pages returned</li>';
+            }).join('') : '<li class="text-gray-500">' + (data.message || 'No pages returned.') + '</li>';
         } else {
             alert.className = 'p-4 rounded-lg bg-red-50 border border-red-200 text-red-800';
             alert.textContent = data.error || 'Connection failed';
