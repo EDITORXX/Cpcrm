@@ -373,6 +373,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/test/pwa-push', [\App\Http\Controllers\TestPwaPushController::class, 'index'])->name('test.pwa-push')->middleware('role:admin,crm');
     Route::get('/test/fcm-diagnose', [\App\Http\Controllers\TestPwaPushController::class, 'fcmDiagnose'])->name('test.fcm-diagnose')->middleware('role:admin,crm');
     Route::post('/test/fcm-generate-sw', [\App\Http\Controllers\TestPwaPushController::class, 'generateSw'])->name('test.fcm-generate-sw')->middleware('role:admin,crm');
+    Route::post('/test/fcm-direct-send', [\App\Http\Controllers\TestPwaPushController::class, 'fcmDirectSend'])->name('test.fcm-direct-send')->middleware('role:admin,crm');
     Route::get('/test/pwa-push/diagnose', [\App\Http\Controllers\TestPwaPushController::class, 'diagnose'])->name('test.pwa-diagnose')->middleware('role:admin,crm');
     Route::post('/test/pwa-push/send', [\App\Http\Controllers\TestPwaPushController::class, 'send'])->name('test.pwa-push.send')->middleware('role:admin,crm');
     

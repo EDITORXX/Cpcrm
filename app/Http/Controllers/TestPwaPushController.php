@@ -12,6 +12,57 @@ use Illuminate\Support\Facades\File;
 
 class TestPwaPushController extends Controller
 {
+    public function fcmDirectSend(Request $request)
+    {
+        $request->validate(['user_id' => 'required|exists:users,id']);
+        $user = \App\Models\User::findOrFail($request->user_id);
+        $tokens = FcmToken::where('user_id', $user->id)->pluck('fcm_token')->toArray();
+
+        if (empty($tokens)) {
+            return back()->with('error', "No FCM tokens for {$user->name} (user_id={$user->id}). Total tokens in DB: " . FcmToken::count());
+        }
+
+        $credentialsPath = config('firebase.credentials');
+        if (!file_exists($credentialsPath)) {
+            return back()->with('error', "Service account file not found: {$credentialsPath}");
+        }
+
+        $results = [];
+        try {
+            $factory = (new \Kreait\Firebase\Factory)->withServiceAccount($credentialsPath);
+            $messaging = $factory->createMessaging();
+
+            $notification = \Kreait\Firebase\Messaging\Notification::create(
+                'FCM Direct Test',
+                'This is a direct FCM test notification at ' . now()->format('H:i:s')
+            );
+
+            $data = [
+                'title' => 'FCM Direct Test',
+                'body' => 'Direct test at ' . now()->format('H:i:s'),
+                'url' => url('/'),
+                'tag' => 'fcm-direct-test',
+            ];
+
+            foreach ($tokens as $i => $token) {
+                try {
+                    $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token', $token)
+                        ->withNotification($notification)
+                        ->withData($data);
+
+                    $resp = $messaging->send($message);
+                    $results[] = "Token #" . ($i + 1) . " (" . substr($token, 0, 20) . "...): SENT OK — response: " . json_encode($resp);
+                } catch (\Exception $e) {
+                    $results[] = "Token #" . ($i + 1) . " (" . substr($token, 0, 20) . "...): FAILED — " . get_class($e) . ": " . $e->getMessage();
+                }
+            }
+        } catch (\Exception $e) {
+            return back()->with('error', "Firebase init failed: " . get_class($e) . ": " . $e->getMessage());
+        }
+
+        return back()->with('success', "FCM Direct Send Results for {$user->name}:\n" . implode("\n", $results));
+    }
+
     public function generateSw()
     {
         $c = config('firebase.web');

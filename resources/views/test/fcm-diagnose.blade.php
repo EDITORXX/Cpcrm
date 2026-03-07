@@ -31,9 +31,10 @@
 </style>
 
 @if(session('success'))
-<div style="background: #dcfce7; color: #166534; padding: 14px 20px; border-radius: 8px; margin-bottom: 16px; font-weight: 500;">
-    {{ session('success') }}
-</div>
+<div style="background: #dcfce7; color: #166534; padding: 14px 20px; border-radius: 8px; margin-bottom: 16px; font-weight: 500; white-space: pre-wrap;">{{ session('success') }}</div>
+@endif
+@if(session('error'))
+<div style="background: #fee2e2; color: #991b1b; padding: 14px 20px; border-radius: 8px; margin-bottom: 16px; font-weight: 500; white-space: pre-wrap;">{{ session('error') }}</div>
 @endif
 
 {{-- Quick Actions --}}
@@ -48,6 +49,17 @@
         <button class="btn-run btn-red" onclick="unregisterAllSW()">Unregister All Service Workers</button>
     </div>
     <div id="actionStatus" style="font-size: 13px; color: #6b7280; margin-top: 8px;"></div>
+</div>
+
+{{-- Direct FCM Send Test --}}
+<div class="diag-card">
+    <div class="step-title">Direct FCM Send Test (no queue)</div>
+    <p style="color: #6b7280; margin-bottom: 12px;">Send notification directly via Firebase Admin SDK — shows exact success/error response.</p>
+    <form method="POST" action="{{ route('test.fcm-direct-send') }}" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        @csrf
+        <input type="hidden" name="user_id" value="{{ auth()->id() }}">
+        <button type="submit" class="btn-run">Send FCM to myself ({{ auth()->user()->name }})</button>
+    </form>
 </div>
 
 {{-- Server-side checks --}}
