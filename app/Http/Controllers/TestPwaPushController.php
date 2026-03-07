@@ -12,6 +12,35 @@ use Illuminate\Support\Facades\File;
 
 class TestPwaPushController extends Controller
 {
+    public function fcmDiagnose()
+    {
+        $saPath = config('firebase.credentials');
+        $apiToken = session('api_token') ?? (auth()->check() ? auth()->user()->createToken('diag-token')->plainTextToken : '');
+
+        $serverChecks = [
+            'project_id'       => !empty(config('firebase.project_id')),
+            'project_id_preview' => config('firebase.project_id') ? substr(config('firebase.project_id'), 0, 20) : '',
+            'api_key'          => !empty(config('firebase.web.api_key')),
+            'api_key_preview'  => config('firebase.web.api_key') ? substr(config('firebase.web.api_key'), 0, 15) . '...' : '',
+            'sender_id'        => !empty(config('firebase.web.messaging_sender_id')),
+            'sender_id_val'    => config('firebase.web.messaging_sender_id') ?: '',
+            'app_id'           => !empty(config('firebase.web.app_id')),
+            'app_id_preview'   => config('firebase.web.app_id') ? substr(config('firebase.web.app_id'), 0, 20) . '...' : '',
+            'vapid_key'        => !empty(config('firebase.vapid_key')),
+            'vapid_key_preview'=> config('firebase.vapid_key') ? substr(config('firebase.vapid_key'), 0, 20) . '...' : '',
+            'sa_file_path'     => $saPath,
+            'sa_file_exists'   => file_exists($saPath),
+            'sa_file_readable' => is_readable($saPath),
+            'kreait_installed' => class_exists(\Kreait\Firebase\Factory::class),
+            'fcm_token_count'  => FcmToken::count(),
+            'my_fcm_count'     => auth()->check() ? FcmToken::where('user_id', auth()->id())->count() : 0,
+            'api_token'        => !empty($apiToken),
+            'api_token_preview'=> $apiToken ? substr($apiToken, 0, 15) . '...' : '',
+        ];
+
+        return view('test.fcm-diagnose', compact('serverChecks'));
+    }
+
     /**
      * One-click PWA push diagnostic for a user (e.g. Gold). Output copy-paste for support.
      */
