@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\FbForm;
+use App\Models\FbLead;
 use App\Models\FbLeadAdsSettings;
 use App\Models\FbPage;
 use App\Services\FacebookGraphService;
@@ -30,7 +31,12 @@ class FacebookLeadAdsController extends Controller
         }
         $webhookUrl = url('/api/webhooks/facebook/leads');
 
-        return view('integrations.facebook-lead-ads.index', compact('settings', 'hasToken', 'forms', 'webhookUrl'));
+        $recentLeads = FbLead::with('form')
+            ->orderByDesc('created_at')
+            ->limit(20)
+            ->get();
+
+        return view('integrations.facebook-lead-ads.index', compact('settings', 'hasToken', 'forms', 'webhookUrl', 'recentLeads'));
     }
 
     /**

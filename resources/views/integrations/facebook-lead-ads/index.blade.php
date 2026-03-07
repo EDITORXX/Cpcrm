@@ -49,7 +49,7 @@
     </div>
 
     @if($forms->isNotEmpty())
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Configured forms</h3>
         <ul class="space-y-2">
             @foreach($forms as $form)
@@ -62,5 +62,46 @@
         </ul>
     </div>
     @endif
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <i class="fas fa-users text-blue-600 mr-2"></i>
+            Recent leads from Meta (last 20)
+        </h3>
+        @if(isset($recentLeads) && $recentLeads->isNotEmpty())
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-200 text-left text-gray-600 font-medium">
+                        <th class="py-3 pr-4">Date</th>
+                        <th class="py-3 pr-4">Form</th>
+                        <th class="py-3 pr-4">Name</th>
+                        <th class="py-3 pr-4">Email</th>
+                        <th class="py-3 pr-4">Phone</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($recentLeads as $lead)
+                    @php
+                        $data = $lead->field_data_json ?? [];
+                        $name = $data['name'] ?? $data['full_name'] ?? '-';
+                        $email = $data['email'] ?? '-';
+                        $phone = $data['phone'] ?? $data['phone_number'] ?? '-';
+                    @endphp
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="py-3 pr-4 text-gray-600">{{ $lead->created_at->format('d M Y, H:i') }}</td>
+                        <td class="py-3 pr-4">{{ $lead->form?->form_name ?: $lead->form_id }}</td>
+                        <td class="py-3 pr-4">{{ $name }}</td>
+                        <td class="py-3 pr-4">{{ $email }}</td>
+                        <td class="py-3 pr-4">{{ $phone }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @else
+        <p class="text-gray-500 py-4">No leads from Meta yet. Leads will appear here once the webhook receives submissions and the queue worker processes them.</p>
+        @endif
+    </div>
 </div>
 @endsection
