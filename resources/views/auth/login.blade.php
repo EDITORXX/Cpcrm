@@ -745,10 +745,10 @@
             };
             if (firebaseConfig.apiKey) {
                 var s1 = document.createElement('script');
-                s1.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js';
+                s1.src = 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js';
                 s1.onload = function() {
                     var s2 = document.createElement('script');
-                    s2.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js';
+                    s2.src = 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js';
                     s2.onload = function() {
                         firebase.initializeApp(firebaseConfig);
                         window._firebaseReady = true;

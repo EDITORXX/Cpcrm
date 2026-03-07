@@ -946,8 +946,8 @@
 
     @stack('scripts')
     <!-- FCM Push: Firebase Cloud Messaging for notifications -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
     <script>
     (function() {
         var configMeta = document.querySelector('meta[name="firebase-config"]');

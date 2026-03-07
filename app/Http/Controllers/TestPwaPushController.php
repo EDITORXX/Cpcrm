@@ -15,42 +15,69 @@ class TestPwaPushController extends Controller
     public function generateSw()
     {
         $c = config('firebase.web');
-        $js = "importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');\n"
-            . "importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');\n\n"
-            . "firebase.initializeApp(" . json_encode([
-                'apiKey'            => $c['api_key'] ?? '',
-                'authDomain'        => $c['auth_domain'] ?? '',
-                'projectId'         => $c['project_id'] ?? '',
-                'storageBucket'     => $c['storage_bucket'] ?? '',
-                'messagingSenderId' => $c['messaging_sender_id'] ?? '',
-                'appId'             => $c['app_id'] ?? '',
-            ], JSON_UNESCAPED_SLASHES) . ");\n\n"
-            . "var messaging = firebase.messaging();\n\n"
-            . "messaging.onBackgroundMessage(function(payload) {\n"
-            . "    var data = payload.data || {};\n"
-            . "    var notification = payload.notification || {};\n"
-            . "    var title = notification.title || data.title || 'New Notification';\n"
-            . "    return self.registration.showNotification(title, {\n"
-            . "        body: notification.body || data.body || '',\n"
-            . "        icon: '/icon-192.png',\n"
-            . "        badge: '/icon-192.png',\n"
-            . "        tag: data.tag || 'crm-notification',\n"
-            . "        requireInteraction: true,\n"
-            . "        data: { url: data.url || data.click_action || '/' }\n"
-            . "    });\n"
-            . "});\n\n"
-            . "self.addEventListener('notificationclick', function(event) {\n"
-            . "    event.notification.close();\n"
-            . "    var url = (event.notification.data && event.notification.data.url) || '/';\n"
-            . "    event.waitUntil(\n"
-            . "        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {\n"
-            . "            for (var i = 0; i < clientList.length; i++) {\n"
-            . "                if (clientList[i].url.indexOf(url) !== -1 && 'focus' in clientList[i]) return clientList[i].focus();\n"
-            . "            }\n"
-            . "            if (clients.openWindow) return clients.openWindow(url);\n"
-            . "        })\n"
-            . "    );\n"
-            . "});\n";
+        $config = json_encode([
+            'apiKey'            => $c['api_key'] ?? '',
+            'authDomain'        => $c['auth_domain'] ?? '',
+            'projectId'         => $c['project_id'] ?? '',
+            'storageBucket'     => $c['storage_bucket'] ?? '',
+            'messagingSenderId' => $c['messaging_sender_id'] ?? '',
+            'appId'             => $c['app_id'] ?? '',
+        ], JSON_UNESCAPED_SLASHES);
+
+        $js = <<<SWJS
+try {
+    importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');
+    importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js');
+    firebase.initializeApp({$config});
+    var messaging = firebase.messaging();
+    messaging.onBackgroundMessage(function(payload) {
+        var data = payload.data || {};
+        var notification = payload.notification || {};
+        var title = notification.title || data.title || 'New Notification';
+        return self.registration.showNotification(title, {
+            body: notification.body || data.body || '',
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
+            tag: data.tag || 'crm-notification',
+            requireInteraction: true,
+            data: { url: data.url || data.click_action || '/' }
+        });
+    });
+} catch(e) {
+    console.warn('Firebase SW init skipped:', e);
+}
+
+self.addEventListener('push', function(event) {
+    if (event.data) {
+        try {
+            var payload = event.data.json();
+            var n = payload.notification || payload.data || {};
+            var title = n.title || 'New Notification';
+            event.waitUntil(self.registration.showNotification(title, {
+                body: n.body || '',
+                icon: '/icon-192.png',
+                badge: '/icon-192.png',
+                tag: n.tag || 'crm-notification',
+                requireInteraction: true,
+                data: { url: n.url || n.click_action || '/' }
+            }));
+        } catch(e) {}
+    }
+});
+
+self.addEventListener('notificationclick', function(event) {
+    event.notification.close();
+    var url = (event.notification.data && event.notification.data.url) || '/';
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+            for (var i = 0; i < clientList.length; i++) {
+                if (clientList[i].url.indexOf(url) !== -1 && 'focus' in clientList[i]) return clientList[i].focus();
+            }
+            if (clients.openWindow) return clients.openWindow(url);
+        })
+    );
+});
+SWJS;
 
         $path = public_path('firebase-messaging-sw.js');
         file_put_contents($path, $js);
