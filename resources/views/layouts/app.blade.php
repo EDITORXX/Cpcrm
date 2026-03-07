@@ -1496,12 +1496,22 @@
     
     @auth
     <!-- Lead assigned modal (global, dismissible) -->
+    <style>
+        @keyframes bellRing { 0%,100%{transform:rotate(0)} 15%{transform:rotate(14deg)} 30%{transform:rotate(-14deg)} 45%{transform:rotate(10deg)} 60%{transform:rotate(-10deg)} 75%{transform:rotate(4deg)} 90%{transform:rotate(-4deg)} }
+        @keyframes pulseGlow { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.4)} 50%{box-shadow:0 0 0 16px rgba(34,197,94,0)} }
+        #lead-assigned-overlay:not(.hidden) #lead-ring-bell { animation: bellRing .8s ease-in-out infinite; }
+        #lead-assigned-overlay:not(.hidden) #lead-assigned-modal { animation: pulseGlow 2s ease-in-out infinite; }
+    </style>
     <div id="lead-assigned-overlay" class="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 hidden" aria-hidden="true">
         <div id="lead-assigned-modal" class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative" role="dialog" aria-labelledby="lead-assigned-title">
             <button type="button" id="lead-assigned-close-x" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl leading-none" aria-label="Close">&times;</button>
-            <h2 id="lead-assigned-title" class="text-xl font-bold text-gray-900 mb-2">New lead assigned</h2>
-            <p id="lead-assigned-message" class="text-gray-600 mb-6">You have a new lead assigned. View leads to see details and call.</p>
-            <div class="flex flex-wrap gap-3">
+            <div class="flex justify-center mb-3">
+                <span id="lead-ring-bell" style="font-size:2.5rem;display:inline-block;">&#128276;</span>
+            </div>
+            <h2 id="lead-assigned-title" class="text-xl font-bold text-gray-900 mb-2 text-center">New lead assigned</h2>
+            <p id="lead-assigned-message" class="text-gray-600 mb-6 text-center">You have a new lead assigned. View leads to see details and call.</p>
+            <div id="lead-ringtone-timer" class="text-center text-sm text-gray-400 mb-4 hidden">Ringing... <span id="lead-ringtone-countdown">30</span>s</div>
+            <div class="flex flex-wrap gap-3 justify-center">
                 <a id="lead-assigned-view-btn" href="{{ (auth()->user() && (auth()->user()->isTelecaller() || auth()->user()->isSalesExecutive())) ? route('telecaller.tasks').'?status=pending' : route('leads.index') }}" class="px-4 py-2 rounded-lg font-semibold text-white transition" style="background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));">View leads</a>
                 <a id="lead-assigned-call-btn" href="#" class="px-4 py-2 rounded-lg font-semibold bg-green-600 text-white hover:bg-green-700 transition hidden">Call</a>
                 <button type="button" id="lead-assigned-cancel-btn" class="px-4 py-2 rounded-lg font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300 transition">Cancel</button>
@@ -1515,7 +1525,53 @@
         var messageEl = document.getElementById('lead-assigned-message');
         var viewBtn = document.getElementById('lead-assigned-view-btn');
         var callBtn = document.getElementById('lead-assigned-call-btn');
+        var timerEl = document.getElementById('lead-ringtone-timer');
+        var countdownEl = document.getElementById('lead-ringtone-countdown');
         var viewUrlDefault = viewBtn ? viewBtn.getAttribute('href') : '';
+
+        var leadRingtone = null;
+        var ringtoneTimeout = null;
+        var countdownInterval = null;
+
+        function stopRingtone() {
+            try {
+                if (leadRingtone) { leadRingtone.pause(); leadRingtone.currentTime = 0; }
+                clearTimeout(ringtoneTimeout);
+                clearInterval(countdownInterval);
+                if (timerEl) timerEl.classList.add('hidden');
+            } catch(e) {}
+        }
+
+        function startRingtone() {
+            stopRingtone();
+            try {
+                leadRingtone = new Audio('/sounds/lead-ringtone.mp3');
+                leadRingtone.loop = true;
+                leadRingtone.volume = 1.0;
+                leadRingtone.play().catch(function(e) { console.warn('Ringtone autoplay blocked:', e); });
+
+                var seconds = 30;
+                if (countdownEl) countdownEl.textContent = seconds;
+                if (timerEl) timerEl.classList.remove('hidden');
+                countdownInterval = setInterval(function() {
+                    seconds--;
+                    if (countdownEl) countdownEl.textContent = seconds;
+                    if (seconds <= 0) clearInterval(countdownInterval);
+                }, 1000);
+
+                ringtoneTimeout = setTimeout(function() { stopRingtone(); }, 30000);
+            } catch(e) { console.warn('Ringtone error:', e); }
+        }
+
+        document.addEventListener('click', function() {
+            if (!window._audioUnlocked) {
+                try {
+                    var s = new Audio('/sounds/lead-ringtone.mp3');
+                    s.volume = 0;
+                    s.play().then(function() { s.pause(); window._audioUnlocked = true; }).catch(function(){});
+                } catch(e) {}
+            }
+        }, { once: true });
 
         window.showLeadAssignedPopup = function(options) {
             var o = options || {};
@@ -1531,10 +1587,12 @@
                 }
             }
             if (overlay) overlay.classList.remove('hidden');
+            startRingtone();
         };
 
         window.closeLeadAssignedModal = function() {
             if (overlay) overlay.classList.add('hidden');
+            stopRingtone();
         };
 
         if (document.getElementById('lead-assigned-close-x')) {
