@@ -72,6 +72,7 @@ class Kernel extends HttpKernel
         'log.activity' => \App\Http\Middleware\LogActivity::class,
         'crm' => \App\Http\Middleware\CheckCrmRole::class,
         'crm_dashboard_access' => \App\Http\Middleware\CrmDashboardAccess::class,
+        'restrict.test' => \App\Http\Middleware\RestrictTestRoutes::class,
     ];
 }
 

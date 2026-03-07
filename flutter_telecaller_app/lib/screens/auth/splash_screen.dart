@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:telecaller_crm/providers/auth_provider.dart';
 import 'package:telecaller_crm/screens/auth/login_screen.dart';
 import 'package:telecaller_crm/screens/dashboard/dashboard_screen.dart';
+import 'package:telecaller_crm/services/fcm_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -24,6 +25,10 @@ class _SplashScreenState extends State<SplashScreen> {
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final isAuthenticated = await authProvider.checkAuth();
+
+    if (isAuthenticated) {
+      try { await FcmService().initialize(); } catch (_) {}
+    }
 
     if (!mounted) return;
 

@@ -4,7 +4,7 @@ use Laravel\Sanctum\Sanctum;
 use Illuminate\Support\Str;
 
 // Get default localhost domains for development
-$defaultDomains = 'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,127.0.0.1:8007,::1';
+$defaultDomains = 'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,127.0.0.1:8007,127.0.0.1:8008,localhost:8008,::1';
 
 // Extract domain from APP_URL if set
 $appUrl = env('APP_URL');

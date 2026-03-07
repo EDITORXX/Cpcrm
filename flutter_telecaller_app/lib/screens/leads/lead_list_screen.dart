@@ -5,8 +5,24 @@ import 'package:telecaller_crm/models/lead_model.dart';
 import 'package:telecaller_crm/utils/helpers.dart';
 import 'package:telecaller_crm/config/theme_config.dart';
 
-class LeadListScreen extends StatelessWidget {
+class LeadListScreen extends StatefulWidget {
   const LeadListScreen({super.key});
+
+  @override
+  State<LeadListScreen> createState() => _LeadListScreenState();
+}
+
+class _LeadListScreenState extends State<LeadListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final leadProvider = Provider.of<LeadProvider>(context, listen: false);
+      if (leadProvider.leads.isEmpty && !leadProvider.isLoading) {
+        leadProvider.loadLeads(refresh: true);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,14 +40,46 @@ class LeadListScreen extends StatelessWidget {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (leadProvider.error != null) {
+                if (leadProvider.error != null && leadProvider.leads.isEmpty) {
                   return Center(
-                    child: Text('Error: ${leadProvider.error}'),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Error: ${leadProvider.error}',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.red[600]),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: () => leadProvider.loadLeads(refresh: true),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Retry'),
+                        ),
+                      ],
+                    ),
                   );
                 }
 
                 if (leadProvider.leads.isEmpty) {
-                  return const Center(child: Text('No leads found'));
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.people_outline, size: 48, color: Colors.grey[400]),
+                        const SizedBox(height: 16),
+                        const Text('No leads found'),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: () => leadProvider.loadLeads(refresh: true),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Refresh'),
+                        ),
+                      ],
+                    ),
+                  );
                 }
 
                 return RefreshIndicator(
@@ -136,4 +184,3 @@ class _LeadCard extends StatelessWidget {
     );
   }
 }
-

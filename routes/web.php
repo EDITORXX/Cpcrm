@@ -242,6 +242,7 @@ Route::get('/quick-login/{userId}', [\App\Http\Controllers\Admin\DebugController
 // Authentication Routes
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
+Route::post('/login/firebase', [LoginController::class, 'loginWithFirebase'])->middleware('throttle:login');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::get('/logout', [LoginController::class, 'logout'])->name('logout.get'); // Fallback for expired sessions
 

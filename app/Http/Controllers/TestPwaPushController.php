@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\SendWebPushNotificationJob;
+use App\Jobs\SendFcmNotificationJob;
+use App\Models\FcmToken;
 use App\Models\PushSubscription;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -135,9 +137,14 @@ class TestPwaPushController extends Controller
             ? route('telecaller.tasks') . '?status=pending'
             : route('leads.index');
 
-        SendWebPushNotificationJob::dispatch($user->id, $title, $body, $url, 'test-pwa-push-' . time());
+        $fcmCount = FcmToken::where('user_id', $user->id)->count();
+        if ($fcmCount > 0) {
+            SendFcmNotificationJob::dispatch($user->id, $title, $body, $url, 'test-pwa-push-' . time());
+        } else {
+            SendWebPushNotificationJob::dispatch($user->id, $title, $body, $url, 'test-pwa-push-' . time());
+        }
 
         return redirect()->route('test.pwa-push')
-            ->with('success', "Test PWA notification queued for {$user->name}. If they have the app open (or PWA installed with notifications allowed), they should see it shortly.");
+            ->with('success', "Test notification queued for {$user->name} via " . ($fcmCount > 0 ? 'FCM' : 'VAPID') . ".");
     }
 }

@@ -52,6 +52,29 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _handleGoogleSignIn() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await authProvider.loginWithGoogle();
+
+    if (!mounted) return;
+
+    if (success) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      );
+    } else {
+      final error = authProvider.error;
+      if (error != null && error != 'Google Sign-In cancelled') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error),
+            backgroundColor: ThemeConfig.errorColor,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -149,19 +172,51 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
                   Consumer<AuthProvider>(
                     builder: (context, authProvider, _) {
-                      return ElevatedButton(
-                        onPressed: authProvider.isLoading ? null : _handleLogin,
-                        child: authProvider.isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor:
-                                      AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : const Text('Login'),
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ElevatedButton(
+                            onPressed: authProvider.isLoading ? null : _handleLogin,
+                            child: authProvider.isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor:
+                                          AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : const Text('Login'),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              const Expanded(child: Divider()),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                child: Text('or', style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                              ),
+                              const Expanded(child: Divider()),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          OutlinedButton.icon(
+                            onPressed: authProvider.isLoading ? null : _handleGoogleSignIn,
+                            icon: Image.network(
+                              'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg',
+                              height: 20,
+                              width: 20,
+                              errorBuilder: (_, __, ___) => const Icon(Icons.g_mobiledata, size: 24),
+                            ),
+                            label: const Text('Sign in with Google'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: BorderSide(color: Colors.grey[300]!),
+                              foregroundColor: Colors.grey[800],
+                            ),
+                          ),
+                        ],
                       );
                     },
                   ),

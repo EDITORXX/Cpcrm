@@ -80,7 +80,7 @@
                                     console.log('✅ Icon files exist');
                                 } else {
                                     console.warn('⚠️ Icon files (192x192 and 512x512) are missing');
-                                    console.log('💡 To create icons: Visit http://localhost:8007/create-icon.html');
+                                    console.log('💡 To create icons: Visit http://localhost:8008/create-icon.html');
                                     console.log('💡 After creating icons, refresh the page');
                                 }
                             })
@@ -1034,7 +1034,7 @@
                                     console.log('✅ Icon files exist');
                                 } else {
                                     console.warn('⚠️ Icon files (192x192 and 512x512) are missing');
-                                    console.log('💡 To create icons: Visit http://localhost:8007/create-icon.html');
+                                    console.log('💡 To create icons: Visit http://localhost:8008/create-icon.html');
                                     console.log('💡 After creating icons, refresh the page');
                                 }
                             })

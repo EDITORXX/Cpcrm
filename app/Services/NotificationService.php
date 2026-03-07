@@ -10,7 +10,7 @@ use App\Events\NewLeadNotification;
 use App\Events\NewVerificationNotification;
 use App\Events\FollowupNotification;
 use App\Events\AdminBroadcast;
-use App\Jobs\SendWebPushNotificationJob;
+use App\Jobs\SendFcmNotificationJob;
 use Illuminate\Support\Facades\Log;
 
 class NotificationService
@@ -80,8 +80,8 @@ class NotificationService
             // Broadcast via Pusher (only on create)
             event(new NewLeadNotification($notification));
 
-            // PWA Web Push (background/closed app)
-            SendWebPushNotificationJob::dispatch(
+            // FCM Push (background/closed app)
+            SendFcmNotificationJob::dispatch(
                 $user->id,
                 'New Leads Allocated',
                 $message,
@@ -111,8 +111,8 @@ class NotificationService
         // Broadcast via Pusher
         event(new NewLeadNotification($notification));
 
-        // PWA Web Push (background/closed app)
-        SendWebPushNotificationJob::dispatch(
+        // FCM Push (background/closed app)
+        SendFcmNotificationJob::dispatch(
             $user->id,
             'New Lead Assigned',
             $message,

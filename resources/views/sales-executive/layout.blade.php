@@ -9,7 +9,8 @@
     <meta name="user-id" content="{{ auth()->check() ? auth()->user()->id : '' }}">
     <meta name="pusher-key" content="{{ config('broadcasting.connections.pusher.key') }}">
     <meta name="pusher-cluster" content="{{ config('broadcasting.connections.pusher.options.cluster', 'mt1') }}">
-    <meta name="vapid-public-key" content="{{ config('webpush.vapid_public') }}">
+    <meta name="firebase-config" content="{{ json_encode(config('firebase.web')) }}">
+    <meta name="firebase-vapid-key" content="{{ config('firebase.vapid_key') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -1298,46 +1299,55 @@
     </script>
     <script src="{{ asset('js/telecaller-notifications.js') }}"></script>
     
-    <!-- PWA Web Push: register SW and subscribe for lead-assigned notifications -->
+    <!-- FCM Push: Firebase Cloud Messaging for notifications -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
     <script>
     (function() {
-        var vapidPublicKey = document.querySelector('meta[name="vapid-public-key"]') && document.querySelector('meta[name="vapid-public-key"]').content;
-        if (!vapidPublicKey || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+        var configMeta = document.querySelector('meta[name="firebase-config"]');
+        var vapidMeta = document.querySelector('meta[name="firebase-vapid-key"]');
+        if (!configMeta || !vapidMeta) return;
+        var firebaseConfig;
+        try { firebaseConfig = JSON.parse(configMeta.content); } catch(e) { return; }
+        if (!firebaseConfig || !firebaseConfig.api_key) return;
+
+        firebase.initializeApp({
+            apiKey: firebaseConfig.api_key, authDomain: firebaseConfig.auth_domain,
+            projectId: firebaseConfig.project_id, storageBucket: firebaseConfig.storage_bucket,
+            messagingSenderId: firebaseConfig.messaging_sender_id, appId: firebaseConfig.app_id
+        });
+        var messaging = firebase.messaging();
+
         function getAuthToken() {
             var meta = document.querySelector('meta[name="api-token"]');
             if (meta && meta.content) return meta.content;
-            try { return localStorage.getItem('telecaller_token') || localStorage.getItem('auth_token') || ''; } catch (e) { return ''; }
+            try { return localStorage.getItem('telecaller_token') || localStorage.getItem('auth_token') || ''; } catch(e) { return ''; }
         }
-        function urlBase64ToUint8Array(base64String) {
-            var padding = '='.repeat((4 - base64String.length % 4) % 4);
-            var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-            var rawData = window.atob(base64);
-            var outputArray = new Uint8Array(rawData.length);
-            for (var i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
-            return outputArray;
-        }
-        function sendSubscriptionToServer(subscription) {
-            var token = getAuthToken();
-            if (!token) return;
-            var body = subscription.toJSON ? subscription.toJSON() : { endpoint: subscription.endpoint, keys: { p256dh: subscription.getKey('p256dh') ? btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh')))) : '', auth: subscription.getKey('auth') ? btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth')))) : '' } };
-            fetch((typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : (window.location.origin + '/api')) + '/push-subscription', {
+        function sendFcmTokenToServer(fcmToken) {
+            var authToken = getAuthToken();
+            if (!authToken) return;
+            fetch((typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : (window.location.origin + '/api')) + '/fcm-subscription', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': 'Bearer ' + token },
-                body: JSON.stringify(body)
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                body: JSON.stringify({ fcm_token: fcmToken, device_type: 'web' })
             }).catch(function() {});
         }
-        function doRegisterAndSubscribe() {
-            navigator.serviceWorker.register('{{ asset("sw.js") }}?v=' + Date.now()).then(function(reg) {
-                reg.pushManager.getSubscription().then(function(sub) {
-                    if (sub) { sendSubscriptionToServer(sub); return; }
-                    reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) }).then(sendSubscriptionToServer).catch(function() {});
+        function initFcm() {
+            navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(reg) {
+                messaging.getToken({ vapidKey: vapidMeta.content, serviceWorkerRegistration: reg }).then(function(token) {
+                    if (token) sendFcmTokenToServer(token);
                 }).catch(function() {});
             }).catch(function() {});
         }
-        if (Notification.permission === 'granted') {
-            doRegisterAndSubscribe();
-        } else if (Notification.permission === 'default') {
-            Notification.requestPermission().then(function(p) { if (p === 'granted') doRegisterAndSubscribe(); }).catch(function() {});
+        messaging.onMessage(function(payload) {
+            var n = payload.notification || payload.data || {};
+            if (typeof showLeadAssignedPopup === 'function') {
+                showLeadAssignedPopup({ title: n.title, message: n.body });
+            }
+        });
+        if (Notification.permission === 'granted') { initFcm(); }
+        else if (Notification.permission === 'default') {
+            Notification.requestPermission().then(function(p) { if (p === 'granted') initFcm(); });
         }
     })();
     </script>

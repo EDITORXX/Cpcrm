@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:telecaller_crm/services/api_service.dart';
 import 'package:telecaller_crm/config/api_config.dart';
 import 'package:telecaller_crm/models/lead_model.dart';
-import 'package:telecaller_crm/models/api_response_model.dart';
 
 class LeadProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -33,6 +32,7 @@ class LeadProvider with ChangeNotifier {
       final queryParams = <String, dynamic>{
         'page': _currentPage,
         'per_page': 50,
+        'date_range': 'all',
       };
 
       if (_searchQuery.isNotEmpty) {
@@ -45,12 +45,12 @@ class LeadProvider with ChangeNotifier {
       final response = await _apiService.get<Map<String, dynamic>>(
         ApiConfig.leads,
         queryParameters: queryParams,
-        fromJson: (data) => data as Map<String, dynamic>,
       );
 
       if (response.success && response.data != null) {
-        final data = response.data!['data'] as List?;
-        final pagination = response.data!['pagination'] as Map<String, dynamic>?;
+        final rawData = response.data!;
+        final data = rawData['data'] as List?;
+        final pagination = rawData['pagination'] as Map<String, dynamic>?;
 
         if (data != null) {
           if (refresh) {

@@ -27,8 +27,12 @@ class ApiConfig {
   
   // General Authentication Endpoints (for all users)
   static const String login = '$baseUrl/login';
+  static const String loginFirebase = '$baseUrl/login/firebase';
   static const String logout = '$baseUrl/logout';
   static const String me = '$baseUrl/me';
+
+  // FCM Token
+  static const String fcmSubscription = '$baseUrl/fcm-subscription';
   
   // Telecaller-specific Authentication Endpoints (for backward compatibility)
   static const String telecallerLogin = '$baseUrl/telecaller/login';

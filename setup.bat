@@ -7,12 +7,12 @@ echo.
 echo Step 1: Configuring Application URL...
 echo.
 echo Please enter your application URL:
-echo   - For local development: http://localhost:8007
+echo   - For local development: http://localhost:8008
 echo   - For production: https://yourdomain.com
-echo   - For network access: http://YOUR_IP:8007
+echo   - For network access: http://YOUR_IP:8008
 echo.
-set /p APP_URL_INPUT="Enter APP_URL (or press Enter for default http://localhost:8007): "
-if "%APP_URL_INPUT%"=="" set APP_URL_INPUT=http://localhost:8007
+set /p APP_URL_INPUT="Enter APP_URL (or press Enter for default http://localhost:8008): "
+if "%APP_URL_INPUT%"=="" set APP_URL_INPUT=http://localhost:8008
 echo.
 echo Using APP_URL: %APP_URL_INPUT%
 echo.
@@ -88,10 +88,11 @@ echo    Then run: (see SETUP_PORT_8007.md for commands)
 echo.
 echo 2. Start server:
 if "%APP_URL_INPUT:~0,4%"=="http" (
-    echo    php artisan serve --port=8007
-    echo    OR for network access: php artisan serve --host=0.0.0.0 --port=8007
+    echo    Run: start_server_8008.bat  OR  php artisan serve --port=8008
+    echo    For network access: php artisan serve --host=0.0.0.0 --port=8008
+    echo    If port 8007 is free: php artisan serve --port=8007
 ) else (
-    echo    php artisan serve --port=8007
+    echo    php artisan serve --port=8008
 )
 echo.
 echo 3. Access website at: %APP_URL_INPUT%

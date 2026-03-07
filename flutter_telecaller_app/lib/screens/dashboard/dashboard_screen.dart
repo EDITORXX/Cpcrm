@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:telecaller_crm/providers/auth_provider.dart';
 import 'package:telecaller_crm/providers/task_provider.dart';
+import 'package:telecaller_crm/providers/lead_provider.dart';
 import 'package:telecaller_crm/providers/call_tracking_provider.dart';
 import 'package:telecaller_crm/screens/tasks/task_list_screen.dart';
 import 'package:telecaller_crm/screens/leads/lead_list_screen.dart';
@@ -28,7 +29,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       _screens = _getScreens(authProvider);
       
-      // Load data based on role
+      Provider.of<LeadProvider>(context, listen: false).loadLeads(refresh: true);
+      
       if (authProvider.isTelecaller || authProvider.isSalesExecutive) {
         Provider.of<TaskProvider>(context, listen: false).loadTasks();
         Provider.of<CallTrackingProvider>(context, listen: false)
@@ -173,7 +175,9 @@ class DashboardHome extends StatelessWidget {
           ),
           body: RefreshIndicator(
             onRefresh: () async {
-              final futures = <Future>[];
+              final futures = <Future>[
+                Provider.of<LeadProvider>(context, listen: false).loadLeads(refresh: true),
+              ];
               if (authProvider.isTelecaller || authProvider.isSalesExecutive) {
                 futures.addAll([
                   Provider.of<TaskProvider>(context, listen: false).loadTasks(),
@@ -262,58 +266,68 @@ class ManagerStatsCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Overview',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        const SizedBox(height: 16),
-        Row(
+    return Consumer<LeadProvider>(
+      builder: (context, leadProvider, _) {
+        final totalLeads = leadProvider.leads.length;
+        final newLeads = leadProvider.leads.where((l) => l.status == 'new').length;
+        final contactedLeads = leadProvider.leads.where((l) => l.status == 'contacted').length;
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: _StatCard(
-                title: 'Total Leads',
-                value: '0',
-                icon: Icons.people,
-                color: ThemeConfig.primaryColor,
-              ),
+            Text(
+              'Overview',
+              style: Theme.of(context).textTheme.headlineMedium,
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _StatCard(
-                title: 'Team Members',
-                value: '0',
-                icon: Icons.group,
-                color: ThemeConfig.secondaryColor,
-              ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _StatCard(
+                    title: 'Total Leads',
+                    value: totalLeads.toString(),
+                    icon: Icons.people,
+                    color: ThemeConfig.primaryColor,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _StatCard(
+                    title: 'New Leads',
+                    value: newLeads.toString(),
+                    icon: Icons.fiber_new,
+                    color: ThemeConfig.secondaryColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _StatCard(
+                    title: 'Contacted',
+                    value: contactedLeads.toString(),
+                    icon: Icons.phone_callback,
+                    color: ThemeConfig.warningColor,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _StatCard(
+                    title: 'Conversion',
+                    value: totalLeads > 0
+                        ? '${((contactedLeads / totalLeads) * 100).toStringAsFixed(0)}%'
+                        : '0%',
+                    icon: Icons.trending_up,
+                    color: ThemeConfig.successColor,
+                  ),
+                ),
+              ],
             ),
           ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _StatCard(
-                title: 'Active Tasks',
-                value: '0',
-                icon: Icons.task,
-                color: ThemeConfig.warningColor,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _StatCard(
-                title: 'Performance',
-                value: '0%',
-                icon: Icons.trending_up,
-                color: ThemeConfig.successColor,
-              ),
-            ),
-          ],
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -323,14 +337,15 @@ class StatsCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<TaskProvider>(
-      builder: (context, taskProvider, _) {
+    return Consumer2<TaskProvider, LeadProvider>(
+      builder: (context, taskProvider, leadProvider, _) {
         final pendingTasks = taskProvider.tasks
             .where((t) => t.status == 'pending')
             .length;
         final completedTasks = taskProvider.tasks
             .where((t) => t.status == 'completed')
             .length;
+        final totalLeads = leadProvider.leads.length;
 
         return Column(
           children: [
@@ -353,6 +368,21 @@ class StatsCards extends StatelessWidget {
                     color: ThemeConfig.successColor,
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _StatCard(
+                    title: 'Total Leads',
+                    value: totalLeads.toString(),
+                    icon: Icons.people,
+                    color: ThemeConfig.primaryColor,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(child: SizedBox()),
               ],
             ),
           ],

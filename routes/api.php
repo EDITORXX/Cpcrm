@@ -42,6 +42,7 @@ use Illuminate\Http\Request;
 
 // Public routes
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login/firebase', [\App\Http\Controllers\Api\FirebaseAuthController::class, 'login']);
 
 // Pabbly Webhook (public - no auth required)
 Route::post('/pabbly/webhook', [PabblyWebhookController::class, 'store']);
@@ -135,6 +136,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // PWA Web Push subscription (for lead-assigned etc. notifications)
     Route::post('/push-subscription', [\App\Http\Controllers\Api\PushSubscriptionController::class, 'store']);
     Route::delete('/push-subscription', [\App\Http\Controllers\Api\PushSubscriptionController::class, 'destroy']);
+
+    // FCM Token subscription (Firebase Cloud Messaging)
+    Route::post('/fcm-subscription', [\App\Http\Controllers\Api\FcmTokenController::class, 'store']);
+    Route::delete('/fcm-subscription', [\App\Http\Controllers\Api\FcmTokenController::class, 'destroy']);
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);

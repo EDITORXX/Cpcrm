@@ -376,6 +376,11 @@ class TelecallerController extends Controller
 
         // Calculate based on filter type
         switch ($dateRange) {
+            case 'all':
+                return [
+                    Carbon::create(2000, 1, 1)->startOfDay(),
+                    $today->copy()->endOfDay(),
+                ];
             case 'today':
                 return [
                     $today->copy()->startOfDay(),

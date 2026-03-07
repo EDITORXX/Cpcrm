@@ -57,14 +57,14 @@ php artisan route:clear
 php artisan view:clear
 echo.
 
-echo [6/6] Starting Laravel server on port 8007...
+echo [6/6] Starting Laravel server on port 8008...
 echo.
 echo ========================================
-echo Server starting at: http://localhost:8007
+echo Server starting at: http://localhost:8008
 echo Press Ctrl+C to stop the server
 echo ========================================
 echo.
 
-php artisan serve --port=8007 --host=127.0.0.1
+php artisan serve --port=8008 --host=127.0.0.1
 
 pause

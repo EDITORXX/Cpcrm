@@ -15,12 +15,14 @@
     <meta name="user-id" content="{{ auth()->check() ? auth()->user()->id : '' }}">
     <meta name="pusher-key" content="{{ config('broadcasting.connections.pusher.key') }}">
     <meta name="pusher-cluster" content="{{ config('broadcasting.connections.pusher.options.cluster', 'mt1') }}">
-    <meta name="vapid-public-key" content="{{ config('webpush.vapid_public') }}">
+    <meta name="firebase-config" content="{{ json_encode(config('firebase.web')) }}">
+    <meta name="firebase-vapid-key" content="{{ config('firebase.vapid_key') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { 
@@ -943,68 +945,82 @@
     </script>
 
     @stack('scripts')
-    <!-- PWA Web Push: register SW and subscribe for lead-assigned notifications (Sales Manager / Gold etc.) -->
+    <!-- FCM Push: Firebase Cloud Messaging for notifications -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
     <script>
     (function() {
-        var vapidPublicKey = document.querySelector('meta[name="vapid-public-key"]') && document.querySelector('meta[name="vapid-public-key"]').content;
-        if (!vapidPublicKey || !('serviceWorker' in navigator) || !('PushManager' in window)) return;
+        var configMeta = document.querySelector('meta[name="firebase-config"]');
+        var vapidMeta = document.querySelector('meta[name="firebase-vapid-key"]');
+        if (!configMeta || !vapidMeta) return;
+        var firebaseConfig;
+        try { firebaseConfig = JSON.parse(configMeta.content); } catch(e) { return; }
+        if (!firebaseConfig || !firebaseConfig.api_key) return;
+
         var btn = document.getElementById('btnEnablePush');
         var statusEl = document.getElementById('pushStatus');
+        var vapidKey = vapidMeta.content;
+
+        var fbConfig = {
+            apiKey: firebaseConfig.api_key,
+            authDomain: firebaseConfig.auth_domain,
+            projectId: firebaseConfig.project_id,
+            storageBucket: firebaseConfig.storage_bucket,
+            messagingSenderId: firebaseConfig.messaging_sender_id,
+            appId: firebaseConfig.app_id
+        };
+
+        firebase.initializeApp(fbConfig);
+        var messaging = firebase.messaging();
+
         function getAuthToken() {
             var meta = document.querySelector('meta[name="api-token"]');
             if (meta && meta.content) return meta.content;
-            try { return localStorage.getItem('telecaller_token') || localStorage.getItem('auth_token') || ''; } catch (e) { return ''; }
+            try { return localStorage.getItem('telecaller_token') || localStorage.getItem('auth_token') || ''; } catch(e) { return ''; }
         }
-        function urlBase64ToUint8Array(base64String) {
-            var padding = '='.repeat((4 - base64String.length % 4) % 4);
-            var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-            var rawData = window.atob(base64);
-            var outputArray = new Uint8Array(rawData.length);
-            for (var i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
-            return outputArray;
-        }
-        function sendSubscriptionToServer(subscription) {
-            var token = getAuthToken();
-            if (!token) { if (statusEl) statusEl.textContent = 'Login again and try.'; return; }
-            var body = subscription.toJSON ? subscription.toJSON() : { endpoint: subscription.endpoint, keys: { p256dh: subscription.getKey('p256dh') ? btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh')))) : '', auth: subscription.getKey('auth') ? btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth')))) : '' } };
-            fetch((typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : (window.location.origin + '/api')) + '/push-subscription', {
+
+        function sendFcmTokenToServer(fcmToken) {
+            var authToken = getAuthToken();
+            if (!authToken) { if (statusEl) statusEl.textContent = 'Login again and try.'; return; }
+            var url = (typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : (window.location.origin + '/api')) + '/fcm-subscription';
+            fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': 'Bearer ' + token },
-                body: JSON.stringify(body)
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                body: JSON.stringify({ fcm_token: fcmToken, device_type: 'web' })
             }).then(function(r) {
-                if (statusEl) {
-                    if (r.ok) statusEl.textContent = 'Push enabled.';
-                    else statusEl.textContent = 'Failed (' + r.status + '). Try logout and login again.';
-                }
-            }).catch(function(e) { if (statusEl) statusEl.textContent = 'Request failed.'; });
+                if (statusEl) statusEl.textContent = r.ok ? 'Push enabled.' : 'Failed (' + r.status + ')';
+            }).catch(function() { if (statusEl) statusEl.textContent = 'Request failed.'; });
         }
-        function doRegisterAndSubscribe() {
+
+        function initFcm() {
             if (statusEl) statusEl.textContent = 'Registering...';
-            navigator.serviceWorker.register('{{ asset("sw.js") }}?v=' + Date.now()).then(function(reg) {
-                reg.pushManager.getSubscription().then(function(sub) {
-                    if (sub) { sendSubscriptionToServer(sub); return; }
-                    reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) }).then(function(s) { sendSubscriptionToServer(s); }).catch(function(e) { if (statusEl) statusEl.textContent = 'Subscribe failed: ' + (e.message || 'unknown'); });
-                }).catch(function() { if (statusEl) statusEl.textContent = 'Subscribe error.'; });
+            navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(reg) {
+                messaging.getToken({ vapidKey: vapidKey, serviceWorkerRegistration: reg }).then(function(token) {
+                    if (token) sendFcmTokenToServer(token);
+                    else if (statusEl) statusEl.textContent = 'No FCM token received.';
+                }).catch(function(e) { if (statusEl) statusEl.textContent = 'Token error: ' + (e.message || ''); });
             }).catch(function() { if (statusEl) statusEl.textContent = 'SW error.'; });
         }
-        function runEnablePush() {
-            if (Notification.permission === 'granted') {
-                doRegisterAndSubscribe();
-            } else if (Notification.permission === 'default') {
-                if (statusEl) statusEl.textContent = 'Allow in browser prompt...';
-                Notification.requestPermission().then(function(p) { if (p === 'granted') doRegisterAndSubscribe(); else if (statusEl) statusEl.textContent = 'Denied.'; }).catch(function() {});
-            } else {
-                if (statusEl) statusEl.textContent = 'Notifications blocked. Enable in browser settings.';
+
+        messaging.onMessage(function(payload) {
+            var n = payload.notification || payload.data || {};
+            if (typeof showLeadAssignedPopup === 'function') {
+                showLeadAssignedPopup({ title: n.title, message: n.body });
             }
+        });
+
+        function runEnablePush() {
+            if (Notification.permission === 'granted') { initFcm(); }
+            else if (Notification.permission === 'default') {
+                if (statusEl) statusEl.textContent = 'Allow in browser prompt...';
+                Notification.requestPermission().then(function(p) { if (p === 'granted') initFcm(); else if (statusEl) statusEl.textContent = 'Denied.'; });
+            } else { if (statusEl) statusEl.textContent = 'Notifications blocked. Enable in browser settings.'; }
         }
-        if (btn) {
-            btn.style.display = 'inline-block';
-            btn.onclick = runEnablePush;
-        }
-        if (Notification.permission === 'granted') {
-            doRegisterAndSubscribe();
-        } else if (Notification.permission === 'default') {
-            Notification.requestPermission().then(function(p) { if (p === 'granted') doRegisterAndSubscribe(); }).catch(function() {});
+
+        if (btn) { btn.style.display = 'inline-block'; btn.onclick = runEnablePush; }
+        if (Notification.permission === 'granted') { initFcm(); }
+        else if (Notification.permission === 'default') {
+            Notification.requestPermission().then(function(p) { if (p === 'granted') initFcm(); });
         }
     })();
     </script>

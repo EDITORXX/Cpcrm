@@ -13,6 +13,7 @@ use App\Models\TelecallerProfile;
 use App\Models\SystemSettings;
 use App\Services\UserAvailabilityService;
 use App\Services\UserStatusService;
+use Kreait\Firebase\Factory;
 
 class LoginController extends Controller
 {
@@ -147,6 +148,61 @@ class LoginController extends Controller
             ]);
             // Fallback redirect
             return redirect()->route('sales-manager.dashboard');
+        }
+    }
+
+    public function loginWithFirebase(Request $request)
+    {
+        $request->validate([
+            'id_token' => 'required|string',
+        ]);
+
+        try {
+            $factory = (new Factory)->withServiceAccount(config('firebase.credentials'));
+            $auth = $factory->createAuth();
+            $verifiedToken = $auth->verifyIdToken($request->id_token);
+            $firebaseClaims = $verifiedToken->claims();
+            $email = $firebaseClaims->get('email');
+
+            if (!$email) {
+                return back()->withErrors(['email' => 'Google account does not have an email address.']);
+            }
+
+            $user = User::where('email', $email)->where('is_active', true)->first();
+            if (!$user) {
+                return back()->withErrors(['email' => 'No CRM account found for this email. Contact your admin.']);
+            }
+
+            if (SystemSettings::isMaintenanceMode() && !$user->isAdmin()) {
+                return back()->withErrors([
+                    'email' => SystemSettings::get('maintenance_message', 'System is under maintenance. Only admin can login.'),
+                ]);
+            }
+
+            if (!$user->relationLoaded('role')) {
+                $user->load('role');
+            }
+
+            Auth::login($user, true);
+            $request->session()->regenerate();
+            $this->markUserAsPresent($user);
+
+            if ($user->isTelecaller()) {
+                $token = $user->createToken('web-login-token')->plainTextToken;
+                $request->session()->put('telecaller_api_token', $token);
+            }
+            if ($user->isSalesManager()) {
+                $token = $user->createToken('web-login-token')->plainTextToken;
+                $request->session()->put('api_token', $token);
+            }
+
+            $request->session()->save();
+
+            $redirectUrl = $this->getRedirectUrlForRole($user);
+            return redirect($redirectUrl);
+        } catch (\Exception $e) {
+            Log::error('Firebase login failed', ['error' => $e->getMessage()]);
+            return back()->withErrors(['email' => 'Google Sign-In failed. Please try again.']);
         }
     }
 

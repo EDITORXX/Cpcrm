@@ -1,9 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:telecaller_crm/services/auth_service.dart';
+import 'package:telecaller_crm/services/firebase_auth_service.dart';
+import 'package:telecaller_crm/services/api_service.dart';
+import 'package:telecaller_crm/services/storage_service.dart';
+import 'package:telecaller_crm/config/api_config.dart';
 import 'package:telecaller_crm/models/user_model.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
+  final FirebaseAuthService _firebaseAuthService = FirebaseAuthService();
+  final ApiService _apiService = ApiService();
   UserModel? _user;
   bool _isLoading = false;
   String? _error;
@@ -76,12 +82,55 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  Future<bool> loginWithGoogle() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final idToken = await _firebaseAuthService.signInWithGoogle();
+      if (idToken == null) {
+        _error = 'Google Sign-In cancelled';
+        return false;
+      }
+
+      final response = await _apiService.post<Map<String, dynamic>>(
+        ApiConfig.loginFirebase,
+        data: {'id_token': idToken},
+      );
+
+      if (response.success && response.data != null) {
+        final token = response.data!['token'];
+        final userData = response.data!['user'];
+        if (token != null) {
+          await StorageService.saveToken(token);
+          if (userData != null) {
+            _user = UserModel.fromJson(userData);
+            _error = null;
+            return true;
+          }
+        }
+      }
+      _error = response.message ?? 'Google Sign-In failed';
+      await _firebaseAuthService.signOut();
+      return false;
+    } catch (e) {
+      _error = e.toString();
+      await _firebaseAuthService.signOut();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> logout() async {
     _isLoading = true;
     notifyListeners();
 
     try {
       await _authService.logout();
+      await _firebaseAuthService.signOut();
       _user = null;
       _error = null;
     } catch (e) {

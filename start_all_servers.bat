@@ -13,8 +13,8 @@ if not exist .env (
     exit /b 1
 )
 
-echo Starting Laravel Server on port 8007...
-start "Laravel Server (Port 8007)" cmd /k "php artisan serve --host=0.0.0.0 --port=8007"
+echo Starting Laravel Server on port 8008...
+start "Laravel Server (Port 8008)" cmd /k "php artisan serve --host=0.0.0.0 --port=8008"
 timeout /t 2 /nobreak >nul
 
 echo Starting Queue Worker...
@@ -35,7 +35,7 @@ echo All Servers Started!
 echo ========================================
 echo.
 echo Server Windows:
-echo   - Laravel Server: http://localhost:8007
+echo   - Laravel Server: http://localhost:8008
 echo   - Queue Worker: Processing background jobs
 echo   - Laravel Scheduler: Auto-syncing Google Sheets every minute
 echo   - Frontend Dev Server: Hot reload enabled

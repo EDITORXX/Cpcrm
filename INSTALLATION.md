@@ -64,13 +64,13 @@ BROADCAST_DRIVER=pusher
 
 ```env
 # For local development
-APP_URL=http://localhost:8007
+APP_URL=http://localhost:8008
 
 # For production deployment
 APP_URL=https://yourdomain.com
 
 # For network/local IP access
-APP_URL=http://192.168.1.100:8007
+APP_URL=http://192.168.1.100:8008
 ```
 
 **Optional URL Configuration** (auto-detected if not set):
@@ -205,6 +205,7 @@ CORS_ALLOWED_ORIGINS=https://yourdomain.com
 
 **Key Points**:
 - Always use `https://` for production URLs
+- Set `APP_DEBUG=false` in production (never use `true` in production)
 - Include the full domain without trailing slash
 - The application will automatically configure Sanctum and CORS based on `APP_URL`
 - For multiple domains/subdomains, use comma-separated lists

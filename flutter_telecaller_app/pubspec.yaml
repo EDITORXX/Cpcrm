@@ -1,5 +1,5 @@
-name: telecaller_crm_simple
-description: Simple Flutter mobile app for Telecaller CRM
+name: telecaller_crm
+description: Flutter mobile app for Telecaller CRM
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -10,14 +10,23 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # HTTP & API - Only essential
-  http: ^1.1.0
+  # HTTP & API
+  dio: ^5.4.0
+  
+  # State Management
+  provider: ^6.1.1
 
-  # Local Storage - Only essential
+  # Local Storage
   shared_preferences: ^2.2.2
 
-  # Phone & Communication - Only essential
+  # Phone & Communication
   url_launcher: ^6.2.2
+
+  # Firebase
+  firebase_core: ^3.13.0
+  firebase_auth: ^5.7.0
+  google_sign_in: ^6.2.2
+  firebase_messaging: ^15.2.4
 
 dev_dependencies:
   flutter_test:
@@ -26,4 +35,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
