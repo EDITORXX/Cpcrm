@@ -7,6 +7,7 @@ use App\Models\FbForm;
 use App\Models\FbLead;
 use App\Models\FbLeadAdsSettings;
 use App\Models\FbPage;
+use App\Models\FbCustomMappingField;
 use App\Services\FacebookGraphService;
 use App\Services\FacebookLeadMappingService;
 use Illuminate\Http\Request;
@@ -190,5 +191,30 @@ class FacebookLeadAdsController extends Controller
         });
 
         return response()->json(['success' => true, 'message' => 'Mapping saved and form enabled.', 'redirect' => route('integrations.facebook-lead-ads.index')]);
+    }
+
+    /**
+     * Create a custom mapping field (for CRM field dropdown on mapping page).
+     */
+    public function storeCustomField(Request $request)
+    {
+        $request->validate([
+            'field_key' => 'required|string|max:50|alpha_dash|unique:fb_custom_mapping_fields,field_key',
+            'label' => 'nullable|string|max:100',
+        ]);
+
+        $standardKeys = ['name', 'email', 'phone', 'address', 'city', 'state', 'pincode', 'requirements', 'notes', 'meta'];
+        $key = strtolower(trim($request->field_key));
+        if (in_array($key, $standardKeys, true)) {
+            return response()->json(['success' => false, 'message' => 'This field key already exists as a standard CRM field.']);
+        }
+
+        FbCustomMappingField::create([
+            'field_key' => $key,
+            'label' => $request->filled('label') ? $request->label : $key,
+        ]);
+
+        $crmKeys = \App\Services\FacebookLeadMappingService::getCrmFieldKeys();
+        return response()->json(['success' => true, 'message' => 'Custom field added.', 'crm_keys' => $crmKeys]);
     }
 }

@@ -561,6 +561,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/forms', [\App\Http\Controllers\Admin\FacebookLeadAdsController::class, 'forms'])->name('forms');
             Route::get('/mapping/{formId}', [\App\Http\Controllers\Admin\FacebookLeadAdsController::class, 'mapping'])->name('mapping');
             Route::post('/save-mapping', [\App\Http\Controllers\Admin\FacebookLeadAdsController::class, 'saveMapping'])->name('save-mapping');
+            Route::post('/custom-field', [\App\Http\Controllers\Admin\FacebookLeadAdsController::class, 'storeCustomField'])->name('custom-field');
         });
         Route::get('/magic-bricks', function () {
             return view('integrations.coming-soon', ['integration' => 'Magic Bricks']);

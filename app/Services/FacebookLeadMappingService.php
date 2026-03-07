@@ -45,10 +45,11 @@ class FacebookLeadMappingService
 
     /**
      * Get CRM field keys allowed in mapping (for dropdown).
+     * Includes standard keys + custom keys from fb_custom_mapping_fields.
      */
     public static function getCrmFieldKeys(): array
     {
-        return [
+        $standard = [
             'name',
             'email',
             'phone',
@@ -60,6 +61,10 @@ class FacebookLeadMappingService
             'notes',
             'meta',
         ];
+
+        $custom = \App\Models\FbCustomMappingField::orderBy('field_key')->pluck('field_key')->all();
+
+        return array_values(array_unique(array_merge($standard, $custom)));
     }
 
     /**
