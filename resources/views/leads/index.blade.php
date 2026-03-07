@@ -234,10 +234,35 @@
         }
         @media (max-width: 420px) {
             .lead-card-footer {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
             }
             .lead-card-footer form {
                 grid-column: auto;
+            }
+        }
+        @media (max-width: 767px) {
+            .lead-card {
+                min-height: auto;
+                padding: 1rem;
+            }
+            .lead-card-footer {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 0.35rem;
+                padding-top: 0.75rem;
+            }
+            .lead-card-footer form {
+                grid-column: auto;
+            }
+            .lead-card-footer a,
+            .lead-card-footer button {
+                padding: 6px 4px !important;
+                font-size: 11px !important;
+                border-radius: 6px !important;
+            }
+            .lead-card-footer a i,
+            .lead-card-footer button i {
+                margin-right: 3px !important;
+                font-size: 10px !important;
             }
         }
         .lead-card-footer a,

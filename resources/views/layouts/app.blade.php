@@ -12,6 +12,8 @@
     <meta name="user-id" content="{{ auth()->check() ? auth()->user()->id : '' }}">
     <meta name="pusher-key" content="{{ config('broadcasting.connections.pusher.key') }}">
     <meta name="pusher-cluster" content="{{ config('broadcasting.connections.pusher.options.cluster', 'mt1') }}">
+    <meta name="firebase-config" content="{{ json_encode(config('firebase.web')) }}">
+    <meta name="firebase-vapid-key" content="{{ config('firebase.vapid_key') }}">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -477,6 +479,9 @@
                 visibility: hidden !important;
             }
             #sidebarToggle {
+                display: none !important;
+            }
+            #navModeToggle {
                 display: none !important;
             }
             #mainContent {
@@ -1571,6 +1576,70 @@
     })();
     </script>
     @endauth
+
+    <!-- FCM Push: Firebase Cloud Messaging for notifications -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
+    <script>
+    (function() {
+        var configMeta = document.querySelector('meta[name="firebase-config"]');
+        var vapidMeta = document.querySelector('meta[name="firebase-vapid-key"]');
+        if (!configMeta || !vapidMeta) return;
+        var firebaseConfig;
+        try { firebaseConfig = JSON.parse(configMeta.content); } catch(e) { return; }
+        if (!firebaseConfig || !firebaseConfig.api_key) return;
+
+        var vapidKey = vapidMeta.content;
+        var fbConfig = {
+            apiKey: firebaseConfig.api_key,
+            authDomain: firebaseConfig.auth_domain,
+            projectId: firebaseConfig.project_id,
+            storageBucket: firebaseConfig.storage_bucket,
+            messagingSenderId: firebaseConfig.messaging_sender_id,
+            appId: firebaseConfig.app_id
+        };
+
+        firebase.initializeApp(fbConfig);
+        var messaging = firebase.messaging();
+
+        function getAuthToken() {
+            var meta = document.querySelector('meta[name="api-token"]');
+            if (meta && meta.content) return meta.content;
+            try { return localStorage.getItem('telecaller_token') || localStorage.getItem('auth_token') || ''; } catch(e) { return ''; }
+        }
+
+        function sendFcmTokenToServer(fcmToken) {
+            var authToken = getAuthToken();
+            if (!authToken) return;
+            var url = (typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : (window.location.origin + '/api')) + '/fcm-subscription';
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                body: JSON.stringify({ fcm_token: fcmToken, device_type: 'web' })
+            }).catch(function() {});
+        }
+
+        function initFcm() {
+            navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(reg) {
+                messaging.getToken({ vapidKey: vapidKey, serviceWorkerRegistration: reg }).then(function(token) {
+                    if (token) sendFcmTokenToServer(token);
+                }).catch(function() {});
+            }).catch(function() {});
+        }
+
+        messaging.onMessage(function(payload) {
+            var n = payload.notification || payload.data || {};
+            if (typeof showLeadAssignedPopup === 'function') {
+                showLeadAssignedPopup({ title: n.title, message: n.body });
+            }
+        });
+
+        if (Notification.permission === 'granted') { initFcm(); }
+        else if (Notification.permission === 'default') {
+            Notification.requestPermission().then(function(p) { if (p === 'granted') initFcm(); });
+        }
+    })();
+    </script>
 
     <!-- Chatbot Assistant Widget -->
     @include('components.chatbot-widget')
