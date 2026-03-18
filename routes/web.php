@@ -493,6 +493,14 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/pabbly/update', [\App\Http\Controllers\Admin\PabblyIntegrationController::class, 'updateSettings'])->name('pabbly.update');
         Route::post('/pabbly/test', [\App\Http\Controllers\Admin\PabblyIntegrationController::class, 'testWebhook'])->name('pabbly.test');
         Route::get('/pabbly/logs', [\App\Http\Controllers\Admin\PabblyIntegrationController::class, 'getWebhookLogs'])->name('pabbly.logs');
+
+        // MCube Integration Routes
+        Route::prefix('mcube')->name('mcube.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\McubeIntegrationController::class, 'index'])->name('index');
+            Route::post('/settings', [\App\Http\Controllers\Admin\McubeIntegrationController::class, 'updateSettings'])->name('settings.update');
+            Route::get('/generate-token', [\App\Http\Controllers\Admin\McubeIntegrationController::class, 'generateToken'])->name('generate-token');
+            Route::post('/test', [\App\Http\Controllers\Admin\McubeIntegrationController::class, 'testWebhook'])->name('test');
+        });
         
         // Google Sheets Integration Route (redirects to lead import page)
         Route::get('/google-sheets', function () {

@@ -51,6 +51,9 @@ Route::post('/pabbly/webhook', [PabblyWebhookController::class, 'store']);
 Route::get('/webhooks/facebook/leads', [\App\Http\Controllers\Api\FacebookWebhookController::class, 'verify']);
 Route::post('/webhooks/facebook/leads', [\App\Http\Controllers\Api\FacebookWebhookController::class, 'receive']);
 
+// MCube Call Tracking Webhook (public - token validated inside controller)
+Route::post('/webhooks/mcube', [\App\Http\Controllers\Api\McubeWebhookController::class, 'receive']);
+
 // Google Sheets Lead API (public - for Google Apps Script)
 Route::post('/google-sheets/leads', [\App\Http\Controllers\Api\GoogleSheetsLeadController::class, 'store']);
 
