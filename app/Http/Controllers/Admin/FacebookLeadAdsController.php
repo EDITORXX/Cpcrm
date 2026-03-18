@@ -22,12 +22,13 @@ class FacebookLeadAdsController extends Controller
     public function index()
     {
         $settings = FbLeadAdsSettings::getSettings();
-        $pagesWithToken = FbPage::whereNotNull('page_access_token')->pluck('id');
+        $addedPages = FbPage::whereNotNull('page_access_token')->orderBy('page_name')->get();
+        $pagesWithToken = $addedPages->pluck('id');
         $forms = FbForm::with('page')
             ->whereIn('fb_page_id', $pagesWithToken)
             ->orderBy('form_name')
             ->get();
-        $hasToken = FbPage::whereNotNull('page_access_token')->exists();
+        $hasToken = $addedPages->isNotEmpty();
         $webhookUrl = url('/api/webhooks/facebook/leads');
 
         $recentLeads = FbLead::with('form')
@@ -35,7 +36,7 @@ class FacebookLeadAdsController extends Controller
             ->limit(20)
             ->get();
 
-        return view('integrations.facebook-lead-ads.index', compact('settings', 'hasToken', 'forms', 'webhookUrl', 'recentLeads'));
+        return view('integrations.facebook-lead-ads.index', compact('settings', 'hasToken', 'forms', 'webhookUrl', 'recentLeads', 'addedPages'));
     }
 
     /**
