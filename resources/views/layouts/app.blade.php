@@ -501,6 +501,40 @@
             #mobileFooterNav {
                 display: flex !important;
             }
+            /* ADMIN mobile: compact header */
+            .layout-admin .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+                padding: 12px !important;
+            }
+            .layout-admin .header > div:first-child h1 {
+                font-size: 20px !important;
+            }
+            .layout-admin .header > div:first-child p {
+                font-size: 12px !important;
+            }
+            .layout-admin .header > div:last-child {
+                width: 100%;
+                flex-wrap: wrap;
+                gap: 8px;
+                justify-content: flex-start;
+            }
+            /* Hide clock, username, logout, navToggle in admin header on mobile */
+            .layout-admin .header #datetimeClock,
+            .layout-admin .header #navModeToggle,
+            .layout-admin .header .header-logout-form {
+                display: none !important;
+            }
+            .layout-admin .header span[style*="color: #B3B5B4"] {
+                display: none !important;
+            }
+            /* Make action buttons smaller on mobile */
+            .layout-admin .header .btn {
+                padding: 7px 12px !important;
+                font-size: 13px !important;
+            }
+
             /* CRM: hide header Logout on mobile (same as telecaller; use Profile/Logout in footer) */
             .layout-crm .header .header-logout-form {
                 display: none !important;
@@ -702,7 +736,7 @@
     
     @stack('styles')
 </head>
-<body class="bg-[#F7F6F3] font-sans antialiased nav-icons @if(auth()->user()->isCrm()) layout-crm @endif" style="margin: 0; padding: 0; overflow: hidden;">
+<body class="bg-[#F7F6F3] font-sans antialiased nav-icons @if(auth()->user()->isCrm()) layout-crm @elseif(auth()->user()->isAdmin()) layout-admin @endif" style="margin: 0; padding: 0; overflow: hidden;">
     <!-- Sidebar Toggle Button - Always visible -->
     <button id="sidebarToggle" class="sidebar-toggle" title="Toggle Sidebar">
         <i class="fas fa-chevron-left sidebar-toggle-icon" id="sidebarToggleIcon"></i>
