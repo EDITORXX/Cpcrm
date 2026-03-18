@@ -5,6 +5,8 @@ namespace App\Jobs;
 use App\Models\FbForm;
 use App\Models\FbLead;
 use App\Models\FbWebhookEvent;
+use App\Models\Lead;
+use App\Models\User;
 use App\Services\FacebookGraphService;
 use App\Services\FacebookLeadMappingService;
 use Illuminate\Bus\Queueable;
@@ -34,7 +36,7 @@ class FetchFacebookLeadDetailsJob implements ShouldQueue
             return;
         }
 
-        $fbForm = FbForm::with('page')->find($this->fbFormId);
+        $fbForm = FbForm::with(['page', 'mapping'])->find($this->fbFormId);
         if (!$fbForm || !$fbForm->page) {
             return;
         }
@@ -61,21 +63,79 @@ class FetchFacebookLeadDetailsJob implements ShouldQueue
         $mappingService = new FacebookLeadMappingService();
         $flatFieldData = $mappingService->fieldDataToFlat($fieldData);
 
-        FbLead::create([
+        $fbLead = FbLead::create([
             'leadgen_id' => $this->leadgenId,
             'fb_form_id' => $this->fbFormId,
             'field_data_json' => $flatFieldData,
             'raw_response_json' => $data,
         ]);
 
+        // CRM lead auto-create
+        $crmLeadId = $this->createCrmLead($fbForm, $mappingService, $fieldData);
+        if ($crmLeadId) {
+            $fbLead->update(['crm_lead_id' => $crmLeadId]);
+        }
+
         FbWebhookEvent::where('leadgen_id', $this->leadgenId)->where('status', 'received')->update(['status' => 'processed']);
+    }
+
+    protected function createCrmLead(FbForm $fbForm, FacebookLeadMappingService $mappingService, array $fieldData): ?int
+    {
+        try {
+            $mappingJson = $fbForm->mapping?->mapping_json ?? [];
+
+            $mapped = $mappingService->applyMapping($fieldData, $mappingJson);
+
+            $name  = $mapped['name']  ?? null;
+            $phone = $mapped['phone'] ?? null;
+
+            // name aur phone dono required hain leads table mein
+            if (empty($name) && empty($phone)) {
+                Log::info('FetchFacebookLeadDetailsJob: name aur phone dono missing, CRM lead skip', ['leadgen_id' => $this->leadgenId]);
+                return null;
+            }
+
+            $createdBy = User::orderBy('id')->value('id') ?? 1;
+
+            $notes = null;
+            if (!empty($mapped['meta']) && is_array($mapped['meta'])) {
+                $parts = [];
+                foreach ($mapped['meta'] as $k => $v) {
+                    $parts[] = $k . ': ' . $v;
+                }
+                $notes = implode("\n", $parts);
+            }
+
+            $lead = Lead::create([
+                'name'        => $name  ?: 'Facebook Lead',
+                'phone'       => $phone ?: 'N/A',
+                'email'       => $mapped['email']        ?? null,
+                'address'     => $mapped['address']      ?? null,
+                'city'        => $mapped['city']         ?? null,
+                'state'       => $mapped['state']        ?? null,
+                'pincode'     => $mapped['pincode']      ?? null,
+                'requirements'=> $mapped['requirements'] ?? null,
+                'notes'       => $mapped['notes']        ?? $notes,
+                'source'      => 'facebook_lead_ads',
+                'status'      => 'new',
+                'created_by'  => $createdBy,
+            ]);
+
+            return $lead->id;
+        } catch (\Throwable $e) {
+            Log::warning('FetchFacebookLeadDetailsJob: CRM lead create failed', [
+                'leadgen_id' => $this->leadgenId,
+                'error'      => $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 
     protected function failEvent(string $error): void
     {
         FbWebhookEvent::where('leadgen_id', $this->leadgenId)->where('status', 'received')->update([
             'status' => 'failed',
-            'error' => $error,
+            'error'  => $error,
         ]);
         Log::warning('FetchFacebookLeadDetailsJob failed', ['leadgen_id' => $this->leadgenId, 'error' => $error]);
     }

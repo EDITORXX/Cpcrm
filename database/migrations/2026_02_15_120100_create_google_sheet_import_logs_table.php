@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('google_sheet_import_logs')) {
+            return;
+        }
+
         Schema::create('google_sheet_import_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('google_sheets_config_id')
