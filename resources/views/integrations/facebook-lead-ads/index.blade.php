@@ -147,6 +147,77 @@
         </div>
     @endif
 
+    {{-- ── WEBHOOK EVENTS LOG ── --}}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="font-semibold text-gray-800 flex items-center gap-2">
+                <i class="fas fa-satellite-dish text-purple-500"></i> Webhook Events Log
+                <span class="text-xs text-gray-400 font-normal">(last 30)</span>
+            </h3>
+            @if(isset($webhookEvents) && $webhookEvents->isNotEmpty())
+            @php
+                $failedCount    = $webhookEvents->where('status','failed')->count();
+                $processedCount = $webhookEvents->where('status','processed')->count();
+                $receivedCount  = $webhookEvents->where('status','received')->count();
+            @endphp
+            <div class="flex items-center gap-2 text-xs">
+                @if($processedCount) <span class="bg-green-50 text-green-600 px-2 py-1 rounded-full">✓ {{ $processedCount }} processed</span> @endif
+                @if($receivedCount)  <span class="bg-yellow-50 text-yellow-600 px-2 py-1 rounded-full">⏳ {{ $receivedCount }} pending</span> @endif
+                @if($failedCount)    <span class="bg-red-50 text-red-600 px-2 py-1 rounded-full">✗ {{ $failedCount }} failed</span> @endif
+            </div>
+            @endif
+        </div>
+        <div class="p-5">
+            @if(isset($webhookEvents) && $webhookEvents->isNotEmpty())
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-100 text-left text-xs text-gray-500 font-medium uppercase tracking-wide">
+                            <th class="pb-3 pr-4">Time</th>
+                            <th class="pb-3 pr-4">Leadgen ID</th>
+                            <th class="pb-3 pr-4">Status</th>
+                            <th class="pb-3">Error</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        @foreach($webhookEvents as $event)
+                        <tr class="hover:bg-gray-50 {{ $event->status === 'failed' ? 'bg-red-50' : '' }}">
+                            <td class="py-3 pr-4 text-xs text-gray-500 whitespace-nowrap">{{ $event->created_at->format('d M, H:i:s') }}</td>
+                            <td class="py-3 pr-4 font-mono text-xs text-gray-700">{{ $event->leadgen_id }}</td>
+                            <td class="py-3 pr-4">
+                                @if($event->status === 'processed')
+                                    <span class="inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                                        <i class="fas fa-check-circle"></i> Processed
+                                    </span>
+                                @elseif($event->status === 'failed')
+                                    <span class="inline-flex items-center gap-1 text-xs bg-red-50 text-red-700 px-2 py-0.5 rounded-full font-medium">
+                                        <i class="fas fa-times-circle"></i> Failed
+                                    </span>
+                                @elseif($event->status === 'received')
+                                    <span class="inline-flex items-center gap-1 text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full font-medium">
+                                        <i class="fas fa-clock"></i> Pending
+                                    </span>
+                                @else
+                                    <span class="text-xs text-gray-500">{{ $event->status }}</span>
+                                @endif
+                            </td>
+                            <td class="py-3 text-xs text-red-600 max-w-xs">
+                                {{ $event->error ?? '—' }}
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            @else
+            <div class="text-center py-6">
+                <i class="fas fa-satellite-dish text-gray-200 text-3xl mb-2"></i>
+                <p class="text-gray-400 text-sm">No webhook events yet.</p>
+            </div>
+            @endif
+        </div>
+    </div>
+
     {{-- ── RECENT LEADS ── --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">

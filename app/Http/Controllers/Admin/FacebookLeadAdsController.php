@@ -36,7 +36,11 @@ class FacebookLeadAdsController extends Controller
             ->limit(20)
             ->get();
 
-        return view('integrations.facebook-lead-ads.index', compact('settings', 'hasToken', 'forms', 'webhookUrl', 'recentLeads', 'addedPages'));
+        $webhookEvents = \App\Models\FbWebhookEvent::orderByDesc('created_at')
+            ->limit(30)
+            ->get();
+
+        return view('integrations.facebook-lead-ads.index', compact('settings', 'hasToken', 'forms', 'webhookUrl', 'recentLeads', 'addedPages', 'webhookEvents'));
     }
 
     /**
