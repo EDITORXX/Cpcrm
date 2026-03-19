@@ -72,6 +72,11 @@
         /* Transitions only active after page is ready */
         body.sidebar-ready #sidebar { transition: width 0.3s ease-in-out, transform 0.3s ease-in-out; }
         body.sidebar-ready #mainContent { transition: margin-left 0.3s ease-in-out; }
+        /* Pre-render: set correct sidebar width on <html> BEFORE body exists */
+        html.pre-nav-text #sidebar { width: 256px !important; min-width: 256px !important; }
+        html.pre-nav-text #mainContent { margin-left: 256px !important; }
+        html.pre-nav-icons #sidebar { width: 64px !important; max-width: 64px !important; }
+        html.pre-nav-icons #mainContent { margin-left: 64px !important; }
         .container { max-width: 100%; margin: 0 auto; padding: 20px; width: 100%; box-sizing: border-box; }
         .header { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
         .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s; }
@@ -740,22 +745,33 @@
     </style>
     
     @stack('styles')
-</head>
-<body class="bg-[#F7F6F3] font-sans antialiased nav-icons @if(auth()->user()->isCrm()) layout-crm @elseif(auth()->user()->isAdmin()) layout-admin @endif" style="margin: 0; padding: 0; overflow: hidden;">
+    {{-- Apply nav mode BEFORE body renders to prevent any flash --}}
     <script>
     (function(){
-        // Disable transitions immediately to prevent flash/flicker on page load
+        try {
+            var mode = localStorage.getItem('crmNavMode') || 'icons';
+            var hidden = localStorage.getItem('sidebarHidden') === 'true';
+            var cls = document.documentElement.classList;
+            cls.add('pre-nav-' + mode);
+            if (hidden) cls.add('pre-sidebar-hidden');
+        } catch(e) {}
+    })();
+    </script>
+</head>
+<body class="bg-[#F7F6F3] font-sans antialiased @if(auth()->user()->isCrm()) layout-crm @elseif(auth()->user()->isAdmin()) layout-admin @endif" style="margin: 0; padding: 0; overflow: hidden;">
+    <script>
+    (function(){
+        // Disable transitions + apply correct nav class before ANY rendering
         document.body.classList.add('no-transition');
         try {
-            var mode = localStorage.getItem('crmNavMode');
-            if (mode === 'text') {
-                document.body.classList.remove('nav-icons');
-                document.body.classList.add('nav-text');
-            }
+            var mode = localStorage.getItem('crmNavMode') || 'icons';
+            document.body.classList.add(mode === 'text' ? 'nav-text' : 'nav-icons');
             if (localStorage.getItem('sidebarHidden') === 'true') {
                 document.body.classList.add('sidebar-hidden');
             }
-        } catch(e) {}
+        } catch(e) {
+            document.body.classList.add('nav-icons');
+        }
     })();
     </script>
     <!-- Sidebar Toggle Button - Always visible -->
