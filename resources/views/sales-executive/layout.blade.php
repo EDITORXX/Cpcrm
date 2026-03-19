@@ -1591,6 +1591,11 @@
     
     <!-- Include Meeting Post-Call Popup Component -->
     @include('components.meeting-post-call-popup')
+    <script>
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted) { window.location.reload(); }
+    });
+    </script>
 </body>
 </html>
 

@@ -1778,6 +1778,14 @@
     
     <!-- Chatbot Assistant Script -->
     <script src="{{ asset('js/chatbot-assistant.js') }}"></script>
+    <script>
+    // Fix bfcache: if browser shows stale cached page, force fresh reload
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
+    });
+    </script>
 </body>
 </html>
 
