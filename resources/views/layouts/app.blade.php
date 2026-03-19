@@ -69,6 +69,9 @@
         body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #F7F6F3; }
         /* Prevent transition flash on page load */
         body.no-transition *, body.no-transition *::before, body.no-transition *::after { transition: none !important; animation: none !important; }
+        /* Transitions only active after page is ready */
+        body.sidebar-ready #sidebar { transition: width 0.3s ease-in-out, transform 0.3s ease-in-out; }
+        body.sidebar-ready #mainContent { transition: margin-left 0.3s ease-in-out; }
         .container { max-width: 100%; margin: 0 auto; padding: 20px; width: 100%; box-sizing: border-box; }
         .header { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
         .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s; }
@@ -741,6 +744,8 @@
 <body class="bg-[#F7F6F3] font-sans antialiased nav-icons @if(auth()->user()->isCrm()) layout-crm @elseif(auth()->user()->isAdmin()) layout-admin @endif" style="margin: 0; padding: 0; overflow: hidden;">
     <script>
     (function(){
+        // Disable transitions immediately to prevent flash/flicker on page load
+        document.body.classList.add('no-transition');
         try {
             var mode = localStorage.getItem('crmNavMode');
             if (mode === 'text') {
@@ -751,15 +756,6 @@
                 document.body.classList.add('sidebar-hidden');
             }
         } catch(e) {}
-        // Disable all transitions during initial page load to prevent flash/flicker
-        document.body.classList.add('no-transition');
-        document.addEventListener('DOMContentLoaded', function() {
-            requestAnimationFrame(function() {
-                requestAnimationFrame(function() {
-                    document.body.classList.remove('no-transition');
-                });
-            });
-        });
     })();
     </script>
     <!-- Sidebar Toggle Button - Always visible -->
@@ -769,7 +765,7 @@
     
     <div style="display: flex; height: 100vh; overflow: hidden;">
         <!-- Sidebar -->
-        <aside id="sidebar" class="fixed left-0 top-0 h-full bg-white border-r border-gray-200 shadow-sm z-30" style="overflow-y: auto; transition: width 0.3s ease-in-out, transform 0.3s ease-in-out;">
+        <aside id="sidebar" class="fixed left-0 top-0 h-full bg-white border-r border-gray-200 shadow-sm z-30" style="overflow-y: auto;">
             <!-- Logo and Role -->
             <div style="padding: 20px; margin-bottom: 30px;">
                 <h2 style="font-size: 24px; font-weight: 700; color: var(--text-color); margin-bottom: 10px;">Base CRM</h2>
@@ -1040,7 +1036,7 @@
         </div>
         
         <!-- Main Content -->
-        <div id="mainContent" style="margin-left: 64px; flex: 1; min-width: 0; overflow-y: auto; overflow-x: hidden; height: 100vh; background: #F7F6F3; transition: margin-left 0.3s ease-in-out;">
+        <div id="mainContent" style="margin-left: 64px; flex: 1; min-width: 0; overflow-y: auto; overflow-x: hidden; height: 100vh; background: #F7F6F3;">
             <div class="container" style="padding: 20px; max-width: 100%; width: 100%; min-width: 0; box-sizing: border-box;">
                 <!-- Header -->
                 <div class="header">
@@ -1394,6 +1390,14 @@
                     return false;
                 });
             }
+
+            // Enable transitions after layout is fully set (prevents page-load flicker)
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    document.body.classList.remove('no-transition');
+                    document.body.classList.add('sidebar-ready');
+                });
+            });
         }
         
         // Run when DOM is ready
