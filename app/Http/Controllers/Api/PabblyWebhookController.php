@@ -40,14 +40,15 @@ class PabblyWebhookController extends Controller
 
         // Validate webhook secret if configured
         if ($settings->webhook_secret) {
-            $providedSecret = $request->header('X-Pabbly-Secret') ?? $request->input('webhook_secret');
-            
-            if ($providedSecret !== $settings->webhook_secret) {
+            $providedSecret = $request->header('X-Pabbly-Secret') ?? $request->input('webhook_secret') ?? '';
+
+            // Use hash_equals() for constant-time comparison to prevent timing attacks
+            if (!hash_equals($settings->webhook_secret, $providedSecret)) {
                 Log::warning('Pabbly Webhook Rejected - Invalid Secret', [
                     'ip' => $request->ip(),
                     'provided' => $providedSecret ? 'present' : 'missing',
                 ]);
-                
+
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Invalid webhook secret',
@@ -55,10 +56,9 @@ class PabblyWebhookController extends Controller
             }
         }
 
-        // Log the full incoming payload for debugging
+        // Log incoming webhook — headers excluded to avoid leaking secrets
         Log::info('Pabbly Webhook Received', [
-            'payload' => $request->all(),
-            'headers' => $request->headers->all(),
+            'payload' => $request->except(['webhook_secret']),
             'ip' => $request->ip(),
         ]);
 
@@ -178,7 +178,7 @@ class PabblyWebhookController extends Controller
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to create lead: ' . $e->getMessage(),
+                'message' => 'Failed to process webhook. Please try again later.',
             ], 500);
         }
     }
