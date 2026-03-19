@@ -1457,24 +1457,15 @@
                     
                     element.addEventListener('mouseleave', function() {
                         clearTimeout(tooltipTimeout);
-                        if (activeTooltip !== this) {
-                            hideTooltip();
-                        }
+                        hideTooltip();
+                        activeTooltip = null;
                     });
                     
-                    // Click tooltip (persist until another click or outside click)
+                    // Hide tooltip on click (don't persist on navigation)
                     element.addEventListener('click', function(e) {
-                        // Don't prevent navigation for links, just show tooltip
-                        if (activeTooltip === this) {
-                            hideTooltip();
-                            activeTooltip = null;
-                        } else {
-                            if (activeTooltip) {
-                                hideTooltip();
-                            }
-                            activeTooltip = this;
-                            showTooltip(this, this.dataset.tooltip);
-                        }
+                        clearTimeout(tooltipTimeout);
+                        hideTooltip();
+                        activeTooltip = null;
                     });
                 });
                 
