@@ -995,12 +995,8 @@
             try {
                 const userData = @json($user);
                 localStorage.setItem('sales-executive_user', JSON.stringify(userData));
-                @php
-                    $storedPassword = session('user_password_for_change');
-                @endphp
-                @if($storedPassword)
-                    localStorage.setItem('user_current_password', '{{ $storedPassword }}');
-                @endif
+                // Password auto-fill removed for security — user types current password manually
+                localStorage.removeItem('user_current_password');
                 if ('{{ $token ? "1" : "" }}') console.log('Token initialized from session');
             } catch (e) {
                 console.error('Error setting user data in localStorage:', e);

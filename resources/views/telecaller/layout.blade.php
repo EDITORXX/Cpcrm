@@ -883,13 +883,8 @@
                 try {
                     const userData = @json($user);
                     localStorage.setItem('telecaller_user', JSON.stringify(userData));
-                    // Store password for auto-fill in change password form
-                    @php
-                        $storedPassword = session('user_password_for_change');
-                    @endphp
-                    @if($storedPassword)
-                        localStorage.setItem('user_current_password', '{{ $storedPassword }}');
-                    @endif
+                    // Password auto-fill removed for security — user types current password manually
+                    localStorage.removeItem('user_current_password');
                     console.log('Token initialized from session');
                 } catch (e) {
                     console.error('Error setting user data in localStorage:', e);

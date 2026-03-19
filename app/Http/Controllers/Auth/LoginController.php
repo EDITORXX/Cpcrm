@@ -86,8 +86,7 @@ class LoginController extends Controller
         // Mark attendance for telecallers (Telecaller and Sales Executive)
         if ($user->isTelecaller()) {
             $this->markTelecallerAttendance($user);
-            // Store password in session for auto-fill (temporary, cleared on logout)
-            $request->session()->put('user_password_for_change', $request->password);
+            // Password intentionally NOT stored in session (security: users type current password themselves)
         }
 
         // Generate ONE API token for ALL roles at login and store in session
@@ -218,10 +217,8 @@ class LoginController extends Controller
                 Auth::user()->tokens()->where('name', 'web-session-token')->delete();
             }
 
-            // Clear all API tokens from session
-            $request->session()->forget(['api_token', 'telecaller_api_token', 'sales_executive_api_token']);
-            // Clear stored password from session
-            $request->session()->forget('user_password_for_change');
+            // Clear all API tokens and any legacy password from session
+            $request->session()->forget(['api_token', 'telecaller_api_token', 'sales_executive_api_token', 'user_password_for_change']);
 
             // Logout user
             Auth::logout();
