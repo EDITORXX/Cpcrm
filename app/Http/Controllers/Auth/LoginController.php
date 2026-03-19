@@ -86,17 +86,20 @@ class LoginController extends Controller
         // Mark attendance for telecallers (Telecaller and Sales Executive)
         if ($user->isTelecaller()) {
             $this->markTelecallerAttendance($user);
-            // Generate API token for telecaller and store in session
-            $token = $user->createToken('web-login-token')->plainTextToken;
-            $request->session()->put('telecaller_api_token', $token);
             // Store password in session for auto-fill (temporary, cleared on logout)
             $request->session()->put('user_password_for_change', $request->password);
         }
 
-        // Generate API token for sales managers
-        if ($user->isSalesManager()) {
-            $token = $user->createToken('web-login-token')->plainTextToken;
-            $request->session()->put('api_token', $token);
+        // Generate ONE API token for ALL roles at login and store in session
+        // This prevents createToken() from being called on every page load
+        $token = $user->createToken('web-session-token')->plainTextToken;
+        $request->session()->put('api_token', $token);
+        // Keep role-specific keys as aliases for backward compatibility
+        if ($user->isTelecaller()) {
+            $request->session()->put('telecaller_api_token', $token);
+        }
+        if ($user->isSalesExecutive()) {
+            $request->session()->put('sales_executive_api_token', $token);
         }
         
         // Commit session to ensure all data is saved
@@ -187,13 +190,14 @@ class LoginController extends Controller
             $request->session()->regenerate();
             $this->markUserAsPresent($user);
 
+            // Generate ONE token for all roles at Firebase login
+            $token = $user->createToken('web-session-token')->plainTextToken;
+            $request->session()->put('api_token', $token);
             if ($user->isTelecaller()) {
-                $token = $user->createToken('web-login-token')->plainTextToken;
                 $request->session()->put('telecaller_api_token', $token);
             }
-            if ($user->isSalesManager()) {
-                $token = $user->createToken('web-login-token')->plainTextToken;
-                $request->session()->put('api_token', $token);
+            if ($user->isSalesExecutive()) {
+                $request->session()->put('sales_executive_api_token', $token);
             }
 
             $request->session()->save();
@@ -209,12 +213,15 @@ class LoginController extends Controller
     public function logout(Request $request)
     {
         try {
-            // Clear telecaller API token from session
-            $request->session()->forget('telecaller_api_token');
+            // Revoke all web session tokens from DB to prevent token accumulation
+            if (Auth::check()) {
+                Auth::user()->tokens()->where('name', 'web-session-token')->delete();
+            }
+
+            // Clear all API tokens from session
+            $request->session()->forget(['api_token', 'telecaller_api_token', 'sales_executive_api_token']);
             // Clear stored password from session
             $request->session()->forget('user_password_for_change');
-            // Clear sales manager API token
-            $request->session()->forget('api_token');
 
             // Logout user
             Auth::logout();

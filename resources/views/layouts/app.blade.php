@@ -8,7 +8,14 @@
     <meta http-equiv="Expires" content="0">
     <title>@yield('title', 'Base CRM')</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="api-token" content="{{ session('api_token') ?? (auth()->check() ? auth()->user()->createToken('web-token')->plainTextToken : '') }}">
+    @php
+        // Ensure token exists in session — create once if missing (e.g. old sessions)
+        if (auth()->check() && !session('api_token')) {
+            $__token = auth()->user()->createToken('web-session-token')->plainTextToken;
+            session(['api_token' => $__token]);
+        }
+    @endphp
+    <meta name="api-token" content="{{ session('api_token', '') }}">
     <meta name="user-id" content="{{ auth()->check() ? auth()->user()->id : '' }}">
     <meta name="pusher-key" content="{{ config('broadcasting.connections.pusher.key') }}">
     <meta name="pusher-cluster" content="{{ config('broadcasting.connections.pusher.options.cluster', 'mt1') }}">

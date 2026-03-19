@@ -534,7 +534,7 @@
 
     <script>
         const API_BASE_URL = '{{ url("/api") }}';
-        const API_TOKEN = '{{ auth()->check() ? (session("api_token") ?? auth()->user()->createToken("web-token")->plainTextToken) : "" }}';
+        const API_TOKEN = document.querySelector('meta[name="api-token"]')?.getAttribute('content') || '';
         const CAN_TRANSFER_OWNER = @json($user && ($user->isAdmin() || $user->isCrm()));
         const OWNER_TRANSFER_USERS = @json($ownerTransferUsersJson ?? []);
         const FILTER_USER_ID = @json(request('user_id'));

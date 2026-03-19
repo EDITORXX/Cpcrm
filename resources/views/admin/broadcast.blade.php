@@ -118,7 +118,7 @@
 </div>
 
 <script>
-const API_TOKEN = '{{ auth()->check() ? auth()->user()->createToken("web-token")->plainTextToken : "" }}';
+const API_TOKEN = document.querySelector('meta[name="api-token"]')?.getAttribute('content') || '';
 
 function toggleRoleSelection() {
     const targetType = document.getElementById('targetType').value;

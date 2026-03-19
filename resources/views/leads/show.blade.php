@@ -1164,7 +1164,7 @@
         window.API_BASE_URL = '{{ url("/api") }}';
     }
     if (typeof window.API_TOKEN === 'undefined') {
-        window.API_TOKEN = '{{ auth()->check() ? (session("api_token") ?? auth()->user()->createToken("web-token")->plainTextToken) : "" }}';
+        window.API_TOKEN = document.querySelector('meta[name="api-token"]')?.getAttribute('content') || '';
     }
     if (typeof window.USER_ROLE === 'undefined') {
         window.USER_ROLE = '{{ $user->role->slug ?? "" }}';
