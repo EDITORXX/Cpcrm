@@ -780,6 +780,15 @@
     @stack('styles')
 </head>
 <body>
+    <script>
+    (function(){
+        try {
+            if (localStorage.getItem('sales_executive_sidebar_expanded') === '1') {
+                document.body.classList.add('sidebar-nav-expanded');
+            }
+        } catch(e) {}
+    })();
+    </script>
     <!-- Sidebar Toggle Button (Mobile) -->
     <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Toggle Sidebar">
         <i class="fas fa-bars" id="sidebarToggleIcon"></i>

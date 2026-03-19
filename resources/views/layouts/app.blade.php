@@ -737,6 +737,20 @@
     @stack('styles')
 </head>
 <body class="bg-[#F7F6F3] font-sans antialiased nav-icons @if(auth()->user()->isCrm()) layout-crm @elseif(auth()->user()->isAdmin()) layout-admin @endif" style="margin: 0; padding: 0; overflow: hidden;">
+    <script>
+    (function(){
+        try {
+            var mode = localStorage.getItem('crmNavMode');
+            if (mode === 'text') {
+                document.body.classList.remove('nav-icons');
+                document.body.classList.add('nav-text');
+            }
+            if (localStorage.getItem('sidebarHidden') === 'true') {
+                document.body.classList.add('sidebar-hidden');
+            }
+        } catch(e) {}
+    })();
+    </script>
     <!-- Sidebar Toggle Button - Always visible -->
     <button id="sidebarToggle" class="sidebar-toggle" title="Toggle Sidebar">
         <i class="fas fa-chevron-left sidebar-toggle-icon" id="sidebarToggleIcon"></i>
