@@ -67,6 +67,8 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
         body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #F7F6F3; }
+        /* Prevent transition flash on page load */
+        body.no-transition *, body.no-transition *::before, body.no-transition *::after { transition: none !important; animation: none !important; }
         .container { max-width: 100%; margin: 0 auto; padding: 20px; width: 100%; box-sizing: border-box; }
         .header { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
         .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s; }
@@ -749,6 +751,15 @@
                 document.body.classList.add('sidebar-hidden');
             }
         } catch(e) {}
+        // Disable all transitions during initial page load to prevent flash/flicker
+        document.body.classList.add('no-transition');
+        document.addEventListener('DOMContentLoaded', function() {
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    document.body.classList.remove('no-transition');
+                });
+            });
+        });
     })();
     </script>
     <!-- Sidebar Toggle Button - Always visible -->
@@ -1392,10 +1403,14 @@
             // DOM is already ready
             initSidebar();
         }
-        // Fallback: re-apply nav mode on window load (fixes CRM Users page etc. when content loads late)
+        // Ensure mainContent margin matches nav mode after full load
         window.addEventListener('load', function() {
             const mode = localStorage.getItem(NAV_MODE_KEY) || 'icons';
-            applyNavMode(mode);
+            const mainContent = document.getElementById('mainContent');
+            const body = document.body;
+            if (mainContent && !body.classList.contains('sidebar-hidden')) {
+                mainContent.style.marginLeft = (mode === 'text') ? '256px' : '64px';
+            }
         });
         
         // Sidebar Tooltip Functionality
