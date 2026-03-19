@@ -30,15 +30,16 @@ class McubeWebhookController extends Controller
             return response()->json(['success' => false, 'message' => 'MCube integration is disabled.'], 403);
         }
 
-        // 3. Validate token (from header OR query param)
+        // 3. Validate token (headers only — query param removed to prevent token leaking in server logs)
         $incomingToken = $request->header('X-MCube-Token')
             ?? $request->header('Authorization')
-            ?? $request->query('token');
+            ?? '';
 
         // Strip "Bearer " prefix if present
-        $incomingToken = preg_replace('/^Bearer\s+/i', '', $incomingToken ?? '');
+        $incomingToken = preg_replace('/^Bearer\s+/i', '', $incomingToken);
 
-        if (!$settings->token || $incomingToken !== $settings->token) {
+        // Use hash_equals() for constant-time comparison to prevent timing attacks
+        if (!$settings->token || !hash_equals($settings->token, $incomingToken)) {
             Log::warning('MCube webhook: invalid token', ['ip' => $request->ip()]);
             return response()->json(['success' => false, 'message' => 'Unauthorized: invalid token.'], 401);
         }
