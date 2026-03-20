@@ -450,6 +450,9 @@ Route::middleware(['auth'])->group(function () {
     // Integration Routes (Admin & CRM)
     Route::middleware(['auth', 'role:admin,crm'])->prefix('integrations')->name('integrations.')->group(function () {
         Route::get('/', [\App\Http\Controllers\IntegrationController::class, 'index'])->name('index');
+        Route::get('/sheet-integration', function () {
+            return view('integrations.sheet-integration');
+        })->name('sheet-integration');
         Route::get('/email', function () {
             return view('integrations.coming-soon', ['integration' => 'Email']);
         })->name('email');

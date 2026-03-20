@@ -1029,6 +1029,13 @@
                     <i class="fas fa-plug" style="margin-right: 10px; width: 20px;"></i>
                     Integration
                 </a>
+                <a href="{{ route('integrations.sheet-integration') }}"
+                   class="sidebar-link {{ request()->routeIs('integrations.sheet-integration') || request()->routeIs('lead-import.*') || request()->routeIs('smart-import.*') ? 'active' : '' }}"
+                   data-tooltip="Sheet Integration"
+                   title="Sheet Integration">
+                    <i class="fas fa-table" style="margin-right: 10px; width: 20px;"></i>
+                    Sheet Integration
+                </a>
                 @if(auth()->user()->isCrm())
                 <a href="{{ route('integrations.meta-sheet.index') }}"
                    class="sidebar-link {{ request()->routeIs('integrations.meta-sheet.*') ? 'active' : '' }}"
