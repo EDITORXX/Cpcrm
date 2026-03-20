@@ -44,18 +44,21 @@ use Illuminate\Http\Request;
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/login/firebase', [\App\Http\Controllers\Api\FirebaseAuthController::class, 'login']);
 
-// Pabbly Webhook (public - no auth required)
-Route::post('/pabbly/webhook', [PabblyWebhookController::class, 'store']);
+// Webhook endpoints (public - rate limited to 60 requests/min per IP)
+Route::middleware('throttle:60,1')->group(function () {
+    // Pabbly Webhook
+    Route::post('/pabbly/webhook', [PabblyWebhookController::class, 'store']);
 
-// Facebook Lead Ads Webhook (public - Meta verification and receive)
-Route::get('/webhooks/facebook/leads', [\App\Http\Controllers\Api\FacebookWebhookController::class, 'verify']);
-Route::post('/webhooks/facebook/leads', [\App\Http\Controllers\Api\FacebookWebhookController::class, 'receive']);
+    // Facebook Lead Ads Webhook (Meta verification + receive)
+    Route::get('/webhooks/facebook/leads', [\App\Http\Controllers\Api\FacebookWebhookController::class, 'verify']);
+    Route::post('/webhooks/facebook/leads', [\App\Http\Controllers\Api\FacebookWebhookController::class, 'receive']);
 
-// MCube Call Tracking Webhook (public - token validated inside controller)
-Route::post('/webhooks/mcube', [\App\Http\Controllers\Api\McubeWebhookController::class, 'receive']);
+    // MCube Call Tracking Webhook (token validated inside controller)
+    Route::post('/webhooks/mcube', [\App\Http\Controllers\Api\McubeWebhookController::class, 'receive']);
 
-// Google Sheets Lead API (public - for Google Apps Script)
-Route::post('/google-sheets/leads', [\App\Http\Controllers\Api\GoogleSheetsLeadController::class, 'store']);
+    // Google Sheets Lead API (for Google Apps Script)
+    Route::post('/google-sheets/leads', [\App\Http\Controllers\Api\GoogleSheetsLeadController::class, 'store']);
+});
 
 // Telecaller public routes
 Route::post('/telecaller/login', [TelecallerController::class, 'login']);

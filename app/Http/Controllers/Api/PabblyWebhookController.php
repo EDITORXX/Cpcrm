@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Lead;
 use App\Models\PabblyIntegrationSettings;
+use App\Services\SourceAutomationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -144,6 +145,16 @@ class PabblyWebhookController extends Controller
 
             // Create the lead
             $lead = Lead::create($leadData);
+
+            // Auto-assign via Automation Rule (if configured)
+            try {
+                app(SourceAutomationService::class)->assignFromSource($lead, 'pabbly');
+            } catch (\Throwable $e) {
+                Log::warning('PabblyWebhook: automation assign failed', [
+                    'lead_id' => $lead->id,
+                    'error'   => $e->getMessage(),
+                ]);
+            }
 
             // Record webhook call in settings
             PabblyIntegrationSettings::recordWebhook();

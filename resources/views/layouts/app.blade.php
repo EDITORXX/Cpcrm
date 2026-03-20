@@ -891,6 +891,10 @@
                     <i class="fas fa-list-alt" style="margin-right: 10px; width: 20px;"></i>
                     Lead Form Builder
                 </a>
+                <a href="{{ route('admin.automation.index') }}" class="sidebar-link {{ request()->routeIs('admin.automation.*') ? 'active' : '' }}" data-tooltip="Automation" title="Automation">
+                    <i class="fas fa-magic" style="margin-right: 10px; width: 20px;"></i>
+                    Automation
+                </a>
                 <a href="{{ route('admin.company-settings.index') }}" class="sidebar-link {{ request()->routeIs('admin.company-settings.*') ? 'active' : '' }}" data-tooltip="Company Settings" title="Company Settings">
                     <i class="fas fa-cog" style="margin-right: 10px; width: 20px;"></i>
                     Company Settings

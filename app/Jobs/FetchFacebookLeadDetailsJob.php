@@ -9,6 +9,7 @@ use App\Models\Lead;
 use App\Models\User;
 use App\Services\FacebookGraphService;
 use App\Services\FacebookLeadMappingService;
+use App\Services\SourceAutomationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -74,6 +75,23 @@ class FetchFacebookLeadDetailsJob implements ShouldQueue
         $crmLeadId = $this->createCrmLead($fbForm, $mappingService, $fieldData);
         if ($crmLeadId) {
             $fbLead->update(['crm_lead_id' => $crmLeadId]);
+
+            // Auto-assign via Automation Rule (if configured)
+            try {
+                $lead = Lead::find($crmLeadId);
+                if ($lead) {
+                    app(SourceAutomationService::class)->assignFromSource(
+                        $lead,
+                        'facebook_lead_ads',
+                        $this->fbFormId
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::warning('FetchFacebookLeadDetailsJob: automation assign failed', [
+                    'lead_id' => $crmLeadId,
+                    'error'   => $e->getMessage(),
+                ]);
+            }
         }
 
         FbWebhookEvent::where('leadgen_id', $this->leadgenId)->where('status', 'received')->update(['status' => 'processed']);

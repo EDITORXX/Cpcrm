@@ -613,6 +613,17 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{leadFormField}/toggle-active', [\App\Http\Controllers\Admin\LeadFormBuilderController::class, 'toggleActive'])->name('toggle-active');
     });
 
+    // Automation Rules (Admin only)
+    Route::middleware(['auth', 'role:admin'])->prefix('admin/automation')->name('admin.automation.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\AutomationController::class, 'index'])->name('index');
+        Route::get('/create', [\App\Http\Controllers\Admin\AutomationController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\Admin\AutomationController::class, 'store'])->name('store');
+        Route::get('/{rule}/edit', [\App\Http\Controllers\Admin\AutomationController::class, 'edit'])->name('edit');
+        Route::put('/{rule}', [\App\Http\Controllers\Admin\AutomationController::class, 'update'])->name('update');
+        Route::delete('/{rule}', [\App\Http\Controllers\Admin\AutomationController::class, 'destroy'])->name('destroy');
+        Route::post('/{rule}/toggle', [\App\Http\Controllers\Admin\AutomationController::class, 'toggle'])->name('toggle');
+    });
+
     // Deployment Routes (Admin only)
     Route::middleware(['auth', 'role:admin'])->prefix('admin/deploy')->name('admin.deploy.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\DeploymentController::class, 'index'])->name('index');
