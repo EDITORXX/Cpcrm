@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\FbForm;
+use App\Models\GoogleSheetsConfig;
 use App\Models\Role;
 use App\Models\SourceAutomationRule;
 use App\Models\SourceAutomationRuleUser;
@@ -23,35 +24,37 @@ class AutomationController extends Controller
 
     public function create()
     {
-        $fbForms  = FbForm::with('page')->where('is_enabled', true)->get();
-        $salesUsers = $this->getSalesUsers();
+        $fbForms      = FbForm::with('page')->where('is_enabled', true)->get();
+        $googleSheets = GoogleSheetsConfig::where('is_active', true)->where('is_draft', false)->orderBy('sheet_name')->get();
+        $salesUsers   = $this->getSalesUsers();
 
-        return view('admin.automation.form', compact('fbForms', 'salesUsers'));
+        return view('admin.automation.form', compact('fbForms', 'googleSheets', 'salesUsers'));
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
             'name'              => 'required|string|max:255',
-            'source'            => 'required|in:facebook_lead_ads,pabbly,mcube,google_sheets,csv,all',
-            'fb_form_id'        => 'nullable|exists:fb_forms,id',
-            'assignment_method' => 'required|in:round_robin,first_available,percentage,single_user',
-            'single_user_id'    => 'nullable|required_if:assignment_method,single_user|exists:users,id',
-            'auto_create_task'  => 'boolean',
-            'daily_limit'       => 'nullable|integer|min:1',
-            'fallback_user_id'  => 'nullable|exists:users,id',
-            'is_active'         => 'boolean',
-            'users'             => 'nullable|array',
-            'users.*.user_id'   => 'required|exists:users,id',
-            'users.*.percentage'=> 'nullable|numeric|min:0|max:100',
-            'users.*.daily_limit' => 'nullable|integer|min:1',
+            'source'                  => 'required|in:facebook_lead_ads,pabbly,mcube,google_sheets,csv,all',
+            'fb_form_id'              => 'nullable|exists:fb_forms,id',
+            'google_sheet_config_id'  => 'nullable|exists:google_sheets_config,id',
+            'assignment_method'       => 'required|in:round_robin,first_available,percentage,single_user',
+            'single_user_id'          => 'nullable|required_if:assignment_method,single_user|exists:users,id',
+            'auto_create_task'        => 'boolean',
+            'daily_limit'             => 'nullable|integer|min:1',
+            'fallback_user_id'        => 'nullable|exists:users,id',
+            'is_active'               => 'boolean',
+            'users'                   => 'nullable|array',
+            'users.*.user_id'         => 'required|exists:users,id',
+            'users.*.percentage'      => 'nullable|numeric|min:0|max:100',
         ]);
 
         $rule = SourceAutomationRule::create([
-            'name'              => $data['name'],
-            'source'            => $data['source'],
-            'fb_form_id'        => $data['fb_form_id'] ?? null,
-            'assignment_method' => $data['assignment_method'],
+            'name'                   => $data['name'],
+            'source'                 => $data['source'],
+            'fb_form_id'             => $data['source'] === 'facebook_lead_ads' ? ($data['fb_form_id'] ?? null) : null,
+            'google_sheet_config_id' => $data['source'] === 'google_sheets' ? ($data['google_sheet_config_id'] ?? null) : null,
+            'assignment_method'      => $data['assignment_method'],
             'single_user_id'    => $data['single_user_id'] ?? null,
             'auto_create_task'  => $request->boolean('auto_create_task', true),
             'daily_limit'       => $data['daily_limit'] ?? null,
@@ -66,7 +69,6 @@ class AutomationController extends Controller
                     'rule_id'    => $rule->id,
                     'user_id'    => $u['user_id'],
                     'percentage' => $u['percentage'] ?? null,
-                    'daily_limit'=> $u['daily_limit'] ?? null,
                 ]);
             }
         }
@@ -77,41 +79,43 @@ class AutomationController extends Controller
 
     public function edit(SourceAutomationRule $rule)
     {
-        $rule->load('users.user', 'fbForm', 'singleUser', 'fallbackUser');
-        $fbForms    = FbForm::with('page')->where('is_enabled', true)->get();
-        $salesUsers = $this->getSalesUsers();
+        $rule->load('users.user', 'fbForm', 'googleSheetConfig', 'singleUser', 'fallbackUser');
+        $fbForms      = FbForm::with('page')->where('is_enabled', true)->get();
+        $googleSheets = GoogleSheetsConfig::where('is_active', true)->where('is_draft', false)->orderBy('sheet_name')->get();
+        $salesUsers   = $this->getSalesUsers();
 
-        return view('admin.automation.form', compact('rule', 'fbForms', 'salesUsers'));
+        return view('admin.automation.form', compact('rule', 'fbForms', 'googleSheets', 'salesUsers'));
     }
 
     public function update(Request $request, SourceAutomationRule $rule)
     {
         $data = $request->validate([
-            'name'              => 'required|string|max:255',
-            'source'            => 'required|in:facebook_lead_ads,pabbly,mcube,google_sheets,csv,all',
-            'fb_form_id'        => 'nullable|exists:fb_forms,id',
-            'assignment_method' => 'required|in:round_robin,first_available,percentage,single_user',
-            'single_user_id'    => 'nullable|required_if:assignment_method,single_user|exists:users,id',
-            'auto_create_task'  => 'boolean',
-            'daily_limit'       => 'nullable|integer|min:1',
-            'fallback_user_id'  => 'nullable|exists:users,id',
-            'is_active'         => 'boolean',
-            'users'             => 'nullable|array',
-            'users.*.user_id'   => 'required|exists:users,id',
-            'users.*.percentage'=> 'nullable|numeric|min:0|max:100',
-            'users.*.daily_limit' => 'nullable|integer|min:1',
+            'name'                   => 'required|string|max:255',
+            'source'                 => 'required|in:facebook_lead_ads,pabbly,mcube,google_sheets,csv,all',
+            'fb_form_id'             => 'nullable|exists:fb_forms,id',
+            'google_sheet_config_id' => 'nullable|exists:google_sheets_config,id',
+            'assignment_method'      => 'required|in:round_robin,first_available,percentage,single_user',
+            'single_user_id'         => 'nullable|required_if:assignment_method,single_user|exists:users,id',
+            'auto_create_task'       => 'boolean',
+            'daily_limit'            => 'nullable|integer|min:1',
+            'fallback_user_id'       => 'nullable|exists:users,id',
+            'is_active'              => 'boolean',
+            'users'                  => 'nullable|array',
+            'users.*.user_id'        => 'required|exists:users,id',
+            'users.*.percentage'     => 'nullable|numeric|min:0|max:100',
         ]);
 
         $rule->update([
-            'name'              => $data['name'],
-            'source'            => $data['source'],
-            'fb_form_id'        => $data['fb_form_id'] ?? null,
-            'assignment_method' => $data['assignment_method'],
-            'single_user_id'    => $data['single_user_id'] ?? null,
-            'auto_create_task'  => $request->boolean('auto_create_task', true),
-            'daily_limit'       => $data['daily_limit'] ?? null,
-            'fallback_user_id'  => $data['fallback_user_id'] ?? null,
-            'is_active'         => $request->boolean('is_active', true),
+            'name'                   => $data['name'],
+            'source'                 => $data['source'],
+            'fb_form_id'             => $data['source'] === 'facebook_lead_ads' ? ($data['fb_form_id'] ?? null) : null,
+            'google_sheet_config_id' => $data['source'] === 'google_sheets' ? ($data['google_sheet_config_id'] ?? null) : null,
+            'assignment_method'      => $data['assignment_method'],
+            'single_user_id'         => $data['single_user_id'] ?? null,
+            'auto_create_task'       => $request->boolean('auto_create_task', true),
+            'daily_limit'            => $data['daily_limit'] ?? null,
+            'fallback_user_id'       => $data['fallback_user_id'] ?? null,
+            'is_active'              => $request->boolean('is_active', true),
         ]);
 
         // Sync users
@@ -122,7 +126,6 @@ class AutomationController extends Controller
                     'rule_id'    => $rule->id,
                     'user_id'    => $u['user_id'],
                     'percentage' => $u['percentage'] ?? null,
-                    'daily_limit'=> $u['daily_limit'] ?? null,
                 ]);
             }
         }

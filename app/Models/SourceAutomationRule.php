@@ -10,6 +10,7 @@ class SourceAutomationRule extends Model
         'name',
         'source',
         'fb_form_id',
+        'google_sheet_config_id',
         'assignment_method',
         'single_user_id',
         'auto_create_task',
@@ -32,6 +33,11 @@ class SourceAutomationRule extends Model
     public function fbForm()
     {
         return $this->belongsTo(FbForm::class, 'fb_form_id');
+    }
+
+    public function googleSheetConfig()
+    {
+        return $this->belongsTo(GoogleSheetsConfig::class, 'google_sheet_config_id');
     }
 
     public function singleUser()

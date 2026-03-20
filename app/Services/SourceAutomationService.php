@@ -25,15 +25,16 @@ class SourceAutomationService
      * Main entry point: find matching rule for a source and assign the lead.
      * Called from webhook controllers after lead creation.
      */
-    public function assignFromSource(Lead $lead, string $source, ?int $fbFormId = null): bool
+    public function assignFromSource(Lead $lead, string $source, ?int $fbFormId = null, ?int $googleSheetConfigId = null): bool
     {
         try {
-            $rule = $this->findRule($source, $fbFormId);
+            $rule = $this->findRule($source, $fbFormId, $googleSheetConfigId);
             if (!$rule) {
                 Log::info("SourceAutomationService: no active rule found", [
-                    'source' => $source,
-                    'fb_form_id' => $fbFormId,
-                    'lead_id' => $lead->id,
+                    'source'                  => $source,
+                    'fb_form_id'              => $fbFormId,
+                    'google_sheet_config_id'  => $googleSheetConfigId,
+                    'lead_id'                 => $lead->id,
                 ]);
                 return false;
             }
@@ -127,13 +128,13 @@ class SourceAutomationService
 
     /**
      * Find matching rule by priority:
-     * 1. source + fb_form_id exact match
-     * 2. source match (fb_form_id = null)
-     * 3. source = 'all'
+     * 1. source + specific form/sheet exact match
+     * 2. source match (no specific form/sheet)
+     * 3. source = 'all' catch-all
      */
-    protected function findRule(string $source, ?int $fbFormId): ?SourceAutomationRule
+    protected function findRule(string $source, ?int $fbFormId = null, ?int $googleSheetConfigId = null): ?SourceAutomationRule
     {
-        // Priority 1: exact match (source + specific fb_form_id)
+        // Priority 1: exact match with specific form/sheet
         if ($fbFormId) {
             $rule = SourceAutomationRule::where('source', $source)
                 ->where('fb_form_id', $fbFormId)
@@ -142,19 +143,26 @@ class SourceAutomationService
             if ($rule) return $rule;
         }
 
-        // Priority 2: source match, no specific form
+        if ($googleSheetConfigId) {
+            $rule = SourceAutomationRule::where('source', $source)
+                ->where('google_sheet_config_id', $googleSheetConfigId)
+                ->where('is_active', true)
+                ->first();
+            if ($rule) return $rule;
+        }
+
+        // Priority 2: source match, no specific form/sheet
         $rule = SourceAutomationRule::where('source', $source)
             ->whereNull('fb_form_id')
+            ->whereNull('google_sheet_config_id')
             ->where('is_active', true)
             ->first();
         if ($rule) return $rule;
 
         // Priority 3: catch-all rule
-        $rule = SourceAutomationRule::where('source', 'all')
+        return SourceAutomationRule::where('source', 'all')
             ->where('is_active', true)
             ->first();
-
-        return $rule;
     }
 
     /**

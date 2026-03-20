@@ -119,8 +119,8 @@
         $selSrc = old('source', $rule->source ?? '');
         $selMth = old('assignment_method', $rule->assignment_method ?? 'round_robin');
         $existUsers = old('users', isset($rule) ? $rule->users->map(fn($ru)=>[
-            'user_id'=>$ru->user_id,'percentage'=>$ru->percentage,'daily_limit'=>$ru->daily_limit
-        ])->toArray() : [['user_id'=>'','percentage'=>'','daily_limit'=>'']]);
+            'user_id'=>$ru->user_id,'percentage'=>$ru->percentage
+        ])->toArray() : [['user_id'=>'','percentage'=>'']]);
         $isSingleLoad = $selMth === 'single_user';
         $isPctLoad    = $selMth === 'percentage';
         $sources = [
@@ -174,7 +174,8 @@
                     @endforeach
                 </div>
 
-                <div id="fbPanel" class="fb-panel {{ $selSrc !== 'facebook_lead_ads' ? 'd-none' : '' }}">
+                {{-- FB Panel --}}
+                <div id="fbPanel" class="fb-panel" style="{{ $selSrc !== 'facebook_lead_ads' ? 'display:none;' : '' }}">
                     <div class="d-flex align-items-center gap-2 mb-2">
                         <i class="fab fa-facebook" style="color:#1877f2;font-size:15px;"></i>
                         <span style="font-size:13px;font-weight:600;">
@@ -182,7 +183,7 @@
                         </span>
                     </div>
                     <select name="fb_form_id" class="form-select form-select-sm">
-                        <option value="">-- Kisi bhi form se aaye lead --</option>
+                        <option value="">-- Kisi bhi Facebook form se aaye lead --</option>
                         @foreach($fbForms as $form)
                         <option value="{{ $form->id }}"
                             {{ old('fb_form_id', $rule->fb_form_id ?? '') == $form->id ? 'selected':'' }}>
@@ -193,6 +194,29 @@
                     <div class="mt-2" style="font-size:11px;color:#3b82f6;">
                         <i class="fas fa-info-circle me-1"></i>
                         Specific form select karo to sirf us form ke leads is rule se assign honge.
+                    </div>
+                </div>
+
+                {{-- Google Sheets Panel --}}
+                <div id="gsPanel" style="background:#e6f7ee;border:1px solid #b7dfcb;border-radius:10px;padding:14px 16px;margin-top:16px;{{ $selSrc !== 'google_sheets' ? 'display:none;' : '' }}">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="fas fa-table" style="color:#0f9d58;font-size:15px;"></i>
+                        <span style="font-size:13px;font-weight:600;">
+                            Google Sheet <span class="text-muted fw-normal">(optional)</span>
+                        </span>
+                    </div>
+                    <select name="google_sheet_config_id" class="form-select form-select-sm">
+                        <option value="">-- Kisi bhi sheet se aaye lead --</option>
+                        @foreach($googleSheets as $sheet)
+                        <option value="{{ $sheet->id }}"
+                            {{ old('google_sheet_config_id', $rule->google_sheet_config_id ?? '') == $sheet->id ? 'selected':'' }}>
+                            {{ $sheet->sheet_name ?: ('Sheet #' . $sheet->id) }}
+                        </option>
+                        @endforeach
+                    </select>
+                    <div class="mt-2" style="font-size:11px;color:#0f9d58;">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Specific sheet select karo to sirf us sheet ke leads is rule se assign honge.
                     </div>
                 </div>
             </div>
@@ -255,10 +279,9 @@
                             <thead>
                                 <tr>
                                     <th>User</th>
-                                    <th id="pctHead" style="{{ !$isPctLoad ? 'display:none;' : '' }}width:150px;">
+                                    <th id="pctHead" style="{{ !$isPctLoad ? 'display:none;' : '' }}width:160px;">
                                         Percentage
                                     </th>
-                                    <th style="width:165px;">Daily Limit</th>
                                     <th style="width:46px;"></th>
                                 </tr>
                             </thead>
@@ -284,12 +307,6 @@
                                                    value="{{ $eu['percentage'] ?? '' }}">
                                             <span class="input-group-text">%</span>
                                         </div>
-                                    </td>
-                                    <td>
-                                        <input type="number" name="users[{{ $i }}][daily_limit]"
-                                               class="form-control form-control-sm"
-                                               placeholder="Unlimited" min="1"
-                                               value="{{ $eu['daily_limit'] ?? '' }}">
                                     </td>
                                     <td class="text-center">
                                         <button type="button" class="btn-remove btn btn-sm text-danger p-1"
@@ -448,7 +465,8 @@ document.querySelectorAll('.src-radio').forEach(r=>{
         const card = this.closest('.src-item').querySelector('.src-card');
         card.style.borderColor = SC[this.value]||'#198754';
         card.style.background  = SB[this.value]||'#f0fdf4';
-        document.getElementById('fbPanel').style.display = this.value==='facebook_lead_ads'?'block':'none';
+        document.getElementById('fbPanel').style.display = this.value==='facebook_lead_ads' ? 'block' : 'none';
+        document.getElementById('gsPanel').style.display = this.value==='google_sheets'      ? 'block' : 'none';
     });
 });
 
@@ -493,7 +511,6 @@ document.getElementById('addUserBtn').addEventListener('click',()=>{
                 <span class="input-group-text">%</span>
             </div>
         </td>
-        <td><input type="number" name="users[${RI}][daily_limit]" class="form-control form-control-sm" placeholder="Unlimited" min="1"></td>
         <td class="text-center">
             <button type="button" class="btn-remove btn btn-sm text-danger p-1" style="line-height:1;">
                 <i class="fas fa-trash-alt" style="font-size:12px;"></i>
