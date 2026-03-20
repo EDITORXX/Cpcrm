@@ -453,6 +453,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/sheet-integration', function () {
             return view('integrations.sheet-integration');
         })->name('sheet-integration');
+        Route::get('/sheet-sync', function () {
+            return view('integrations.sheet-sync');
+        })->name('sheet-sync');
         Route::get('/email', function () {
             return view('integrations.coming-soon', ['integration' => 'Email']);
         })->name('email');
