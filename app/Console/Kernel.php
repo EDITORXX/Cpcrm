@@ -15,9 +15,6 @@ class Kernel extends ConsoleKernel
         // Sync Google Sheets every minute (command checks intervals internally)
         $schedule->command('google-sheets:sync')->everyMinute();
         
-        // Check SLA breaches every minute
-        $schedule->command('smart-import:check-sla')->everyMinute();
-        
         // Move overdue calls to pending
         $schedule->command('telecaller:move-overdue-to-pending')->everyMinute();
         

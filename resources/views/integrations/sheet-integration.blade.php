@@ -99,8 +99,9 @@
             </p>
             <ul class="si-features">
                 <li>Periodic Sync — Sheet URL se auto-sync</li>
-                <li>Bulk Import — CSV ya sheet ek baar mein</li>
                 <li>Form Webhook — Google Form / website form live</li>
+                <li>Column mapping support</li>
+                <li>Import history</li>
             </ul>
             <span class="si-btn">
                 <i class="fas fa-arrow-right"></i> Select & Open

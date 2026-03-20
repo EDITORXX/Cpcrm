@@ -1030,7 +1030,7 @@
                     Integration
                 </a>
                 <a href="{{ route('integrations.sheet-integration') }}"
-                   class="sidebar-link {{ request()->routeIs('integrations.sheet-integration') || request()->routeIs('lead-import.*') || request()->routeIs('smart-import.*') ? 'active' : '' }}"
+                   class="sidebar-link {{ request()->routeIs('integrations.sheet-integration') || request()->routeIs('integrations.sheet-sync') || request()->routeIs('lead-import.*') ? 'active' : '' }}"
                    data-tooltip="Sheet Integration"
                    title="Sheet Integration">
                     <i class="fas fa-table" style="margin-right: 10px; width: 20px;"></i>

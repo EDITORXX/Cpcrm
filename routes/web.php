@@ -759,15 +759,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/history', [\App\Http\Controllers\LeadImportController::class, 'history'])->name('history');
     });
     
-    // Smart Import Routes (CRM and Admin only)
-    Route::middleware(['role:crm,admin'])->prefix('smart-import')->name('smart-import.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\SmartImportController::class, 'index'])->name('index');
-        Route::get('/create', [\App\Http\Controllers\SmartImportController::class, 'create'])->name('create');
-        Route::get('/create-simple', [\App\Http\Controllers\SmartImportController::class, 'createSimple'])->name('create-simple');
-        Route::post('/store-simple', [\App\Http\Controllers\SmartImportController::class, 'storeSimple'])->name('store-simple');
-        Route::get('/history', [\App\Http\Controllers\SmartImportController::class, 'history'])->name('history');
-        Route::get('/analytics', [\App\Http\Controllers\SmartImportAnalyticsController::class, 'index'])->name('analytics');
-    });
 });
 
 // Lead Assignment Routes

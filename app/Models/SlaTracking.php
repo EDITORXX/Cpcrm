@@ -34,7 +34,7 @@ class SlaTracking extends Model
 
     public function leadAssignment(): BelongsTo
     {
-        return $this->belongsTo(SmartImportLeadAssignment::class, 'lead_assignment_id');
+        return null;
     }
 
     public function escalatedTo(): BelongsTo

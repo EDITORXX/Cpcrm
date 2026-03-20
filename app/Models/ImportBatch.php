@@ -40,10 +40,6 @@ class ImportBatch extends Model
         return $this->belongsTo(AssignmentRule::class);
     }
 
-    public function automation(): BelongsTo
-    {
-        return $this->belongsTo(SmartImportAutomation::class, 'automation_id');
-    }
 
     public function importedLeads(): HasMany
     {

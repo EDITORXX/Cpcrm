@@ -13,7 +13,6 @@ use App\Models\SiteVisit;
 use App\Models\Meeting;
 use App\Models\CallLog;
 use App\Models\FollowUp;
-use App\Models\SmartImportLeadAssignment;
 use App\Models\ActivityLog;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -158,9 +157,6 @@ class DeleteDummyLeads extends Command
             $assignmentsDeleted = LeadAssignment::whereIn('lead_id', $leadIds)->delete();
             $this->line("  ✓ Deleted {$assignmentsDeleted} lead assignments");
             
-            // Delete smart import lead assignments
-            $smartAssignmentsDeleted = SmartImportLeadAssignment::whereIn('lead_id', $leadIds)->delete();
-            $this->line("  ✓ Deleted {$smartAssignmentsDeleted} smart import lead assignments");
             
             // Delete activity logs related to these leads
             $activityLogsDeleted = ActivityLog::where('model_type', 'Lead')

@@ -592,7 +592,6 @@
             <a href="{{ route('lead-import.index') }}" class="quick-action-btn">Import Leads</a>
             <a href="{{ route('admin.targets.index') }}" class="quick-action-btn">View Targets</a>
             <a href="{{ route('admin.dead-leads') }}" class="quick-action-btn">Dead Leads</a>
-            <a href="{{ route('smart-import.index') }}" class="quick-action-btn">Smart Import</a>
         </div>
     </div>
 

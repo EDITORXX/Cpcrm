@@ -13,7 +13,6 @@ use App\Models\SiteVisit;
 use App\Models\Meeting;
 use App\Models\CallLog;
 use App\Models\FollowUp;
-use App\Models\SmartImportLeadAssignment;
 use App\Models\ActivityLog;
 use App\Models\LeadFormFieldValue;
 use Illuminate\Console\Command;
@@ -56,7 +55,7 @@ class DeleteAllLeads extends Command
         $callLogsCount = CallLog::whereIn('lead_id', $leadIds)->count();
         $followUpsCount = FollowUp::whereIn('lead_id', $leadIds)->count();
         $importedLeadsCount = ImportedLead::whereIn('lead_id', $leadIds)->count();
-        $smartAssignmentsCount = SmartImportLeadAssignment::whereIn('lead_id', $leadIds)->count();
+        $smartAssignmentsCount = 0;
         $activityLogsCount = ActivityLog::where('model_type', 'Lead')->whereIn('model_id', $leadIds)->count();
         
         $this->warn('This will PERMANENTLY delete:');
@@ -145,9 +144,6 @@ class DeleteAllLeads extends Command
             $assignmentsDeleted = LeadAssignment::whereIn('lead_id', $leadIds)->forceDelete();
             $this->line("  ✓ Deleted {$assignmentsDeleted} lead assignments");
             
-            // Delete smart import lead assignments
-            $smartAssignmentsDeleted = SmartImportLeadAssignment::whereIn('lead_id', $leadIds)->forceDelete();
-            $this->line("  ✓ Deleted {$smartAssignmentsDeleted} smart import lead assignments");
             
             // Delete activity logs related to these leads
             $activityLogsDeleted = ActivityLog::where('model_type', 'Lead')

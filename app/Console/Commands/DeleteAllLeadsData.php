@@ -60,7 +60,6 @@ class DeleteAllLeadsData extends Command
             'crm_assignments',
             'follow_ups',
             'imported_leads',
-            'smart_import_lead_assignments',
             'lead_form_field_values',
             'prospect_project',
             'whatsapp_conversations',

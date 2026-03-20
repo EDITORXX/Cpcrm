@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\GoogleSheetsConfig;
 use App\Models\GoogleSheetsColumnMapping;
-use App\Models\SmartImportAutomation;
 use App\Models\ImportBatch;
 use App\Models\ImportedLead;
 use App\Services\LeadImportService;
@@ -151,7 +150,7 @@ class LeadImportController extends Controller
             'phone_column' => 'required|string|size:1|regex:/^[A-Z]$/',
             'auto_sync_enabled' => 'boolean',
             'sync_interval_minutes' => 'required|integer|min:1',
-            'automation_id' => 'nullable|exists:smart_import_automations,id',
+            'automation_id' => 'nullable',
             'custom_columns_json' => 'nullable|string',
         ]);
 
@@ -438,11 +437,7 @@ class LeadImportController extends Controller
      */
     public function showCsvForm()
     {
-        $automations = SmartImportAutomation::where('created_by', auth()->id())
-            ->where('status', 'active')
-            ->latest()
-            ->get();
-
+        $automations = collect();
         return view('lead-import.csv', compact('automations'));
     }
 
@@ -453,7 +448,6 @@ class LeadImportController extends Controller
     {
         $request->validate([
             'csv_file' => 'required|file|mimes:csv,txt|max:10240',
-            'automation_id' => 'required|exists:smart_import_automations,id',
         ]);
 
         try {
@@ -470,17 +464,12 @@ class LeadImportController extends Controller
             $fileName = 'imports/' . time() . '_' . $file->getClientOriginalName();
             Storage::putFileAs('public', $file, $fileName);
 
-            // Get automation
-            $automation = SmartImportAutomation::findOrFail($request->automation_id);
-            
-            // Import leads using automation config
-            $batch = $this->importService->importFromCsvWithAutomation(
+            // Import leads
+            $batch = $this->importService->importFromCsv(
                 $leads,
-                $request->user()->id,
-                $automation
+                $request->user()->id
             );
 
-            // Update batch with file name
             $batch->update(['file_name' => $fileName]);
 
             return redirect()

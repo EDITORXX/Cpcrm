@@ -5,12 +5,12 @@
 <style>
 .ss-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 18px;
-    max-width: 860px;
+    max-width: 700px;
     margin: 0 auto;
 }
-@media(max-width: 768px) { .ss-grid { grid-template-columns: 1fr; } }
+@media(max-width: 600px) { .ss-grid { grid-template-columns: 1fr; } }
 
 .ss-item { position: relative; cursor: pointer; }
 .ss-item input[type=radio] { position: absolute; opacity: 0; width: 0; height: 0; }
@@ -129,25 +129,7 @@
             <div class="ss-check"><i class="fas fa-check"></i></div>
         </label>
 
-        {{-- 2. Bulk Import (Smart Import) --}}
-        <label class="ss-item" style="--c:#6f42c1;--bg:#f3e8fd;">
-            <input type="radio" name="sync_type" value="{{ route('smart-import.index') }}">
-            <div class="ss-card">
-                <div class="ss-ico"><i class="fas fa-file-upload" style="color:#6f42c1;"></i></div>
-                <p class="ss-title">Bulk Import</p>
-                <p class="ss-desc">
-                    Ek baar mein bohot saare leads import karo — CSV ya Sheet file upload karo, distribution rules lagao aur sab assign ho jaata hai.
-                </p>
-                <div class="ss-tags">
-                    <span class="ss-tag">CSV upload</span>
-                    <span class="ss-tag">Bulk assign</span>
-                    <span class="ss-tag">Distribution rules</span>
-                </div>
-            </div>
-            <div class="ss-check"><i class="fas fa-check"></i></div>
-        </label>
-
-        {{-- 3. Form Webhook (Form Integration) --}}
+        {{-- 2. Form Webhook (Form Integration) --}}
         <label class="ss-item" style="--c:#fd7e14;--bg:#fff3e0;">
             <input type="radio" name="sync_type" value="{{ route('integrations.form-integration.index') }}">
             <div class="ss-card">
@@ -182,7 +164,6 @@ let selectedUrl = null;
 
 const labels = {
     '{{ route('lead-import.index') }}':                    'Periodic Sync kholna hai',
-    '{{ route('smart-import.index') }}':                   'Bulk Import kholna hai',
     '{{ route('integrations.form-integration.index') }}':  'Form Webhook setup karna hai',
 };
 

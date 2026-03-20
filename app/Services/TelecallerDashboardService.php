@@ -12,7 +12,6 @@ use App\Models\FollowUp;
 use App\Models\SiteVisit;
 use App\Models\ActivityLog;
 use App\Models\SlaTracking;
-use App\Models\SmartImportLeadAssignment;
 use App\Helpers\DashboardHelper;
 use App\Services\LeadsPendingResponseService;
 use Carbon\Carbon;
@@ -204,32 +203,8 @@ class TelecallerDashboardService
                 ];
             });
 
-        // SLA breach risk (within 30 minutes of deadline)
+        // SLA breach risk — Smart Import removed
         $slaRisks = [];
-        $assignments = SmartImportLeadAssignment::where('assigned_to', $userId)
-            ->whereHas('slaTracking', function ($q) {
-                $q->where('status', 'pending');
-            })
-            ->with(['slaTracking', 'lead'])
-            ->get();
-
-        foreach ($assignments as $assignment) {
-            if ($assignment->slaTracking) {
-                $deadline = $assignment->slaTracking->started_at->copy()->addMinutes($assignment->slaTracking->sla_minutes);
-                $minutesRemaining = $now->diffInMinutes($deadline, false);
-                
-                if ($minutesRemaining <= 30 && $minutesRemaining > 0) {
-                    $slaRisks[] = [
-                        'id' => $assignment->id,
-                        'type' => 'sla_risk',
-                        'title' => $assignment->lead->name ?? 'Unknown',
-                        'minutes_remaining' => $minutesRemaining,
-                        'deadline' => $deadline,
-                        'lead_id' => $assignment->lead_id,
-                    ];
-                }
-            }
-        }
 
         // Today's site visits
         $todaySiteVisits = SiteVisit::where('assigned_to', $userId)
@@ -508,35 +483,13 @@ class TelecallerDashboardService
      */
     public function getSlaCompliance(int $userId): array
     {
-        $assignments = SmartImportLeadAssignment::where('assigned_to', $userId)
-            ->whereHas('slaTracking')
-            ->with('slaTracking')
-            ->get();
-
-        $total = $assignments->count();
-        $met = 0;
-        $breached = 0;
-        $pending = 0;
-
-        foreach ($assignments as $assignment) {
-            if ($assignment->slaTracking) {
-                $status = $assignment->slaTracking->status;
-                if ($status === 'met') {
-                    $met++;
-                } elseif (in_array($status, ['breached', 'escalated'])) {
-                    $breached++;
-                } else {
-                    $pending++;
-                }
-            }
-        }
-
+        // Smart Import SLA removed
         return [
-            'total' => $total,
-            'met' => $met,
-            'breached' => $breached,
-            'pending' => $pending,
-            'compliance_rate' => DashboardHelper::getSlaCompliancePercentage($met, $total),
+            'total' => 0,
+            'met' => 0,
+            'breached' => 0,
+            'pending' => 0,
+            'compliance_rate' => 100,
         ];
     }
 

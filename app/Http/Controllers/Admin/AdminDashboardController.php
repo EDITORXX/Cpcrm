@@ -7,7 +7,6 @@ use App\Models\Lead;
 use App\Models\User;
 use App\Models\Project;
 use App\Models\ActivityLog;
-use App\Models\SmartImportAutomation;
 use App\Models\ImportBatch;
 use App\Models\SiteVisit;
 use App\Models\Meeting;
@@ -349,13 +348,12 @@ class AdminDashboardController extends Controller
     private function getSystemHealth(?array $dateRange = null)
     {
         $pendingVerificationsQuery = Lead::where('needs_verification', true);
-        $activeAutomationsQuery = SmartImportAutomation::where('status', 'active');
+        $activeAutomationsQuery = \Illuminate\Database\Eloquent\Collection::make();
         $pendingImportsQuery = ImportBatch::whereIn('status', ['pending', 'processing']);
         $failedImportsQuery = ImportBatch::where('status', 'failed');
 
         if ($dateRange) {
             $pendingVerificationsQuery->whereBetween('verification_requested_at', [$dateRange['start_date'], $dateRange['end_date']]);
-            $activeAutomationsQuery->whereBetween('created_at', [$dateRange['start_date'], $dateRange['end_date']]);
             $pendingImportsQuery->whereBetween('created_at', [$dateRange['start_date'], $dateRange['end_date']]);
             $failedImportsQuery->whereBetween('created_at', [$dateRange['start_date'], $dateRange['end_date']]);
         } else {
@@ -364,7 +362,7 @@ class AdminDashboardController extends Controller
 
         return [
             'pending_verifications' => $pendingVerificationsQuery->count(),
-            'active_automations' => $activeAutomationsQuery->count(),
+            'active_automations'    => 0,
             'pending_imports' => $pendingImportsQuery->count(),
             'failed_imports' => $failedImportsQuery->count(),
         ];

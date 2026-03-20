@@ -5,9 +5,7 @@ namespace App\Services;
 use App\Models\Lead;
 use App\Models\ImportBatch;
 use App\Models\ImportedLead;
-use App\Models\SmartImportAutomation;
 use App\Services\LeadAssignmentService;
-use App\Services\SmartAssignmentService;
 use App\Services\TaskService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -15,16 +13,13 @@ use Illuminate\Support\Facades\Log;
 class LeadImportService
 {
     protected $assignmentService;
-    protected $smartAssignmentService;
     protected $taskService;
 
     public function __construct(
         LeadAssignmentService $assignmentService,
-        SmartAssignmentService $smartAssignmentService,
         TaskService $taskService
     ) {
         $this->assignmentService = $assignmentService;
-        $this->smartAssignmentService = $smartAssignmentService;
         $this->taskService = $taskService;
     }
 
@@ -194,9 +189,9 @@ class LeadImportService
     }
 
     /**
-     * Import from CSV using automation configuration
+     * @deprecated — Smart Import removed. Method kept as stub to avoid DI errors.
      */
-    public function importFromCsvWithAutomation(array $leads, int $userId, SmartImportAutomation $automation): ImportBatch
+    public function importFromCsvWithAutomation(array $leads, int $userId, $automation = null): \App\Models\ImportBatch
     {
         $batch = ImportBatch::create([
             'user_id' => $userId,

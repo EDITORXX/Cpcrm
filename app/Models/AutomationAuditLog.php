@@ -37,7 +37,7 @@ class AutomationAuditLog extends Model
 
     public function automation(): BelongsTo
     {
-        return $this->belongsTo(SmartImportAutomation::class, 'automation_id');
+        return $this->belongsTo(\App\Models\GoogleSheetsConfig::class, 'automation_id');
     }
 
     public function user(): BelongsTo
