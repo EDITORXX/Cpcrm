@@ -820,6 +820,24 @@ Route::prefix('api/tasks')->middleware('auth:sanctum')->group(function () {
     Route::post('/bulk-action', [\App\Http\Controllers\Api\TaskController::class, 'bulkAction']);
 });
 
+// Support Ticket Routes (all authenticated users)
+Route::middleware(['auth'])->prefix('support')->name('support.')->group(function () {
+    Route::get('/',         [\App\Http\Controllers\SupportTicketController::class, 'index'])->name('index');
+    Route::get('/create',   [\App\Http\Controllers\SupportTicketController::class, 'create'])->name('create');
+    Route::post('/',        [\App\Http\Controllers\SupportTicketController::class, 'store'])->name('store');
+    Route::get('/{ticket}', [\App\Http\Controllers\SupportTicketController::class, 'show'])->name('show');
+    Route::post('/{ticket}/reply', [\App\Http\Controllers\SupportTicketController::class, 'reply'])->name('reply');
+});
+
+// Admin Support Ticket Routes
+Route::middleware(['auth', 'role:admin'])->prefix('admin/support')->name('admin.support.')->group(function () {
+    Route::get('/',                         [\App\Http\Controllers\Admin\SupportController::class, 'index'])->name('index');
+    Route::get('/{ticket}',                 [\App\Http\Controllers\Admin\SupportController::class, 'show'])->name('show');
+    Route::post('/{ticket}/reply',          [\App\Http\Controllers\Admin\SupportController::class, 'reply'])->name('reply');
+    Route::patch('/{ticket}/status',        [\App\Http\Controllers\Admin\SupportController::class, 'updateStatus'])->name('update-status');
+    Route::delete('/{ticket}',              [\App\Http\Controllers\Admin\SupportController::class, 'destroy'])->name('destroy');
+});
+
 // WhatsApp Chat Routes
 Route::middleware(['auth'])->prefix('chat')->name('chat.')->group(function () {
     Route::get('/', [\App\Http\Controllers\WhatsAppChatController::class, 'index'])->name('index');

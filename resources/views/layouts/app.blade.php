@@ -895,6 +895,16 @@
                     <i class="fas fa-magic" style="margin-right: 10px; width: 20px;"></i>
                     Automation
                 </a>
+                <a href="{{ route('admin.support.index') }}" class="sidebar-link {{ request()->routeIs('admin.support.*') ? 'active' : '' }}" data-tooltip="Support" title="Support" style="display:flex;align-items:center;justify-content:space-between;">
+                    <span style="display:flex;align-items:center;">
+                        <i class="fas fa-headset" style="margin-right: 10px; width: 20px;"></i>
+                        <span class="nav-text">Support</span>
+                    </span>
+                    @php $openTicketCount = \App\Models\SupportTicket::where('status','open')->count(); @endphp
+                    @if($openTicketCount > 0)
+                    <span style="background:#ef4444;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:auto;">{{ $openTicketCount }}</span>
+                    @endif
+                </a>
                 <a href="{{ route('admin.company-settings.index') }}" class="sidebar-link {{ request()->routeIs('admin.company-settings.*') ? 'active' : '' }}" data-tooltip="Company Settings" title="Company Settings">
                     <i class="fas fa-cog" style="margin-right: 10px; width: 20px;"></i>
                     Company Settings
@@ -1059,6 +1069,12 @@
                     Dead Leads / Trash
                 </a>
                 @endif
+                @endif
+                @if(!auth()->user()->isAdmin())
+                <a href="{{ route('support.index') }}" class="sidebar-link {{ request()->routeIs('support.*') ? 'active' : '' }}" data-tooltip="Support" title="Support">
+                    <i class="fas fa-life-ring" style="margin-right: 10px; width: 20px;"></i>
+                    <span class="nav-text">Support</span>
+                </a>
                 @endif
             </nav>
         </aside>
