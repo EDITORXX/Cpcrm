@@ -69,7 +69,18 @@ Route::prefix('install')->group(function () {
 Route::get('/developer/docs/{access_key}', [\App\Http\Controllers\DeveloperDocsController::class, 'show'])->name('developer.docs');
 
 Route::get('/', function () {
-    return view('landing');
+    if (auth()->check()) {
+        $user = auth()->user();
+        return match($user->role) {
+            'admin'          => redirect('/dashboard'),
+            'crm'            => redirect('/crm/dashboard'),
+            'sales_manager'  => redirect('/sales-manager/dashboard'),
+            'sales_head'     => redirect('/sales-head/dashboard'),
+            'telecaller'     => redirect('/telecaller/dashboard'),
+            default          => redirect('/login'),
+        };
+    }
+    return redirect()->route('login');
 });
 
 // Legacy home (backup)
