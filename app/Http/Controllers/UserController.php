@@ -72,7 +72,20 @@ class UserController extends Controller
         $users = $query->latest()->paginate(15);
         $roles = Role::where('is_active', true)->get();
 
-        return view('users.index', compact('users', 'roles'));
+        // Hierarchy data (all active users with role + manager, for org chart)
+        $hierarchyUsers = User::with(['role', 'manager'])
+            ->where('is_active', true)
+            ->get()
+            ->map(fn($u) => [
+                'id'        => $u->id,
+                'name'      => $u->name,
+                'role'      => $u->role->name ?? 'Unknown',
+                'role_slug' => $u->role->slug ?? '',
+                'manager_id'=> $u->manager_id,
+                'avatar'    => strtoupper(substr($u->name, 0, 1)),
+            ])->values()->toArray();
+
+        return view('users.index', compact('users', 'roles', 'hierarchyUsers'));
     }
 
     public function create()
