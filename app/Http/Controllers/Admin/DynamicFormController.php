@@ -420,109 +420,77 @@ class DynamicFormController extends Controller
     private function getExistingForms(): array
     {
         $forms = [];
-        
-        // Helper function to safely get route URL
-        $getRouteUrl = function($routeName, $fallbackUrl = '#') {
+
+        $addIfRouteExists = function(string $routeName, array $data) use (&$forms) {
             try {
-                return route($routeName);
+                $data['route'] = route($routeName);
+                $forms[] = $data;
             } catch (\Exception $e) {
-                return $fallbackUrl;
+                // Route doesn't exist, skip
             }
         };
-        
-        // Lead Creation Form - Check if route exists, if not skip it
-        try {
-            route('crm.automation.leads.create');
-            $forms[] = [
-                'name' => 'Lead Creation Form',
-                'location' => 'CRM > Automation > Create Lead',
-                'path' => 'crm.automation.create-lead',
-                'type' => 'lead',
-                'route' => route('crm.automation.leads.create'),
-            ];
-        } catch (\Exception $e) {
-            // Route doesn't exist, skip this form
-        }
-        
-        // Prospect Verification Form
-        try {
-            $forms[] = [
-                'name' => 'Prospect Verification Form',
-                'location' => 'Prospects > Verify',
-                'path' => 'prospects.verify',
-                'type' => 'prospect',
-                'route' => $getRouteUrl('prospects.index', '#'),
-            ];
-        } catch (\Exception $e) {
-            // Skip if route doesn't exist
-        }
-        
-        // Meeting Form
+
+        // 1. Lead Creation Form (CRM Automation)
+        $addIfRouteExists('crm.automation.leads.create', [
+            'name'     => 'Lead Creation Form',
+            'location' => 'CRM > Automation > Create Lead',
+            'path'     => 'crm.automation.leads.create',
+            'type'     => 'lead',
+        ]);
+
+        // 2. Lead Form (Standard - Leads module)
+        $addIfRouteExists('leads.create', [
+            'name'     => 'Lead Form (Standard)',
+            'location' => 'Leads > Create',
+            'path'     => 'leads.create',
+            'type'     => 'lead',
+        ]);
+
+        // 3. Lead Edit Form (uses leads.index as preview since edit needs an ID)
         try {
             $forms[] = [
-                'name' => 'Meeting Form',
-                'location' => 'Senior Manager > Create Meeting',
-                'path' => 'meetings.create',
-                'type' => 'meeting',
-                'route' => $getRouteUrl('sales-manager.meetings.create', '#'),
+                'name'     => 'Lead Edit Form',
+                'location' => 'Leads > Edit',
+                'path'     => 'leads.edit',
+                'type'     => 'lead',
+                'route'    => route('leads.index'),
             ];
         } catch (\Exception $e) {
-            // Skip if route doesn't exist
+            // Skip
         }
-        
-        // Site Visit Form
-        try {
-            $forms[] = [
-                'name' => 'Site Visit Form',
-                'location' => 'Senior Manager > Create Site Visit',
-                'path' => 'site-visits.create',
-                'type' => 'site_visit',
-                'route' => $getRouteUrl('sales-manager.site-visits.create', '#'),
-            ];
-        } catch (\Exception $e) {
-            // Skip if route doesn't exist
-        }
-        
-        // Task Lead Update Form
-        try {
-            $forms[] = [
-                'name' => 'Task Lead Update Form',
-                'location' => 'Senior Manager > Tasks > Update Lead',
-                'path' => 'sales-manager.tasks.update-lead',
-                'type' => 'task',
-                'route' => $getRouteUrl('sales-manager.tasks', '#'),
-            ];
-        } catch (\Exception $e) {
-            // Skip if route doesn't exist
-        }
-        
-        // Prospect Details Form (Senior Manager Tasks)
-        try {
-            $forms[] = [
-                'name' => 'Prospect Details Form',
-                'location' => 'Senior Manager > Tasks > Prospect Details',
-                'path' => 'sales-manager.tasks.prospect-details',
-                'type' => 'prospect',
-                'route' => $getRouteUrl('sales-manager.tasks', '#'),
-            ];
-        } catch (\Exception $e) {
-            // Skip if route doesn't exist
-        }
-        
-        // Lead Resource Form (standard leads.create)
-        try {
-            route('leads.create');
-            $forms[] = [
-                'name' => 'Lead Form (Standard)',
-                'location' => 'Leads > Create',
-                'path' => 'leads.create',
-                'type' => 'lead',
-                'route' => route('leads.create'),
-            ];
-        } catch (\Exception $e) {
-            // Skip if route doesn't exist
-        }
-        
+
+        // 4. Meeting Form
+        $addIfRouteExists('meetings.create', [
+            'name'     => 'Meeting Form',
+            'location' => 'Senior Manager > Create Meeting',
+            'path'     => 'meetings.create',
+            'type'     => 'meeting',
+        ]);
+
+        // 5. Site Visit Form
+        $addIfRouteExists('site-visits.create', [
+            'name'     => 'Site Visit Form',
+            'location' => 'Senior Manager > Create Site Visit',
+            'path'     => 'site-visits.create',
+            'type'     => 'site_visit',
+        ]);
+
+        // 6. Call Log Form
+        $addIfRouteExists('calls.create', [
+            'name'     => 'Call Log Form',
+            'location' => 'Calls > Create Call Log',
+            'path'     => 'calls.create',
+            'type'     => 'call',
+        ]);
+
+        // 7. Project Form
+        $addIfRouteExists('projects.create', [
+            'name'     => 'Project Form',
+            'location' => 'Projects > Create',
+            'path'     => 'projects.create',
+            'type'     => 'project',
+        ]);
+
         return $forms;
     }
 }
