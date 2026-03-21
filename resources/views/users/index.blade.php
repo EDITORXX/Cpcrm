@@ -411,25 +411,34 @@ function buildTree(users, forceAdminRoot = false) {
     users.forEach(u => { map[u.id] = { ...u, children: [] }; });
 
     if (forceAdminRoot) {
-        // Find admin user(s)
-        const admins = users.filter(u => u.role_slug === 'admin');
-        const adminIds = new Set(admins.map(u => u.id));
+        const admins       = users.filter(u => u.role_slug === 'admin');
+        const adminIds     = new Set(admins.map(u => u.id));
+        // Roles that sit directly under Admin even without a manager
+        const adminDirectSlugs = new Set(['crm','hr_manager','finance_manager','sales_manager','sales_head']);
+        // First Sales Manager in the list (default parent for everyone else without a manager)
+        const firstSalesMgr = users.find(u => u.role_slug === 'sales_manager');
 
         users.forEach(u => {
-            if (adminIds.has(u.id)) return; // skip admins themselves
+            if (adminIds.has(u.id)) return; // admin is root — skip
             if (u.manager_id && map[u.manager_id]) {
-                // Has a real manager in the tree
+                // Has a real manager present in the tree
                 map[u.manager_id].children.push(map[u.id]);
-            } else {
-                // No manager → attach under first admin
+            } else if (adminDirectSlugs.has(u.role_slug)) {
+                // No manager, but this role belongs directly under Admin
                 const firstAdmin = admins[0];
-                if (firstAdmin) {
-                    map[firstAdmin.id].children.push(map[u.id]);
+                if (firstAdmin) map[firstAdmin.id].children.push(map[u.id]);
+            } else {
+                // No manager + not an admin-direct role → default to Sales Manager
+                if (firstSalesMgr && map[firstSalesMgr.id]) {
+                    map[firstSalesMgr.id].children.push(map[u.id]);
+                } else {
+                    // Fallback: no sales manager exists, put under admin
+                    const firstAdmin = admins[0];
+                    if (firstAdmin) map[firstAdmin.id].children.push(map[u.id]);
                 }
             }
         });
 
-        // Return admin(s) as roots
         return admins.map(a => map[a.id]);
     }
 
