@@ -464,48 +464,81 @@ function buildTree(users, forceAdminRoot = false) {
 function renderNode(node) {
     const c = getColor(node.role_slug);
     const hasChildren = node.children && node.children.length > 0;
+    const LINE = '#94a3b8';
 
     const card = `
-        <div style="
-            background:${c.bg};border:2px solid ${c.border};border-radius:12px;
-            padding:10px 14px;text-align:center;min-width:118px;max-width:148px;
+        <div style="background:${c.bg};border:2px solid ${c.border};border-radius:12px;
+            padding:12px 16px;text-align:center;min-width:124px;max-width:154px;
             cursor:default;transition:transform .15s,box-shadow .15s;
-            box-shadow:0 2px 8px rgba(0,0,0,0.06);
-        " onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,0.12)'"
-           onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)'">
-            <div style="width:36px;height:36px;border-radius:50%;background:${c.border};color:#fff;
-                font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 7px;">
+            box-shadow:0 2px 10px rgba(0,0,0,0.08);"
+            onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 22px rgba(0,0,0,0.15)'"
+            onmouseout="this.style.transform='';this.style.boxShadow='0 2px 10px rgba(0,0,0,0.08)'">
+            <div style="width:40px;height:40px;border-radius:50%;background:${c.border};color:#fff;
+                font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">
                 ${node.avatar}
             </div>
-            <div style="font-size:11px;font-weight:700;color:#111827;line-height:1.3;margin-bottom:4px;word-break:break-word;">${node.name}</div>
-            <div style="font-size:10px;font-weight:600;color:${c.text};background:white;border-radius:5px;padding:2px 6px;display:inline-block;">${node.role}</div>
-            ${hasChildren ? `<div style="font-size:10px;color:${c.text};margin-top:3px;">${node.children.length} direct report${node.children.length>1?'s':''}</div>` : ''}
+            <div style="font-size:12px;font-weight:700;color:#111827;line-height:1.3;margin-bottom:5px;word-break:break-word;">${node.name}</div>
+            <div style="font-size:10px;font-weight:600;color:${c.text};background:#fff;border-radius:20px;padding:2px 8px;display:inline-block;border:1px solid ${c.border};">${node.role}</div>
+            ${hasChildren ? `<div style="font-size:10px;color:${c.text};margin-top:4px;opacity:0.75;">${node.children.length} direct report${node.children.length>1?'s':''}</div>` : ''}
         </div>`;
 
     if (!hasChildren) {
-        return `<div style="display:flex;flex-direction:column;align-items:center;">${card}</div>`;
+        return `<div style="display:inline-flex;flex-direction:column;align-items:center;">${card}</div>`;
     }
 
-    const childrenHtml = node.children.map(ch => `
-        <div style="display:flex;flex-direction:column;align-items:center;">
-            <div style="width:2px;height:20px;background:#d1d5db;"></div>
-            ${renderNode(ch)}
-        </div>`).join('');
+    const n = node.children.length;
 
-    // horizontal connector line across children
-    const connector = node.children.length > 1
-        ? `<div style="display:flex;align-items:flex-start;justify-content:center;width:100%;">
-               <div style="border-top:2px solid #d1d5db;margin-top:0;flex:1;min-width:0;"></div>
-           </div>` : '';
+    // Single child: simple vertical line
+    if (n === 1) {
+        return `
+            <div style="display:inline-flex;flex-direction:column;align-items:center;">
+                ${card}
+                <div style="width:2px;height:28px;background:${LINE};"></div>
+                ${renderNode(node.children[0])}
+            </div>`;
+    }
+
+    // Multiple children: proper connected bus line
+    // Each child column gets an "arm" that forms the horizontal bus:
+    //   first child  → only right half filled (line starts at child center, goes right)
+    //   middle children → full width filled (continuous)
+    //   last child   → only left half filled (line ends at child center)
+    // Then a short vertical drop from the bus down to each child card.
+    const childrenHtml = node.children.map((ch, i) => {
+        const isFirst = i === 0;
+        const isLast  = i === n - 1;
+
+        let arm;
+        if (isFirst) {
+            arm = `<div style="width:100%;height:2px;display:flex;">
+                       <div style="flex:1;"></div>
+                       <div style="flex:1;background:${LINE};"></div>
+                   </div>`;
+        } else if (isLast) {
+            arm = `<div style="width:100%;height:2px;display:flex;">
+                       <div style="flex:1;background:${LINE};"></div>
+                       <div style="flex:1;"></div>
+                   </div>`;
+        } else {
+            arm = `<div style="width:100%;height:2px;background:${LINE};"></div>`;
+        }
+
+        return `
+            <div style="display:inline-flex;flex-direction:column;align-items:center;flex:1;min-width:160px;">
+                ${arm}
+                <div style="width:2px;height:20px;background:${LINE};"></div>
+                ${renderNode(ch)}
+            </div>`;
+    }).join('');
 
     return `
-    <div style="display:flex;flex-direction:column;align-items:center;">
-        ${card}
-        <div style="width:2px;height:20px;background:#d1d5db;"></div>
-        <div style="display:flex;gap:16px;justify-content:center;align-items:flex-start;position:relative;">
-            ${childrenHtml}
-        </div>
-    </div>`;
+        <div style="display:inline-flex;flex-direction:column;align-items:center;">
+            ${card}
+            <div style="width:2px;height:18px;background:${LINE};"></div>
+            <div style="display:flex;align-items:flex-start;gap:0;">
+                ${childrenHtml}
+            </div>
+        </div>`;
 }
 
 // ── Switch toggle ───────────────────────────────────────────
