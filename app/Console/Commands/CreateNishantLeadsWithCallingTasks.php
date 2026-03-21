@@ -108,7 +108,7 @@ class CreateNishantLeadsWithCallingTasks extends Command
             DB::commit();
             $this->newLine();
             $this->info("Done. {$leadsCreated} leads with Indian names assigned to Nishant; {$tasksCreated} calling tasks created.");
-            $this->info('Login as Nishant at /quick-login and open Task to see them.');
+            $this->info('Login as Nishant and open Task to see them.');
             return 0;
         } catch (\Throwable $e) {
             DB::rollBack();

@@ -289,10 +289,6 @@ Route::post('/test/generate-token', function () {
     ]);
 })->middleware('auth')->name('test.generate-token');
 
-// Public Quick Login Route (accessible without auth for testing)
-Route::get('/quick-login', [\App\Http\Controllers\Admin\DebugController::class, 'showQuickLogin'])->name('quick-login-page');
-Route::get('/quick-login/{userId}', [\App\Http\Controllers\Admin\DebugController::class, 'attemptQuickLogin'])->name('quick-login-user');
-
 // Authentication Routes
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:login');
@@ -698,17 +694,6 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/env/update', [\App\Http\Controllers\Admin\SystemSettingsController::class, 'updateEnvSettings'])->name('env.update');
         });
         
-        // Debug Routes (only for testing)
-        Route::prefix('debug')->name('debug.')->group(function () {
-            Route::get('/test-quick-login', [\App\Http\Controllers\Admin\DebugController::class, 'testQuickLogin'])->name('test-quick-login');
-            Route::get('/quick-login/{userId}', [\App\Http\Controllers\Admin\DebugController::class, 'attemptQuickLogin'])->name('quick-login');
-        });
-    });
-    
-    // Debug Routes - Accessible even during maintenance mode (for testing)
-    Route::prefix('admin/debug')->name('admin.debug.')->group(function () {
-        Route::get('/test-quick-login', [\App\Http\Controllers\Admin\DebugController::class, 'testQuickLogin'])->name('test-quick-login');
-        Route::get('/quick-login/{userId}', [\App\Http\Controllers\Admin\DebugController::class, 'attemptQuickLogin'])->name('quick-login');
     });
     
     // Target Management (Admin/CRM/Sales Head)

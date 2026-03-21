@@ -16,7 +16,6 @@ class PreventRequestsDuringMaintenance extends Middleware
         'admin/*',
         'login',
         'logout',
-        'quick-login/*',
     ];
     
     /**
@@ -60,14 +59,6 @@ class PreventRequestsDuringMaintenance extends Middleware
         
         // Allow logout route
         if ($request->is('logout') || $request->routeIs('logout')) {
-            return true;
-        }
-        
-        // Allow quick-login route so admin can use quick login during maintenance
-        if (str_starts_with($path, 'quick-login/') || 
-            str_starts_with($uri, '/quick-login/') || 
-            $request->routeIs('quick-login') ||
-            preg_match('#^/quick-login/\d+#', $uri)) {
             return true;
         }
         

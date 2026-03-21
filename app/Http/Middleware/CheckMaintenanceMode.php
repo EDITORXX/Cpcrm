@@ -29,7 +29,7 @@ class CheckMaintenanceMode
         
         // Check if maintenance mode is enabled
         if (SystemSettings::isMaintenanceMode()) {
-            // Always allow login, logout, and quick-login routes (both GET and POST)
+            // Always allow login and logout routes (both GET and POST)
             // Admin can login, non-admin will be blocked in LoginController
             $path = $request->path();
             $uri = $request->getRequestUri();
@@ -41,14 +41,6 @@ class CheckMaintenanceMode
             
             // Check for logout routes
             if ($request->is('logout') || $request->routeIs('logout') || str_starts_with($path, 'logout')) {
-                return $next($request);
-            }
-            
-            // Check for quick-login routes - using multiple checks
-            if (str_starts_with($path, 'quick-login/') || 
-                str_starts_with($uri, '/quick-login/') || 
-                $request->routeIs('quick-login') ||
-                preg_match('#^/quick-login/\d+#', $uri)) {
                 return $next($request);
             }
             

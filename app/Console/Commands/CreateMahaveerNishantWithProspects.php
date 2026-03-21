@@ -125,7 +125,7 @@ class CreateMahaveerNishantWithProspects extends Command
 
             $this->newLine();
             $this->info("Done. Mahaveer (ASM), Nishant (Sales Executive), {$leadsCreated} leads and {$prospectsCreated} prospects created.");
-            $this->info('Login via /quick-login as Mahaveer or Nishant.');
+            $this->info('Login as Mahaveer or Nishant via the login page.');
             return 0;
         } catch (\Exception $e) {
             DB::rollBack();
