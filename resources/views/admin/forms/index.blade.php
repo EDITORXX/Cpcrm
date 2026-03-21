@@ -253,7 +253,7 @@
                         </div>
                     </div>
                     <div class="form-card-actions">
-                        <button type="button" onclick="viewForm('{{ $form['route'] }}', '{{ $form['name'] }}')" class="form-action-btn btn-view" style="border: none;">
+                        <button type="button" onclick="viewForm('{{ $form['route'] }}', '{{ $form['name'] }}', '{{ $form['path'] }}')" class="form-action-btn btn-view" style="border: none;">
                             <i class="fas fa-eye"></i> View Form
                         </button>
                         <button type="button" onclick="editExistingForm('{{ $form['path'] }}', '{{ $form['name'] }}', '{{ $form['type'] }}')" class="form-action-btn btn-edit" style="border: none;">
@@ -356,16 +356,23 @@
 
 @push('scripts')
 <script>
-    function viewForm(url, formName) {
-        // Check if URL is valid
-        if (!url || url === '#') {
-            alert('Form URL is not available');
-            return;
-        }
-        
-        // Open in modal iframe instead of new tab to avoid role switching
+    const existingPreviewBase = '{{ url("admin/forms/existing-preview") }}';
+
+    function viewForm(url, formName, formPath) {
         document.getElementById('previewModalTitle').textContent = formName + ' - Preview';
-        document.getElementById('formPreviewIframe').src = url;
+
+        // Existing system forms: use dedicated field-preview endpoint
+        if (formPath) {
+            document.getElementById('formPreviewIframe').src = existingPreviewBase + '/' + encodeURIComponent(formPath);
+        } else {
+            // Custom forms: load actual form URL
+            if (!url || url === '#') {
+                alert('Form URL is not available');
+                return;
+            }
+            document.getElementById('formPreviewIframe').src = url;
+        }
+
         document.getElementById('formPreviewModal').classList.add('active');
     }
     

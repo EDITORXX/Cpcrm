@@ -614,6 +614,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/test-field-type', function () {
             return view('admin.forms.test-field-type');
         })->name('test-field-type');
+        Route::get('/existing-preview/{formPath}', [\App\Http\Controllers\Admin\DynamicFormController::class, 'previewExistingForm'])->name('existing-preview')->where('formPath', '.+');
         Route::get('/', [\App\Http\Controllers\Admin\DynamicFormController::class, 'index'])->name('index');
         Route::get('/create', [\App\Http\Controllers\Admin\DynamicFormController::class, 'create'])->name('create');
         Route::post('/', [\App\Http\Controllers\Admin\DynamicFormController::class, 'store'])->name('store');

@@ -20,6 +20,135 @@ class DynamicFormController extends Controller
     }
 
     /**
+     * Preview fields of an existing system form
+     */
+    public function previewExistingForm(string $formPath)
+    {
+        $fields = $this->getExistingFormFields($formPath);
+        $formName = $this->getExistingFormName($formPath);
+
+        if (empty($fields)) {
+            abort(404, 'Form not found');
+        }
+
+        return view('admin.forms.existing-preview', compact('fields', 'formName', 'formPath'));
+    }
+
+    private function getExistingFormName(string $formPath): string
+    {
+        $names = [
+            'crm.automation.leads.create' => 'Lead Creation Form',
+            'leads.create'                => 'Lead Form (Standard)',
+            'leads.edit'                  => 'Lead Edit Form',
+            'meetings.create'             => 'Meeting Form',
+            'site-visits.create'          => 'Site Visit Form',
+            'calls.create'                => 'Call Log Form',
+            'projects.create'             => 'Project Form',
+            'closers.index'               => 'Closer Submit Form',
+            'finance-manager.incentives'  => 'Incentive Submit Form',
+        ];
+
+        return $names[$formPath] ?? 'Form Preview';
+    }
+
+    private function getExistingFormFields(string $formPath): array
+    {
+        $definitions = [
+            'crm.automation.leads.create' => [
+                ['label' => 'Customer Name',   'type' => 'text',     'name' => 'name',     'required' => true],
+                ['label' => 'Phone Number',    'type' => 'tel',      'name' => 'phone',    'required' => true],
+                ['label' => 'Email Address',   'type' => 'email',    'name' => 'email',    'required' => false],
+                ['label' => 'Lead Source',     'type' => 'select',   'name' => 'source',   'required' => false,
+                 'options' => ['Facebook', 'Google', 'Walk-in', 'Referral', 'Other']],
+                ['label' => 'Project Interest','type' => 'text',     'name' => 'project',  'required' => false],
+                ['label' => 'Budget Range',    'type' => 'text',     'name' => 'budget',   'required' => false],
+                ['label' => 'Notes',           'type' => 'textarea', 'name' => 'notes',    'required' => false],
+            ],
+            'leads.create' => [
+                ['label' => 'Customer Name',   'type' => 'text',     'name' => 'name',     'required' => true],
+                ['label' => 'Phone Number',    'type' => 'tel',      'name' => 'phone',    'required' => true],
+                ['label' => 'Email Address',   'type' => 'email',    'name' => 'email',    'required' => false],
+                ['label' => 'Lead Source',     'type' => 'select',   'name' => 'source',   'required' => false,
+                 'options' => ['Facebook', 'Google', 'Walk-in', 'Referral', 'Pabbly', 'Other']],
+                ['label' => 'Status',          'type' => 'select',   'name' => 'status',   'required' => false,
+                 'options' => ['New', 'Contacted', 'Interested', 'Not Interested']],
+                ['label' => 'Budget',          'type' => 'text',     'name' => 'budget',   'required' => false],
+                ['label' => 'Notes',           'type' => 'textarea', 'name' => 'notes',    'required' => false],
+            ],
+            'leads.edit' => [
+                ['label' => 'Customer Name',   'type' => 'text',     'name' => 'name',     'required' => true],
+                ['label' => 'Phone Number',    'type' => 'tel',      'name' => 'phone',    'required' => true],
+                ['label' => 'Email Address',   'type' => 'email',    'name' => 'email',    'required' => false],
+                ['label' => 'Lead Source',     'type' => 'select',   'name' => 'source',   'required' => false,
+                 'options' => ['Facebook', 'Google', 'Walk-in', 'Referral', 'Other']],
+                ['label' => 'Status',          'type' => 'select',   'name' => 'status',   'required' => false,
+                 'options' => ['New', 'Contacted', 'Interested', 'Not Interested', 'Converted']],
+                ['label' => 'Budget',          'type' => 'text',     'name' => 'budget',   'required' => false],
+                ['label' => 'Notes',           'type' => 'textarea', 'name' => 'notes',    'required' => false],
+            ],
+            'meetings.create' => [
+                ['label' => 'Customer Name',   'type' => 'text',     'name' => 'customer_name',  'required' => true],
+                ['label' => 'Phone Number',    'type' => 'tel',      'name' => 'phone',           'required' => true],
+                ['label' => 'Employee',        'type' => 'text',     'name' => 'employee',        'required' => false, 'readonly' => true],
+                ['label' => 'Occupation',      'type' => 'text',     'name' => 'occupation',      'required' => false],
+                ['label' => 'Date of Visit',   'type' => 'date',     'name' => 'date_of_visit',   'required' => true],
+                ['label' => 'Project',         'type' => 'select',   'name' => 'project_id',      'required' => false,
+                 'options' => ['Select Project...']],
+                ['label' => 'Meeting Notes',   'type' => 'textarea', 'name' => 'notes',           'required' => false],
+            ],
+            'site-visits.create' => [
+                ['label' => 'Customer Name',   'type' => 'text',     'name' => 'customer_name',  'required' => true],
+                ['label' => 'Phone Number',    'type' => 'tel',      'name' => 'phone',           'required' => true],
+                ['label' => 'Date of Visit',   'type' => 'date',     'name' => 'date_of_visit',   'required' => true],
+                ['label' => 'Time of Visit',   'type' => 'time',     'name' => 'time_of_visit',   'required' => false],
+                ['label' => 'Project',         'type' => 'select',   'name' => 'project_id',      'required' => false,
+                 'options' => ['Select Project...']],
+                ['label' => 'Employee',        'type' => 'text',     'name' => 'employee',        'required' => false, 'readonly' => true],
+                ['label' => 'Visit Notes',     'type' => 'textarea', 'name' => 'notes',           'required' => false],
+            ],
+            'calls.create' => [
+                ['label' => 'Customer Name',   'type' => 'text',     'name' => 'customer_name',  'required' => true],
+                ['label' => 'Phone Number',    'type' => 'tel',      'name' => 'phone',           'required' => true],
+                ['label' => 'Call Date & Time','type' => 'datetime-local', 'name' => 'called_at', 'required' => true],
+                ['label' => 'Duration (mins)', 'type' => 'number',   'name' => 'duration',        'required' => false],
+                ['label' => 'Call Outcome',    'type' => 'select',   'name' => 'outcome',         'required' => false,
+                 'options' => ['Connected', 'Not Answered', 'Busy', 'Wrong Number', 'Callback Requested']],
+                ['label' => 'Notes',           'type' => 'textarea', 'name' => 'notes',           'required' => false],
+            ],
+            'projects.create' => [
+                ['label' => 'Project Name',    'type' => 'text',     'name' => 'name',       'required' => true],
+                ['label' => 'Location',        'type' => 'text',     'name' => 'location',   'required' => false],
+                ['label' => 'Project Type',    'type' => 'select',   'name' => 'type',       'required' => false,
+                 'options' => ['Residential', 'Commercial', 'Mixed Use', 'Plot']],
+                ['label' => 'Price Range',     'type' => 'text',     'name' => 'price_range','required' => false],
+                ['label' => 'Description',     'type' => 'textarea', 'name' => 'description','required' => false],
+            ],
+            'closers.index' => [
+                ['label' => 'Customer Name',   'type' => 'text',     'name' => 'customer_name', 'required' => true],
+                ['label' => 'Phone Number',    'type' => 'tel',      'name' => 'phone',          'required' => true],
+                ['label' => 'Project',         'type' => 'select',   'name' => 'project_id',     'required' => true,
+                 'options' => ['Select Project...']],
+                ['label' => 'Closer Amount',   'type' => 'number',   'name' => 'amount',         'required' => true],
+                ['label' => 'Closing Date',    'type' => 'date',     'name' => 'closing_date',   'required' => true],
+                ['label' => 'Status',          'type' => 'select',   'name' => 'status',         'required' => false,
+                 'options' => ['Pending', 'Verified', 'Rejected']],
+                ['label' => 'Remarks',         'type' => 'textarea', 'name' => 'remarks',        'required' => false],
+            ],
+            'finance-manager.incentives' => [
+                ['label' => 'Employee',        'type' => 'select',   'name' => 'user_id',        'required' => true,
+                 'options' => ['Select Employee...']],
+                ['label' => 'Incentive Type',  'type' => 'select',   'name' => 'type',           'required' => true,
+                 'options' => ['Performance', 'Referral', 'Closing Bonus', 'Festival Bonus', 'Other']],
+                ['label' => 'Month',           'type' => 'month',    'name' => 'month',          'required' => true],
+                ['label' => 'Amount (₹)',      'type' => 'number',   'name' => 'amount',         'required' => true],
+                ['label' => 'Remarks',         'type' => 'textarea', 'name' => 'remarks',        'required' => false],
+            ],
+        ];
+
+        return $definitions[$formPath] ?? [];
+    }
+
+    /**
      * Display a listing of forms (existing + custom)
      */
     public function index(Request $request)
