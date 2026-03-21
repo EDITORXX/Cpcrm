@@ -107,7 +107,7 @@ class UserController extends Controller
         
         $managers = User::where('is_active', true)
             ->whereHas('role', function($q) {
-                $q->whereIn('slug', [Role::ADMIN, Role::CRM, Role::SALES_MANAGER, Role::ASSISTANT_SALES_MANAGER]);
+                $q->whereIn('slug', [Role::ADMIN, Role::CRM, Role::SALES_MANAGER, Role::SENIOR_MANAGER, Role::ASSISTANT_SALES_MANAGER]);
             })
             ->with('role')
             ->get();
@@ -220,7 +220,7 @@ class UserController extends Controller
         $managers = User::where('is_active', true)
             ->where('id', '!=', $user->id)
             ->whereHas('role', function($q) {
-                $q->whereIn('slug', [Role::ADMIN, Role::CRM, Role::SALES_MANAGER, Role::ASSISTANT_SALES_MANAGER]);
+                $q->whereIn('slug', [Role::ADMIN, Role::CRM, Role::SALES_MANAGER, Role::SENIOR_MANAGER, Role::ASSISTANT_SALES_MANAGER]);
             })
             ->with('role')
             ->get();
