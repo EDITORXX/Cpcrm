@@ -491,6 +491,22 @@ class DynamicFormController extends Controller
             'type'     => 'project',
         ]);
 
+        // 8. Closer Submit Form
+        $addIfRouteExists('closers.index', [
+            'name'     => 'Closer Submit Form',
+            'location' => 'Closers > Submit Closer',
+            'path'     => 'closers.index',
+            'type'     => 'closer',
+        ]);
+
+        // 9. Incentive Submit Form
+        $addIfRouteExists('finance-manager.incentives', [
+            'name'     => 'Incentive Submit Form',
+            'location' => 'Finance Manager > Incentives',
+            'path'     => 'finance-manager.incentives',
+            'type'     => 'incentive',
+        ]);
+
         return $forms;
     }
 }
