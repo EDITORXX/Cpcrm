@@ -411,41 +411,29 @@ function buildTree(users, forceAdminRoot = false) {
     users.forEach(u => { map[u.id] = { ...u, children: [] }; });
 
     if (forceAdminRoot) {
-        const admins       = users.filter(u => u.role_slug === 'admin');
-        const adminIds     = new Set(admins.map(u => u.id));
-        // Roles that sit directly under Admin when they have no manager
-        const adminDirectSlugs = new Set(['crm','hr_manager','finance_manager','sales_manager','sales_head']);
-        // Default parent lookup by role (hierarchy order)
-        const defaultParentSlug = {
-            'senior_manager':          'sales_manager',
-            'assistant_sales_manager': 'senior_manager',
-            'sales_executive':         'assistant_sales_manager',
-        };
+        const admins   = users.filter(u => u.role_slug === 'admin');
+        const adminIds = new Set(admins.map(u => u.id));
+        // Only CRM, HR Manager, Finance Manager are auto-placed under Admin when they have no manager.
+        // Everyone else with no manager_id → independent root (no forced connection).
+        const adminAutoSlugs = new Set(['crm', 'hr_manager', 'finance_manager']);
+
+        const placedIds = new Set(admins.map(u => u.id));
 
         users.forEach(u => {
-            if (adminIds.has(u.id)) return; // admin is root — skip
+            if (adminIds.has(u.id)) return;
             if (u.manager_id && map[u.manager_id]) {
-                // Has a real manager present in the tree
                 map[u.manager_id].children.push(map[u.id]);
-            } else if (adminDirectSlugs.has(u.role_slug)) {
-                // No manager — belongs directly under Admin
+                placedIds.add(u.id);
+            } else if (adminAutoSlugs.has(u.role_slug)) {
                 const firstAdmin = admins[0];
-                if (firstAdmin) map[firstAdmin.id].children.push(map[u.id]);
-            } else {
-                // No manager — find default parent by role hierarchy
-                const parentSlug = defaultParentSlug[u.role_slug];
-                const parentNode = parentSlug ? users.find(p => p.role_slug === parentSlug) : null;
-                if (parentNode && map[parentNode.id]) {
-                    map[parentNode.id].children.push(map[u.id]);
-                } else {
-                    // Fallback: put under admin
-                    const firstAdmin = admins[0];
-                    if (firstAdmin) map[firstAdmin.id].children.push(map[u.id]);
-                }
+                if (firstAdmin) { map[firstAdmin.id].children.push(map[u.id]); placedIds.add(u.id); }
             }
+            // else: no manager + not CRM/HR/Finance → will appear as independent root
         });
 
-        return admins.map(a => map[a.id]);
+        // Roots = admins + unplaced independent users
+        const independentRoots = users.filter(u => !placedIds.has(u.id)).map(u => map[u.id]);
+        return [...admins.map(a => map[a.id]), ...independentRoots];
     }
 
     // Default: standard tree build
@@ -590,9 +578,28 @@ function renderHierarchy() {
         return;
     }
 
+    // Admins are always connected roots; the rest are independent (no manager set)
+    const adminRoots  = tree.filter(r => r.role_slug === 'admin');
+    const freeNodes   = tree.filter(r => r.role_slug !== 'admin');
+
+    const adminHtml = adminRoots.length
+        ? `<div style="display:flex;gap:32px;justify-content:center;align-items:flex-start;flex-wrap:wrap;">
+               ${adminRoots.map(r => renderNode(r)).join('')}
+           </div>` : '';
+
+    const freeHtml = freeNodes.length
+        ? `<div style="margin-top:28px;padding-top:20px;border-top:2px dashed #e2e8f0;">
+               <div style="text-align:center;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:18px;">
+                   <i class="fas fa-user-slash" style="margin-right:5px;"></i> No Manager Assigned
+               </div>
+               <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;align-items:flex-start;">
+                   ${freeNodes.map(r => renderNode(r)).join('')}
+               </div>
+           </div>` : '';
+
     container.innerHTML = `
-        <div style="display:flex;gap:32px;justify-content:center;align-items:flex-start;min-width:max-content;margin:0 auto;padding-bottom:16px;">
-            ${tree.map(root => renderNode(root)).join('')}
+        <div style="min-width:max-content;margin:0 auto;padding-bottom:16px;">
+            ${adminHtml}${freeHtml}
         </div>`;
 }
 
