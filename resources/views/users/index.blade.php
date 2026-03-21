@@ -195,9 +195,10 @@
 {{-- Hierarchy Modal --}}
 @if(auth()->user()->isAdmin())
 <div id="hierarchyModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:center;justify-content:center;padding:20px;">
-    <div style="background:#fff;border-radius:16px;width:100%;max-width:1100px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,0.3);">
+    <div style="background:#fff;border-radius:16px;width:100%;max-width:1150px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,0.3);">
+
         {{-- Header --}}
-        <div style="padding:20px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+        <div style="padding:18px 28px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
             <div style="display:flex;align-items:center;gap:12px;">
                 <div style="width:38px;height:38px;background:linear-gradient(135deg,#063A1C,#205A44);border-radius:10px;display:flex;align-items:center;justify-content:center;">
                     <i class="fas fa-sitemap" style="color:#fff;font-size:16px;"></i>
@@ -207,33 +208,37 @@
                     <div style="font-size:12px;color:#6b7280;" id="hierUserCount"></div>
                 </div>
             </div>
-            <button onclick="document.getElementById('hierarchyModal').style.display='none'"
-                style="width:32px;height:32px;border:none;background:#f3f4f6;border-radius:8px;cursor:pointer;font-size:18px;color:#6b7280;display:flex;align-items:center;justify-content:center;">×</button>
+            <div style="display:flex;align-items:center;gap:12px;">
+                {{-- Toggle --}}
+                <div style="background:#f3f4f6;border-radius:10px;padding:4px;display:flex;gap:4px;">
+                    <button id="btnDemo" onclick="switchMode('demo')"
+                        style="padding:6px 16px;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;background:#063A1C;color:#fff;transition:all .2s;">
+                        <i class="fas fa-eye" style="margin-right:4px;"></i> Demo
+                    </button>
+                    <button id="btnActual" onclick="switchMode('actual')"
+                        style="padding:6px 16px;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:#6b7280;transition:all .2s;">
+                        <i class="fas fa-users" style="margin-right:4px;"></i> Actual
+                    </button>
+                </div>
+                <button onclick="document.getElementById('hierarchyModal').style.display='none'"
+                    style="width:32px;height:32px;border:none;background:#f3f4f6;border-radius:8px;cursor:pointer;font-size:18px;color:#6b7280;display:flex;align-items:center;justify-content:center;">×</button>
+            </div>
+        </div>
+
+        {{-- Demo notice banner --}}
+        <div id="demoBanner" style="background:#fefce8;border-bottom:1px solid #fde68a;padding:8px 28px;font-size:12px;color:#92400e;display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            <i class="fas fa-info-circle"></i>
+            <strong>Demo Mode:</strong> Yeh ek sample hierarchy hai jo dikhata hai ki CRM mein user structure kaisa hona chahiye. Actual data dekhne ke liye <strong>Actual</strong> tab click karein.
         </div>
 
         {{-- Legend --}}
-        <div style="padding:12px 28px;border-bottom:1px solid #f3f4f6;display:flex;gap:16px;flex-wrap:wrap;flex-shrink:0;">
+        <div style="padding:10px 28px;border-bottom:1px solid #f3f4f6;display:flex;gap:14px;flex-wrap:wrap;flex-shrink:0;align-items:center;">
+            <span style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;">Roles:</span>
+            @foreach([['#7c3aed','Admin'],['#1d4ed8','CRM'],['#0369a1','HR / Finance'],['#065f46','Sales Manager'],['#15803d','Senior Manager'],['#ca8a04','Asst. SM'],['#b45309','Sales Executive']] as $l)
             <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;">
-                <span style="width:12px;height:12px;border-radius:3px;background:#7c3aed;display:inline-block;"></span> Admin
+                <span style="width:10px;height:10px;border-radius:3px;background:{{ $l[0] }};display:inline-block;"></span> {{ $l[1] }}
             </div>
-            <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;">
-                <span style="width:12px;height:12px;border-radius:3px;background:#1d4ed8;display:inline-block;"></span> CRM
-            </div>
-            <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;">
-                <span style="width:12px;height:12px;border-radius:3px;background:#0369a1;display:inline-block;"></span> HR / Finance
-            </div>
-            <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;">
-                <span style="width:12px;height:12px;border-radius:3px;background:#065f46;display:inline-block;"></span> Sales Manager
-            </div>
-            <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;">
-                <span style="width:12px;height:12px;border-radius:3px;background:#15803d;display:inline-block;"></span> Senior Manager
-            </div>
-            <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;">
-                <span style="width:12px;height:12px;border-radius:3px;background:#ca8a04;display:inline-block;"></span> Asst. Sales Manager
-            </div>
-            <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;">
-                <span style="width:12px;height:12px;border-radius:3px;background:#b45309;display:inline-block;"></span> Sales Executive
-            </div>
+            @endforeach
         </div>
 
         {{-- Org Chart --}}
@@ -243,22 +248,41 @@
 
 <script>
 const hierUsers = @json($hierarchyUsers);
+let currentMode = 'demo';
 
+// ── Demo data ──────────────────────────────────────────────
+const demoUsers = [
+    { id:1,  name:'Rahul Sharma',   role:'Admin',                   role_slug:'admin',                   manager_id:null, avatar:'R', children:[] },
+    { id:2,  name:'Priya Singh',    role:'CRM Manager',             role_slug:'crm',                     manager_id:1,    avatar:'P', children:[] },
+    { id:3,  name:'Anita Verma',    role:'HR Manager',              role_slug:'hr_manager',              manager_id:1,    avatar:'A', children:[] },
+    { id:4,  name:'Suresh Gupta',   role:'Finance Manager',         role_slug:'finance_manager',         manager_id:1,    avatar:'S', children:[] },
+    { id:5,  name:'Mohan Yadav',    role:'Sales Manager',           role_slug:'sales_manager',           manager_id:1,    avatar:'M', children:[] },
+    { id:6,  name:'Deepak Kumar',   role:'Senior Manager',          role_slug:'senior_manager',          manager_id:5,    avatar:'D', children:[] },
+    { id:7,  name:'Neha Joshi',     role:'Senior Manager',          role_slug:'senior_manager',          manager_id:5,    avatar:'N', children:[] },
+    { id:8,  name:'Amit Patel',     role:'Asst. Sales Manager',     role_slug:'assistant_sales_manager', manager_id:6,    avatar:'A', children:[] },
+    { id:9,  name:'Kavita Rao',     role:'Asst. Sales Manager',     role_slug:'assistant_sales_manager', manager_id:7,    avatar:'K', children:[] },
+    { id:10, name:'Ravi Mehta',     role:'Sales Executive',         role_slug:'sales_executive',         manager_id:8,    avatar:'R', children:[] },
+    { id:11, name:'Sunita Das',     role:'Sales Executive',         role_slug:'sales_executive',         manager_id:8,    avatar:'S', children:[] },
+    { id:12, name:'Vijay Tiwari',   role:'Sales Executive',         role_slug:'sales_executive',         manager_id:9,    avatar:'V', children:[] },
+    { id:13, name:'Pooja Mishra',   role:'Sales Executive',         role_slug:'sales_executive',         manager_id:9,    avatar:'P', children:[] },
+];
+
+// ── Colors ─────────────────────────────────────────────────
 const roleColors = {
-    'admin':                   { bg:'#ede9fe', border:'#7c3aed', text:'#5b21b6', dot:'#7c3aed' },
-    'crm':                     { bg:'#dbeafe', border:'#1d4ed8', text:'#1e40af', dot:'#1d4ed8' },
-    'hr_manager':              { bg:'#e0f2fe', border:'#0369a1', text:'#075985', dot:'#0369a1' },
-    'finance_manager':         { bg:'#e0f2fe', border:'#0369a1', text:'#075985', dot:'#0369a1' },
-    'sales_manager':           { bg:'#d1fae5', border:'#065f46', text:'#064e3b', dot:'#065f46' },
-    'senior_manager':          { bg:'#d1fae5', border:'#15803d', text:'#14532d', dot:'#15803d' },
-    'assistant_sales_manager': { bg:'#fef9c3', border:'#ca8a04', text:'#92400e', dot:'#ca8a04' },
-    'sales_executive':         { bg:'#ffedd5', border:'#b45309', text:'#92400e', dot:'#b45309' },
+    'admin':                   { bg:'#ede9fe', border:'#7c3aed', text:'#5b21b6' },
+    'crm':                     { bg:'#dbeafe', border:'#1d4ed8', text:'#1e40af' },
+    'hr_manager':              { bg:'#e0f2fe', border:'#0369a1', text:'#075985' },
+    'finance_manager':         { bg:'#e0f2fe', border:'#0369a1', text:'#075985' },
+    'sales_manager':           { bg:'#d1fae5', border:'#065f46', text:'#064e3b' },
+    'senior_manager':          { bg:'#d1fae5', border:'#15803d', text:'#14532d' },
+    'assistant_sales_manager': { bg:'#fef9c3', border:'#ca8a04', text:'#92400e' },
+    'sales_executive':         { bg:'#ffedd5', border:'#b45309', text:'#92400e' },
 };
-
 function getColor(slug) {
-    return roleColors[slug] || { bg:'#f3f4f6', border:'#6b7280', text:'#374151', dot:'#6b7280' };
+    return roleColors[slug] || { bg:'#f3f4f6', border:'#6b7280', text:'#374151' };
 }
 
+// ── Build tree from flat list ───────────────────────────────
 function buildTree(users) {
     const map = {};
     users.forEach(u => { map[u.id] = { ...u, children: [] }; });
@@ -273,88 +297,118 @@ function buildTree(users) {
     return roots;
 }
 
+// ── Render single node ──────────────────────────────────────
 function renderNode(node) {
     const c = getColor(node.role_slug);
     const hasChildren = node.children && node.children.length > 0;
 
-    const childrenHtml = hasChildren
-        ? `<div style="display:flex;gap:12px;justify-content:center;padding-top:20px;position:relative;">
-               ${node.children.map(ch => renderNode(ch)).join('')}
-           </div>`
-        : '';
+    const card = `
+        <div style="
+            background:${c.bg};border:2px solid ${c.border};border-radius:12px;
+            padding:10px 14px;text-align:center;min-width:118px;max-width:148px;
+            cursor:default;transition:transform .15s,box-shadow .15s;
+            box-shadow:0 2px 8px rgba(0,0,0,0.06);
+        " onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,0.12)'"
+           onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)'">
+            <div style="width:36px;height:36px;border-radius:50%;background:${c.border};color:#fff;
+                font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 7px;">
+                ${node.avatar}
+            </div>
+            <div style="font-size:11px;font-weight:700;color:#111827;line-height:1.3;margin-bottom:4px;word-break:break-word;">${node.name}</div>
+            <div style="font-size:10px;font-weight:600;color:${c.text};background:white;border-radius:5px;padding:2px 6px;display:inline-block;">${node.role}</div>
+            ${hasChildren ? `<div style="font-size:10px;color:${c.text};margin-top:3px;">${node.children.length} direct report${node.children.length>1?'s':''}</div>` : ''}
+        </div>`;
+
+    if (!hasChildren) {
+        return `<div style="display:flex;flex-direction:column;align-items:center;">${card}</div>`;
+    }
+
+    const childrenHtml = node.children.map(ch => `
+        <div style="display:flex;flex-direction:column;align-items:center;">
+            <div style="width:2px;height:20px;background:#d1d5db;"></div>
+            ${renderNode(ch)}
+        </div>`).join('');
+
+    // horizontal connector line across children
+    const connector = node.children.length > 1
+        ? `<div style="display:flex;align-items:flex-start;justify-content:center;width:100%;">
+               <div style="border-top:2px solid #d1d5db;margin-top:0;flex:1;min-width:0;"></div>
+           </div>` : '';
 
     return `
-    <div style="display:flex;flex-direction:column;align-items:center;min-width:130px;">
-        <div style="
-            background:${c.bg};
-            border:2px solid ${c.border};
-            border-radius:12px;
-            padding:10px 14px;
-            text-align:center;
-            min-width:120px;
-            max-width:150px;
-            cursor:default;
-            transition:transform .15s;
-            box-shadow:0 2px 8px rgba(0,0,0,0.06);
-            position:relative;
-        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
-            <div style="
-                width:36px;height:36px;border-radius:50%;
-                background:${c.border};
-                color:#fff;
-                font-size:15px;font-weight:700;
-                display:flex;align-items:center;justify-content:center;
-                margin:0 auto 8px;
-            ">${node.avatar}</div>
-            <div style="font-size:12px;font-weight:700;color:#111827;line-height:1.3;margin-bottom:4px;word-break:break-word;">${node.name}</div>
-            <div style="
-                font-size:10px;font-weight:600;
-                color:${c.text};
-                background:white;
-                border-radius:6px;
-                padding:2px 6px;
-                display:inline-block;
-            ">${node.role}</div>
-            ${hasChildren ? `<div style="font-size:10px;color:${c.text};margin-top:4px;">${node.children.length} report${node.children.length>1?'s':''}</div>` : ''}
-        </div>
-
-        ${hasChildren ? `
+    <div style="display:flex;flex-direction:column;align-items:center;">
+        ${card}
         <div style="width:2px;height:20px;background:#d1d5db;"></div>
-        <div style="position:relative;display:flex;flex-direction:column;align-items:center;width:100%;">
-            <div style="display:flex;gap:12px;justify-content:center;">
-                ${node.children.map((ch, i) => `
-                <div style="display:flex;flex-direction:column;align-items:center;position:relative;">
-                    ${node.children.length > 1 ? `<div style="width:2px;height:20px;background:#d1d5db;"></div>` : `<div style="width:2px;height:20px;background:#d1d5db;"></div>`}
-                    ${renderNode(ch)}
-                </div>`).join('')}
-            </div>
-        </div>` : ''}
+        <div style="display:flex;gap:16px;justify-content:center;align-items:flex-start;position:relative;">
+            ${childrenHtml}
+        </div>
     </div>`;
 }
 
+// ── Switch toggle ───────────────────────────────────────────
+function switchMode(mode) {
+    currentMode = mode;
+    const btnDemo   = document.getElementById('btnDemo');
+    const btnActual = document.getElementById('btnActual');
+    const banner    = document.getElementById('demoBanner');
+
+    if (mode === 'demo') {
+        btnDemo.style.background   = '#063A1C';
+        btnDemo.style.color        = '#fff';
+        btnActual.style.background = 'transparent';
+        btnActual.style.color      = '#6b7280';
+        banner.style.display       = 'flex';
+    } else {
+        btnActual.style.background = '#063A1C';
+        btnActual.style.color      = '#fff';
+        btnDemo.style.background   = 'transparent';
+        btnDemo.style.color        = '#6b7280';
+        banner.style.display       = 'none';
+    }
+    renderHierarchy();
+}
+
+// ── Main render ─────────────────────────────────────────────
 function renderHierarchy() {
-    document.getElementById('hierUserCount').textContent = hierUsers.length + ' active users';
-    const tree = buildTree(hierUsers);
+    const data = currentMode === 'demo' ? demoUsers : hierUsers;
     const container = document.getElementById('orgChartContainer');
+    const countEl   = document.getElementById('hierUserCount');
+
+    if (currentMode === 'demo') {
+        countEl.textContent = 'Sample hierarchy — ' + data.length + ' demo users';
+    } else {
+        countEl.textContent = data.length + ' active users';
+    }
+
+    const tree = buildTree(JSON.parse(JSON.stringify(data))); // deep clone
 
     if (tree.length === 0) {
-        container.innerHTML = '<div style="text-align:center;padding:40px;color:#6b7280;">No users found.</div>';
+        container.innerHTML = `<div style="text-align:center;padding:60px;color:#6b7280;">
+            <i class="fas fa-users" style="font-size:40px;margin-bottom:12px;opacity:.3;"></i>
+            <div style="font-size:15px;font-weight:600;">No users found</div>
+            <div style="font-size:13px;margin-top:4px;">Add users to see the hierarchy here.</div>
+        </div>`;
         return;
     }
 
     container.innerHTML = `
-        <div style="display:flex;gap:32px;justify-content:center;align-items:flex-start;min-width:max-content;margin:0 auto;">
+        <div style="display:flex;gap:32px;justify-content:center;align-items:flex-start;min-width:max-content;margin:0 auto;padding-bottom:16px;">
             ${tree.map(root => renderNode(root)).join('')}
         </div>`;
 }
 
-// Close on backdrop click
+// ── Events ──────────────────────────────────────────────────
 document.getElementById('hierarchyModal').addEventListener('click', function(e) {
     if (e.target === this) this.style.display = 'none';
 });
-
-// Render when button clicked (lazy)
 document.querySelector('[onclick*="hierarchyModal"]').addEventListener('click', function() {
+    currentMode = 'demo';
+    // reset toggle visuals
+    document.getElementById('btnDemo').style.background   = '#063A1C';
+    document.getElementById('btnDemo').style.color        = '#fff';
+    document.getElementById('btnActual').style.background = 'transparent';
+    document.getElementById('btnActual').style.color      = '#6b7280';
+    document.getElementById('demoBanner').style.display   = 'flex';
     setTimeout(renderHierarchy, 50);
 });
 </script>
