@@ -29,166 +29,287 @@
     @endif
 @endsection
 
+@push('styles')
+<style>
+.uc-stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px; }
+.uc-stat-card {
+    background:#fff; border-radius:14px; padding:20px 24px;
+    border:1px solid #e5e7eb; display:flex; align-items:center; gap:16px;
+    box-shadow:0 1px 4px rgba(0,0,0,.05);
+}
+.uc-stat-icon { width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+.uc-stat-val { font-size:26px;font-weight:700;color:#111827;line-height:1; }
+.uc-stat-lbl { font-size:12px;color:#6b7280;margin-top:3px;font-weight:500; }
+
+.uc-toolbar {
+    background:#fff; border-radius:14px; border:1px solid #e5e7eb;
+    padding:14px 20px; margin-bottom:22px; display:flex; gap:12px; align-items:center;
+    box-shadow:0 1px 4px rgba(0,0,0,.05); flex-wrap:wrap;
+}
+.uc-search-wrap { flex:1;min-width:200px;position:relative; }
+.uc-search-wrap i { position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:14px; }
+.uc-search-input {
+    width:100%;padding:9px 12px 9px 36px;border:1.5px solid #e5e7eb;border-radius:9px;
+    font-size:13.5px;color:#111827;outline:none;transition:.2s;background:#f9fafb;
+}
+.uc-search-input:focus { border-color:#205A44;background:#fff;box-shadow:0 0 0 3px rgba(32,90,68,.08); }
+.uc-role-select {
+    padding:9px 14px;border:1.5px solid #e5e7eb;border-radius:9px;font-size:13.5px;
+    color:#374151;outline:none;background:#f9fafb;min-width:160px;cursor:pointer;transition:.2s;
+}
+.uc-role-select:focus { border-color:#205A44;background:#fff; }
+.uc-btn-search {
+    padding:9px 22px;background:linear-gradient(135deg,#063A1C,#205A44);color:#fff;
+    border:none;border-radius:9px;font-size:13.5px;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;gap:7px;transition:.2s;white-space:nowrap;
+}
+.uc-btn-search:hover { opacity:.9;transform:translateY(-1px); }
+.uc-btn-clear {
+    padding:9px 16px;background:#f3f4f6;color:#374151;border:none;border-radius:9px;
+    font-size:13.5px;font-weight:500;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:6px;transition:.2s;
+}
+.uc-btn-clear:hover { background:#e5e7eb; }
+
+.uc-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:20px; }
+.uc-card {
+    background:#fff;border-radius:16px;border:1px solid #e5e7eb;overflow:hidden;
+    box-shadow:0 2px 8px rgba(0,0,0,.06);transition:all .25s;cursor:default;
+}
+.uc-card:hover { box-shadow:0 8px 24px rgba(0,0,0,.12);transform:translateY(-3px);border-color:#c8e6c9; }
+.uc-card-banner { height:68px;position:relative; }
+.uc-card-avatar {
+    position:absolute;bottom:-24px;left:20px;
+    width:52px;height:52px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;font-weight:700;color:#fff;
+    border:3px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,.18);
+}
+.uc-card-status-dot {
+    position:absolute;bottom:-24px;right:18px;
+    background:#fff;border-radius:20px;padding:3px 10px 3px 8px;
+    font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px;
+    border:1.5px solid;box-shadow:0 2px 6px rgba(0,0,0,.08);
+}
+.uc-card-body { padding:36px 20px 16px; }
+.uc-card-name { font-size:16px;font-weight:700;color:#111827;margin-bottom:3px;line-height:1.3;word-break:break-word; }
+.uc-role-pill {
+    display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;
+    font-size:11px;font-weight:600;margin-bottom:14px;border:1px solid;
+}
+.uc-info-row { display:flex;align-items:center;gap:8px;font-size:12.5px;color:#6b7280;margin-bottom:8px; }
+.uc-info-row i { width:14px;text-align:center;color:#9ca3af;flex-shrink:0; }
+.uc-info-row span { color:#374151; }
+.uc-card-footer {
+    border-top:1px solid #f3f4f6;padding:14px 16px;
+    display:flex;gap:8px;background:#fafafa;
+}
+.uc-action { flex:1;padding:8px 6px;border-radius:8px;font-size:12.5px;font-weight:600;
+    border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;
+    text-decoration:none;transition:.2s;
+}
+.uc-action:hover { opacity:.88;transform:translateY(-1px); }
+.uc-action-view  { background:linear-gradient(135deg,#063A1C,#205A44);color:#fff; }
+.uc-action-edit  { background:#f0fdf4;color:#065f46;border:1.5px solid #bbf7d0 !important; }
+.uc-action-del   { background:#fff1f2;color:#be123c;border:1.5px solid #fecdd3 !important; }
+
+.uc-empty {
+    grid-column:1/-1;background:#fff;border-radius:16px;border:1px solid #e5e7eb;
+    padding:70px 20px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.05);
+}
+.uc-pagination { margin-top:22px;background:#fff;border-radius:12px;border:1px solid #e5e7eb;padding:12px 20px;box-shadow:0 1px 4px rgba(0,0,0,.04); }
+
+@media(max-width:640px){
+    .uc-stats-grid{grid-template-columns:1fr 1fr;}
+    .uc-toolbar{flex-direction:column;align-items:stretch;}
+    .uc-role-select,.uc-btn-search{width:100%;}
+}
+</style>
+@endpush
+
 @section('content')
-    @if(session('success'))
-        <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg">
-            {{ session('success') }}
-        </div>
-    @endif
+@php
+    $totalCount    = $users->total();
+    $activeCount   = $users->getCollection()->where('is_active', true)->count();
+    $inactiveCount = $users->getCollection()->where('is_active', false)->count();
 
-    @if(session('error'))
-        <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
-            {{ session('error') }}
-        </div>
-    @endif
+    $roleColorMap = [
+        'admin'                   => ['bg'=>'#7c3aed','light'=>'#ede9fe','border'=>'#c4b5fd','text'=>'#5b21b6'],
+        'crm'                     => ['bg'=>'#1d4ed8','light'=>'#dbeafe','border'=>'#93c5fd','text'=>'#1e40af'],
+        'hr_manager'              => ['bg'=>'#0369a1','light'=>'#e0f2fe','border'=>'#7dd3fc','text'=>'#075985'],
+        'finance_manager'         => ['bg'=>'#0369a1','light'=>'#e0f2fe','border'=>'#7dd3fc','text'=>'#075985'],
+        'sales_head'              => ['bg'=>'#be185d','light'=>'#fce7f3','border'=>'#f9a8d4','text'=>'#9d174d'],
+        'sales_manager'           => ['bg'=>'#065f46','light'=>'#d1fae5','border'=>'#6ee7b7','text'=>'#064e3b'],
+        'senior_manager'          => ['bg'=>'#15803d','light'=>'#dcfce7','border'=>'#86efac','text'=>'#14532d'],
+        'assistant_sales_manager' => ['bg'=>'#b45309','light'=>'#fef3c7','border'=>'#fcd34d','text'=>'#92400e'],
+        'sales_executive'         => ['bg'=>'#c2410c','light'=>'#ffedd5','border'=>'#fdba74','text'=>'#9a3412'],
+    ];
+    $defaultColor = ['bg'=>'#4b5563','light'=>'#f3f4f6','border'=>'#d1d5db','text'=>'#374151'];
+@endphp
 
-    <!-- Search and Filter -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-        <form method="GET" action="{{ route('users.index') }}" class="flex gap-4 items-end">
-            <div class="flex-1">
-                <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Search</label>
-                <input type="text" 
-                       name="search" 
-                       id="search"
-                       value="{{ request('search') }}"
-                       placeholder="Search by name, email, or phone..."
-                       class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 placeholder-gray-400">
+{{-- Flash Messages --}}
+@if(session('success'))
+<div style="background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;padding:12px 18px;border-radius:10px;margin-bottom:18px;display:flex;align-items:center;gap:10px;font-size:14px;">
+    <i class="fas fa-check-circle"></i> {{ session('success') }}
+</div>
+@endif
+@if(session('error'))
+<div style="background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;padding:12px 18px;border-radius:10px;margin-bottom:18px;display:flex;align-items:center;gap:10px;font-size:14px;">
+    <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+</div>
+@endif
+
+{{-- Stats Bar --}}
+<div class="uc-stats-grid">
+    <div class="uc-stat-card">
+        <div class="uc-stat-icon" style="background:linear-gradient(135deg,#063A1C,#205A44);">
+            <i class="fas fa-users" style="color:#fff;font-size:18px;"></i>
+        </div>
+        <div>
+            <div class="uc-stat-val">{{ $totalCount }}</div>
+            <div class="uc-stat-lbl">Total Users</div>
+        </div>
+    </div>
+    <div class="uc-stat-card">
+        <div class="uc-stat-icon" style="background:linear-gradient(135deg,#065f46,#15803d);">
+            <i class="fas fa-user-check" style="color:#fff;font-size:18px;"></i>
+        </div>
+        <div>
+            <div class="uc-stat-val" style="color:#065f46;">{{ $activeCount }}</div>
+            <div class="uc-stat-lbl">Active (this page)</div>
+        </div>
+    </div>
+    <div class="uc-stat-card">
+        <div class="uc-stat-icon" style="background:linear-gradient(135deg,#991b1b,#dc2626);">
+            <i class="fas fa-user-times" style="color:#fff;font-size:18px;"></i>
+        </div>
+        <div>
+            <div class="uc-stat-val" style="color:#991b1b;">{{ $inactiveCount }}</div>
+            <div class="uc-stat-lbl">Inactive (this page)</div>
+        </div>
+    </div>
+</div>
+
+{{-- Toolbar --}}
+<div class="uc-toolbar">
+    <form method="GET" action="{{ route('users.index') }}" style="display:flex;gap:10px;flex:1;align-items:center;flex-wrap:wrap;">
+        <div class="uc-search-wrap">
+            <i class="fas fa-search"></i>
+            <input type="text" name="search" class="uc-search-input"
+                   value="{{ request('search') }}"
+                   placeholder="Search by name, email, or phone...">
+        </div>
+        <select name="role" class="uc-role-select">
+            <option value="">All Roles</option>
+            @foreach($roles as $role)
+                <option value="{{ $role->slug }}" {{ request('role') == $role->slug ? 'selected' : '' }}>
+                    {{ $role->name }}
+                </option>
+            @endforeach
+        </select>
+        <button type="submit" class="uc-btn-search">
+            <i class="fas fa-filter"></i> Filter
+        </button>
+        @if(request('search') || request('role'))
+        <a href="{{ route('users.index') }}" class="uc-btn-clear">
+            <i class="fas fa-times"></i> Clear
+        </a>
+        @endif
+    </form>
+    <div style="font-size:12px;color:#9ca3af;white-space:nowrap;padding-left:4px;">
+        {{ $users->firstItem() ?? 0 }}–{{ $users->lastItem() ?? 0 }} of {{ $totalCount }} users
+    </div>
+</div>
+
+{{-- User Cards --}}
+<div class="uc-grid">
+    @forelse($users as $user)
+    @php
+        $slug   = $user->role->slug ?? 'default';
+        $color  = $roleColorMap[$slug] ?? $defaultColor;
+        $initial = strtoupper(substr($user->name, 0, 1));
+    @endphp
+    <div class="uc-card">
+        {{-- Banner --}}
+        <div class="uc-card-banner" style="background:linear-gradient(135deg, {{ $color['bg'] }}, {{ $color['bg'] }}cc);">
+            <div class="uc-card-avatar" style="background:{{ $color['bg'] }};">{{ $initial }}</div>
+            @if($user->is_active)
+            <div class="uc-card-status-dot" style="color:#065f46;border-color:#6ee7b7;background:#fff;">
+                <span style="width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;animation:pulse 2s infinite;"></span> Active
             </div>
-            <div class="w-48">
-                <label for="role" class="block text-sm font-medium text-gray-700 mb-2">Filter by Role</label>
-                <select name="role" 
-                        id="role"
-                        class="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand text-gray-900">
-                    <option value="">All Roles</option>
-                    @foreach($roles as $role)
-                        <option value="{{ $role->slug }}" {{ request('role') == $role->slug ? 'selected' : '' }}>
-                            {{ $role->name }}
-                        </option>
-                    @endforeach
-                </select>
+            @else
+            <div class="uc-card-status-dot" style="color:#991b1b;border-color:#fca5a5;background:#fff;">
+                <span style="width:7px;height:7px;border-radius:50%;background:#ef4444;display:inline-block;"></span> Inactive
             </div>
-            <div>
-                <button type="submit" class="px-6 py-2 bg-gradient-to-r from-[#063A1C] to-[#205A44] text-white rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-colors duration-200 font-medium">
-                    Search
+            @endif
+        </div>
+
+        {{-- Body --}}
+        <div class="uc-card-body">
+            <div class="uc-card-name">{{ $user->name }}</div>
+            <span class="uc-role-pill" style="background:{{ $color['light'] }};color:{{ $color['text'] }};border-color:{{ $color['border'] }};">
+                <i class="fas fa-shield-alt" style="font-size:9px;"></i> {{ $user->getDisplayRoleName() }}
+            </span>
+
+            <div class="uc-info-row">
+                <i class="fas fa-envelope"></i>
+                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;" title="{{ $user->email }}">{{ $user->email }}</span>
+            </div>
+            <div class="uc-info-row">
+                <i class="fas fa-phone"></i>
+                <span>{{ $user->phone ?? '—' }}</span>
+            </div>
+            @if($user->manager)
+            <div class="uc-info-row">
+                <i class="fas fa-user-tie"></i>
+                <span>Reports to: <strong>{{ $user->manager->name }}</strong></span>
+            </div>
+            @endif
+            <div class="uc-info-row" style="margin-top:4px;">
+                <i class="fas fa-clock"></i>
+                <span>Joined {{ $user->created_at->format('d M Y') }}</span>
+            </div>
+        </div>
+
+        {{-- Footer Actions --}}
+        <div class="uc-card-footer">
+            <a href="{{ route('users.show', $user) }}" class="uc-action uc-action-view">
+                <i class="fas fa-eye"></i> View
+            </a>
+            @if(auth()->user()->isAdmin() || auth()->user()->isCrm())
+            <a href="{{ route('users.edit', $user) }}" class="uc-action uc-action-edit">
+                <i class="fas fa-pen"></i> Edit
+            </a>
+            @endif
+            @if(auth()->user()->isAdmin())
+            <form action="{{ route('users.destroy', $user) }}" method="POST"
+                  onsubmit="return confirm('Delete {{ addslashes($user->name) }}? This cannot be undone.');" style="flex:1;">
+                @csrf @method('DELETE')
+                <button type="submit" class="uc-action uc-action-del" style="width:100%;">
+                    <i class="fas fa-trash"></i> Delete
                 </button>
-                @if(request('search') || request('role'))
-                    <a href="{{ route('users.index') }}" class="ml-2 px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium">
-                        Clear
-                    </a>
-                @endif
-            </div>
-        </form>
-    </div>
-
-    <!-- Users Card View -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        @forelse($users as $user)
-            <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden hover:shadow-lg hover:border-brand transition-all duration-300 transform hover:-translate-y-1">
-                <div class="p-6">
-                    <!-- User Avatar and Name -->
-                    <div class="flex items-center mb-5 pb-5 border-b border-gray-100">
-                        <div class="flex-shrink-0 h-16 w-16">
-                            <div class="h-16 w-16 rounded-full bg-gradient-to-br from-[#063A1C] to-[#205A44] flex items-center justify-center shadow-md">
-                                <span class="text-white font-bold text-xl">{{ strtoupper(substr($user->name, 0, 1)) }}</span>
-                            </div>
-                        </div>
-                        <div class="ml-4 flex-1 min-w-0">
-                            <h3 class="text-lg font-bold text-gray-900 truncate mb-1">{{ $user->name }}</h3>
-                            <p class="text-sm text-gray-600 truncate">{{ $user->email }}</p>
-                        </div>
-                    </div>
-
-                    <!-- User Details -->
-                    <div class="space-y-3 mb-5">
-                        <div class="flex items-center text-sm">
-                            <svg class="w-4 h-4 mr-2 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                            </svg>
-                            <span class="text-gray-700 font-medium">{{ $user->phone ?? 'N/A' }}</span>
-                        </div>
-                        <div class="flex items-center text-sm">
-                            <svg class="w-4 h-4 mr-2 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                            </svg>
-                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gradient-to-r from-green-50 to-emerald-50 text-[#063A1C] border border-green-200">
-                                {{ $user->getDisplayRoleName() }}
-                            </span>
-                        </div>
-                        @if($user->manager)
-                        <div class="flex items-center text-sm">
-                            <svg class="w-4 h-4 mr-2 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                            <span class="text-gray-700"><span class="font-medium">Manager:</span> {{ $user->manager->name }}</span>
-                        </div>
-                        @endif
-                    </div>
-
-                    <!-- Status Badge -->
-                    <div class="mb-5">
-                        @if($user->is_active)
-                            <span class="px-3 py-1.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200 shadow-sm">
-                                <svg class="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                                </svg>
-                                Active
-                            </span>
-                        @else
-                            <span class="px-3 py-1.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 border border-red-200 shadow-sm">
-                                <svg class="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                                </svg>
-                                Inactive
-                            </span>
-                        @endif
-                    </div>
-
-                    <!-- Actions -->
-                    <div class="flex gap-2 pt-4 border-t border-gray-200">
-                        <a href="{{ route('users.show', $user) }}" 
-                           class="flex-1 px-4 py-2.5 text-center text-sm font-semibold text-white bg-gradient-to-r from-[#063A1C] to-[#205A44] rounded-lg hover:from-[#205A44] hover:to-[#15803d] transition-all duration-200 shadow-sm hover:shadow-md">
-                            <i class="fas fa-eye mr-1"></i> View
-                        </a>
-                        @if(auth()->user()->isAdmin() || auth()->user()->isCrm())
-                        <a href="{{ route('users.edit', $user) }}" 
-                           class="flex-1 px-4 py-2.5 text-center text-sm font-semibold text-[#063A1C] bg-green-50 rounded-lg hover:bg-green-100 border border-green-200 transition-all duration-200 shadow-sm hover:shadow-md">
-                            <i class="fas fa-edit mr-1"></i> Edit
-                        </a>
-                        @endif
-                        @if(auth()->user()->isAdmin())
-                        <form action="{{ route('users.destroy', $user) }}" 
-                              method="POST" 
-                              class="flex-1"
-                              onsubmit="return confirm('Are you sure you want to delete this user?');">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="w-full px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-red-500 to-red-600 rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-sm hover:shadow-md">
-                                <i class="fas fa-trash mr-1"></i> Delete
-                            </button>
-                        </form>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        @empty
-            <div class="col-span-full">
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    <h3 class="mt-2 text-sm font-medium text-gray-900">No users found</h3>
-                    <p class="mt-1 text-sm text-gray-500">Try adjusting your search or filter criteria.</p>
-                </div>
-            </div>
-        @endforelse
-    </div>
-
-    <!-- Pagination -->
-    @if($users->hasPages())
-        <div class="mt-6 bg-white px-4 py-3 border border-gray-100 rounded-xl shadow-sm sm:px-6">
-            {{ $users->links() }}
+            </form>
+            @endif
         </div>
-    @endif
+    </div>
+    @empty
+    <div class="uc-empty">
+        <div style="width:64px;height:64px;background:#f3f4f6;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+            <i class="fas fa-users" style="font-size:26px;color:#d1d5db;"></i>
+        </div>
+        <div style="font-size:16px;font-weight:600;color:#374151;margin-bottom:6px;">No users found</div>
+        <div style="font-size:13px;color:#9ca3af;">Try adjusting your search or filter criteria.</div>
+    </div>
+    @endforelse
+</div>
+
+{{-- Pagination --}}
+@if($users->hasPages())
+<div class="uc-pagination">{{ $users->links() }}</div>
+@endif
+
+<style>
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+</style>
 @endsection
 
 @push('scripts')
