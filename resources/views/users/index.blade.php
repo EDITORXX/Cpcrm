@@ -417,21 +417,39 @@ function buildTree(users, forceAdminRoot = false) {
         // Everyone else with no manager_id → independent root (no forced connection).
         const adminAutoSlugs = new Set(['crm', 'hr_manager', 'finance_manager']);
 
+        // Natural parent role for unconnected users (used for visual placement, no line drawn)
+        const naturalParentSlug = {
+            'sales_manager':          null,
+            'senior_manager':         'sales_manager',
+            'assistant_sales_manager':'senior_manager',
+            'sales_executive':        'assistant_sales_manager',
+        };
+
         const placedIds = new Set(admins.map(u => u.id));
 
         users.forEach(u => {
             if (adminIds.has(u.id)) return;
             if (u.manager_id && map[u.manager_id]) {
+                // Real manager relationship → connected child
                 map[u.manager_id].children.push(map[u.id]);
                 placedIds.add(u.id);
             } else if (adminAutoSlugs.has(u.role_slug)) {
+                // CRM / HR / Finance → always under Admin
                 const firstAdmin = admins[0];
                 if (firstAdmin) { map[firstAdmin.id].children.push(map[u.id]); placedIds.add(u.id); }
+            } else {
+                // No manager → place as floating child of natural parent role (no connecting line)
+                const pSlug = naturalParentSlug[u.role_slug];
+                const parentNode = pSlug ? users.find(p => p.role_slug === pSlug) : null;
+                if (parentNode && map[parentNode.id]) {
+                    if (!map[parentNode.id].floatingChildren) map[parentNode.id].floatingChildren = [];
+                    map[parentNode.id].floatingChildren.push(map[u.id]);
+                    placedIds.add(u.id);
+                }
+                // If no natural parent exists in this org → remains as independent root
             }
-            // else: no manager + not CRM/HR/Finance → will appear as independent root
         });
 
-        // Roots = admins + unplaced independent users
         const independentRoots = users.filter(u => !placedIds.has(u.id)).map(u => map[u.id]);
         return [...admins.map(a => map[a.id]), ...independentRoots];
     }
@@ -519,6 +537,18 @@ function renderNode(node) {
             </div>`;
     }).join('');
 
+    // Floating children (no manager set) — shown below at same level but without connecting lines
+    const floatingHtml = (node.floatingChildren && node.floatingChildren.length)
+        ? `<div style="margin-top:18px;padding-top:14px;border-top:1.5px dashed #cbd5e1;display:flex;flex-direction:column;align-items:center;gap:0;">
+               <div style="font-size:10px;font-weight:600;color:#94a3b8;margin-bottom:12px;display:flex;align-items:center;gap:5px;">
+                   <i class="fas fa-unlink" style="font-size:9px;"></i> No manager assigned
+               </div>
+               <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;align-items:flex-start;">
+                   ${node.floatingChildren.map(fc => renderNode(fc)).join('')}
+               </div>
+           </div>`
+        : '';
+
     return `
         <div style="display:inline-flex;flex-direction:column;align-items:center;">
             ${card}
@@ -526,6 +556,7 @@ function renderNode(node) {
             <div style="display:flex;align-items:flex-start;gap:0;">
                 ${childrenHtml}
             </div>
+            ${floatingHtml}
         </div>`;
 }
 
@@ -578,28 +609,9 @@ function renderHierarchy() {
         return;
     }
 
-    // Admins are always connected roots; the rest are independent (no manager set)
-    const adminRoots  = tree.filter(r => r.role_slug === 'admin');
-    const freeNodes   = tree.filter(r => r.role_slug !== 'admin');
-
-    const adminHtml = adminRoots.length
-        ? `<div style="display:flex;gap:32px;justify-content:center;align-items:flex-start;flex-wrap:wrap;">
-               ${adminRoots.map(r => renderNode(r)).join('')}
-           </div>` : '';
-
-    const freeHtml = freeNodes.length
-        ? `<div style="margin-top:28px;padding-top:20px;border-top:2px dashed #e2e8f0;">
-               <div style="text-align:center;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:18px;">
-                   <i class="fas fa-user-slash" style="margin-right:5px;"></i> No Manager Assigned
-               </div>
-               <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;align-items:flex-start;">
-                   ${freeNodes.map(r => renderNode(r)).join('')}
-               </div>
-           </div>` : '';
-
     container.innerHTML = `
-        <div style="min-width:max-content;margin:0 auto;padding-bottom:16px;">
-            ${adminHtml}${freeHtml}
+        <div style="display:flex;gap:32px;justify-content:center;align-items:flex-start;min-width:max-content;margin:0 auto;padding-bottom:16px;">
+            ${tree.map(root => renderNode(root)).join('')}
         </div>`;
 }
 
