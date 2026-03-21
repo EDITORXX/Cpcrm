@@ -576,9 +576,10 @@ function renderHierarchy() {
         countEl.textContent = data.length + ' active users';
     }
 
-    // Demo mode uses forceAdminRoot for a clean demo look.
-    // Actual mode uses raw DB relationships — users with no manager_id are shown as independent roots.
-    const tree = buildTree(JSON.parse(JSON.stringify(data)), currentMode === 'demo');
+    // Both modes use forceAdminRoot=true so hierarchy is always:
+    // Admin → [CRM, HR, Finance, Sales Manager] → [Senior Manager] → [Asst. SM] → [Sales Executive]
+    // Users with no manager_id get placed under their natural parent role.
+    const tree = buildTree(JSON.parse(JSON.stringify(data)), true);
 
     if (tree.length === 0) {
         container.innerHTML = `<div style="text-align:center;padding:60px;color:#6b7280;">
@@ -589,31 +590,9 @@ function renderHierarchy() {
         return;
     }
 
-    // Separate roots: admin/managers with children vs standalone independent nodes
-    const connectedRoots   = tree.filter(r => r.children && r.children.length > 0 || r.role_slug === 'admin');
-    const independentRoots = tree.filter(r => (!r.children || r.children.length === 0) && r.role_slug !== 'admin');
-
-    const connectedHtml = connectedRoots.length
-        ? `<div style="display:flex;gap:32px;justify-content:center;align-items:flex-start;flex-wrap:wrap;">
-               ${connectedRoots.map(root => renderNode(root)).join('')}
-           </div>`
-        : '';
-
-    const independentHtml = independentRoots.length
-        ? `<div style="margin-top:28px;border-top:1.5px dashed #e2e8f0;padding-top:20px;">
-               <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;text-align:center;margin-bottom:16px;">
-                   No Manager Assigned
-               </div>
-               <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;align-items:flex-start;">
-                   ${independentRoots.map(root => renderNode(root)).join('')}
-               </div>
-           </div>`
-        : '';
-
     container.innerHTML = `
-        <div style="min-width:max-content;margin:0 auto;padding-bottom:16px;">
-            ${connectedHtml}
-            ${independentHtml}
+        <div style="display:flex;gap:32px;justify-content:center;align-items:flex-start;min-width:max-content;margin:0 auto;padding-bottom:16px;">
+            ${tree.map(root => renderNode(root)).join('')}
         </div>`;
 }
 
