@@ -413,10 +413,14 @@ function buildTree(users, forceAdminRoot = false) {
     if (forceAdminRoot) {
         const admins       = users.filter(u => u.role_slug === 'admin');
         const adminIds     = new Set(admins.map(u => u.id));
-        // Roles that sit directly under Admin even without a manager
+        // Roles that sit directly under Admin when they have no manager
         const adminDirectSlugs = new Set(['crm','hr_manager','finance_manager','sales_manager','sales_head']);
-        // First Sales Manager in the list (default parent for everyone else without a manager)
-        const firstSalesMgr = users.find(u => u.role_slug === 'sales_manager');
+        // Default parent lookup by role (hierarchy order)
+        const defaultParentSlug = {
+            'senior_manager':          'sales_manager',
+            'assistant_sales_manager': 'senior_manager',
+            'sales_executive':         'assistant_sales_manager',
+        };
 
         users.forEach(u => {
             if (adminIds.has(u.id)) return; // admin is root — skip
@@ -424,15 +428,17 @@ function buildTree(users, forceAdminRoot = false) {
                 // Has a real manager present in the tree
                 map[u.manager_id].children.push(map[u.id]);
             } else if (adminDirectSlugs.has(u.role_slug)) {
-                // No manager, but this role belongs directly under Admin
+                // No manager — belongs directly under Admin
                 const firstAdmin = admins[0];
                 if (firstAdmin) map[firstAdmin.id].children.push(map[u.id]);
             } else {
-                // No manager + not an admin-direct role → default to Sales Manager
-                if (firstSalesMgr && map[firstSalesMgr.id]) {
-                    map[firstSalesMgr.id].children.push(map[u.id]);
+                // No manager — find default parent by role hierarchy
+                const parentSlug = defaultParentSlug[u.role_slug];
+                const parentNode = parentSlug ? users.find(p => p.role_slug === parentSlug) : null;
+                if (parentNode && map[parentNode.id]) {
+                    map[parentNode.id].children.push(map[u.id]);
                 } else {
-                    // Fallback: no sales manager exists, put under admin
+                    // Fallback: put under admin
                     const firstAdmin = admins[0];
                     if (firstAdmin) map[firstAdmin.id].children.push(map[u.id]);
                 }
