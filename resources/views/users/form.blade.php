@@ -24,8 +24,47 @@
 .uf-input:focus { border-color:#205A44; background:#fff; box-shadow:0 0 0 3px rgba(32,90,68,.08); }
 .uf-select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; padding-right:36px; cursor:pointer; }
 
-/* Role option badges */
-.role-option-group { pointer-events:none; font-size:11px; font-weight:700; color:#9ca3af; letter-spacing:.5px; background:#f9fafb; padding:8px 14px 4px; }
+/* ── Custom Role Dropdown ─────────────────────── */
+.role-picker { position:relative; }
+.role-trigger {
+    width:100%; padding:10px 14px; border:1.5px solid #e5e7eb; border-radius:10px;
+    background:#f9fafb; cursor:pointer; display:flex; align-items:center; gap:10px;
+    transition:.2s; user-select:none; box-sizing:border-box;
+}
+.role-trigger:hover, .role-trigger.open { border-color:#205A44; background:#fff; box-shadow:0 0 0 3px rgba(32,90,68,.08); }
+.role-trigger-icon { width:30px; height:30px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:13px; }
+.role-trigger-text { flex:1; }
+.role-trigger-name { font-size:13.5px; font-weight:600; color:#111827; }
+.role-trigger-desc { font-size:11.5px; color:#6b7280; margin-top:1px; }
+.role-trigger-placeholder { font-size:13.5px; color:#9ca3af; }
+.role-trigger-arrow { color:#9ca3af; font-size:11px; flex-shrink:0; transition:transform .2s; }
+.role-trigger.open .role-trigger-arrow { transform:rotate(180deg); }
+
+.role-dropdown {
+    display:none; position:absolute; top:calc(100% + 6px); left:0; right:0;
+    background:#fff; border:1.5px solid #e5e7eb; border-radius:12px;
+    box-shadow:0 10px 30px rgba(0,0,0,.12); z-index:200; overflow:hidden;
+    max-height:360px; overflow-y:auto;
+}
+.role-dropdown.open { display:block; }
+.role-group-header {
+    padding:8px 14px 5px; font-size:10.5px; font-weight:700; color:#9ca3af;
+    text-transform:uppercase; letter-spacing:.6px; background:#f9fafb;
+    border-bottom:1px solid #f3f4f6; border-top:1px solid #f3f4f6; margin-top:2px;
+}
+.role-group-header:first-child { border-top:none; margin-top:0; }
+.role-option {
+    display:flex; align-items:center; gap:12px; padding:10px 14px; cursor:pointer;
+    transition:.15s; border-bottom:1px solid #f9fafb;
+}
+.role-option:hover { background:#f0fdf4; }
+.role-option.selected { background:#f0fdf4; }
+.role-option.selected .role-opt-name { color:#065f46; }
+.role-opt-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:13px; }
+.role-opt-name { font-size:13px; font-weight:600; color:#111827; }
+.role-opt-desc { font-size:11.5px; color:#9ca3af; margin-top:1px; }
+.role-opt-check { margin-left:auto; color:#205A44; font-size:12px; display:none; }
+.role-option.selected .role-opt-check { display:block; }
 
 /* Manager field slide animation */
 #manager-field { transition: all .3s; overflow:hidden; }
@@ -81,14 +120,36 @@ $roleGroups = [
 ];
 
 $roleIcons = [
-    'admin'                   => '👑',
-    'crm'                     => '🖥️',
-    'hr_manager'              => '👥',
-    'finance_manager'         => '💰',
-    'sales_manager'           => '🎯',
-    'senior_manager'          => '📊',
-    'assistant_sales_manager' => '🤝',
-    'sales_executive'         => '📞',
+    'admin'                   => 'fa-shield-alt',
+    'crm'                     => 'fa-desktop',
+    'hr_manager'              => 'fa-users',
+    'finance_manager'         => 'fa-coins',
+    'sales_manager'           => 'fa-chess-king',
+    'senior_manager'          => 'fa-user-tie',
+    'assistant_sales_manager' => 'fa-user-cog',
+    'sales_executive'         => 'fa-phone-alt',
+];
+
+$roleColors = [
+    'admin'                   => ['bg'=>'#ede9fe','color'=>'#6d28d9'],
+    'crm'                     => ['bg'=>'#dbeafe','color'=>'#1d4ed8'],
+    'hr_manager'              => ['bg'=>'#e0f2fe','color'=>'#0369a1'],
+    'finance_manager'         => ['bg'=>'#fef3c7','color'=>'#b45309'],
+    'sales_manager'           => ['bg'=>'#d1fae5','color'=>'#065f46'],
+    'senior_manager'          => ['bg'=>'#dcfce7','color'=>'#15803d'],
+    'assistant_sales_manager' => ['bg'=>'#fefce8','color'=>'#ca8a04'],
+    'sales_executive'         => ['bg'=>'#ffedd5','color'=>'#c2410c'],
+];
+
+$roleDescs = [
+    'admin'                   => 'Full system access',
+    'crm'                     => 'Manage leads & users',
+    'hr_manager'              => 'HR tasks & records',
+    'finance_manager'         => 'Approve incentives',
+    'sales_manager'           => 'Head of sales team',
+    'senior_manager'          => 'Manage sales sub-team',
+    'assistant_sales_manager' => 'Support sales managers',
+    'sales_executive'         => 'Handle assigned leads',
 ];
 
 /* Sorted roles collection */
@@ -174,25 +235,53 @@ $currentRoleSlug = $user ? ($user->role->slug ?? '') : old('role_id_slug', '');
 
             <div class="uf-field">
                 <label class="uf-label">Role <span class="req">*</span></label>
-                <select name="role_id" id="roleSelect" class="uf-input uf-select" required
-                        onchange="handleRoleChange(this)">
-                    <option value="">— Select Role —</option>
-                    @foreach($roleGroups as $groupName => $groupSlugs)
-                        @php $groupRoles = $sortedRoles->filter(fn($r) => in_array($r->slug, $groupSlugs)); @endphp
-                        @if($groupRoles->count())
-                        <optgroup label="{{ $groupName }}">
+
+                {{-- Hidden input for form submission --}}
+                <input type="hidden" name="role_id" id="roleIdInput"
+                       value="{{ old('role_id', $user?->role_id) }}" required>
+
+                {{-- Custom Role Picker --}}
+                <div class="role-picker" id="rolePicker">
+                    <div class="role-trigger" id="roleTrigger" onclick="toggleRoleDropdown()">
+                        <div class="role-trigger-icon" id="triggerIcon" style="background:#f3f4f6;">
+                            <i class="fas fa-user-tag" style="color:#9ca3af;"></i>
+                        </div>
+                        <div class="role-trigger-text">
+                            <div id="triggerContent" class="role-trigger-placeholder">Select a role...</div>
+                        </div>
+                        <i class="fas fa-chevron-down role-trigger-arrow"></i>
+                    </div>
+
+                    <div class="role-dropdown" id="roleDropdown">
+                        @foreach($roleGroups as $groupName => $groupSlugs)
+                            @php $groupRoles = $sortedRoles->filter(fn($r) => in_array($r->slug, $groupSlugs)); @endphp
+                            @if($groupRoles->count())
+                            <div class="role-group-header">{{ $groupName }}</div>
                             @foreach($groupRoles as $role)
-                            <option value="{{ $role->id }}"
-                                    data-slug="{{ $role->slug }}"
-                                    {{ old('role_id', $user?->role_id) == $role->id ? 'selected' : '' }}>
-                                {{ $roleIcons[$role->slug] ?? '•' }}  {{ $role->name }}
-                            </option>
+                            @php
+                                $ic  = $roleIcons[$role->slug]  ?? 'fa-user';
+                                $clr = $roleColors[$role->slug] ?? ['bg'=>'#f3f4f6','color'=>'#6b7280'];
+                                $dsc = $roleDescs[$role->slug]  ?? '';
+                                $sel = (old('role_id', $user?->role_id) == $role->id);
+                            @endphp
+                            <div class="role-option {{ $sel ? 'selected' : '' }}"
+                                 onclick="selectRole(this, {{ $role->id }}, '{{ $role->slug }}', '{{ $role->name }}', '{{ $ic }}', '{{ $clr['bg'] }}', '{{ $clr['color'] }}', '{{ $dsc }}')">
+                                <div class="role-opt-icon" style="background:{{ $clr['bg'] }};">
+                                    <i class="fas {{ $ic }}" style="color:{{ $clr['color'] }};"></i>
+                                </div>
+                                <div>
+                                    <div class="role-opt-name">{{ $role->name }}</div>
+                                    <div class="role-opt-desc">{{ $dsc }}</div>
+                                </div>
+                                <i class="fas fa-check role-opt-check"></i>
+                            </div>
                             @endforeach
-                        </optgroup>
-                        @endif
-                    @endforeach
-                </select>
-                <div id="roleHint" style="margin-top:7px;font-size:12px;color:#6b7280;display:none;"></div>
+                            @endif
+                        @endforeach
+                    </div>
+                </div>
+
+                <div id="roleHint" style="margin-top:7px;font-size:12px;color:#6b7280;display:none;padding-left:4px;"></div>
             </div>
 
             {{-- Manager field — shown/hidden by JS --}}
@@ -247,20 +336,8 @@ $currentRoleSlug = $user ? ($user->role->slug ?? '') : old('role_id_slug', '');
 </div>
 
 <script>
-/* Role rules */
-const noManagerSlugs  = @json($noManagerRoles);
-const managerRoleMap  = @json($managerRoleMap);
-
-const roleHints = {
-    'admin':                   'Full system access — no manager needed.',
-    'crm':                     'Operations manager — manages all leads and users.',
-    'hr_manager':              'HR access — manages HR-related tasks.',
-    'finance_manager':         'Finance access — approves incentive requests.',
-    'sales_manager':           'Top-level sales role (Sales Head) — no manager required.',
-    'senior_manager':          'Reports to Sales Manager.',
-    'assistant_sales_manager': 'Reports to Senior Manager.',
-    'sales_executive':         'Reports to Assistant Sales Manager.',
-};
+const noManagerSlugs = @json($noManagerRoles);
+const managerRoleMap = @json($managerRoleMap);
 
 const managerHints = {
     'senior_manager':          'Select the Sales Manager this person reports to.',
@@ -268,80 +345,105 @@ const managerHints = {
     'sales_executive':         'Select the Assistant Sales Manager this person reports to.',
 };
 
-function handleRoleChange(selectEl) {
-    const option   = selectEl.options[selectEl.selectedIndex];
-    const slug     = option ? option.dataset.slug : '';
+/* ── Custom Role Dropdown ───────────────────── */
+function toggleRoleDropdown() {
+    const trigger  = document.getElementById('roleTrigger');
+    const dropdown = document.getElementById('roleDropdown');
+    const isOpen   = dropdown.classList.contains('open');
+    if (isOpen) { closeRoleDropdown(); }
+    else { trigger.classList.add('open'); dropdown.classList.add('open'); }
+}
+
+function closeRoleDropdown() {
+    document.getElementById('roleTrigger').classList.remove('open');
+    document.getElementById('roleDropdown').classList.remove('open');
+}
+
+function selectRole(el, id, slug, name, icon, bg, color, desc) {
+    /* Update hidden input */
+    document.getElementById('roleIdInput').value = id;
+
+    /* Update trigger display */
+    document.getElementById('triggerIcon').style.background = bg;
+    document.getElementById('triggerIcon').innerHTML = `<i class="fas ${icon}" style="color:${color};"></i>`;
+    document.getElementById('triggerContent').innerHTML =
+        `<div class="role-trigger-name">${name}</div><div class="role-trigger-desc">${desc}</div>`;
+
+    /* Mark selected option */
+    document.querySelectorAll('.role-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+
+    closeRoleDropdown();
+    handleRoleLogic(slug);
+}
+
+/* Close on outside click */
+document.addEventListener('click', function(e) {
+    if (!document.getElementById('rolePicker').contains(e.target)) closeRoleDropdown();
+});
+
+/* ── Manager show/hide logic ────────────────── */
+function handleRoleLogic(slug) {
     const mField   = document.getElementById('manager-field');
-    const roleHint = document.getElementById('roleHint');
     const mHint    = document.getElementById('managerHint');
     const mHintTxt = document.getElementById('managerHintText');
     const mSelect  = document.getElementById('managerSelect');
     const mLabel   = document.getElementById('managerLabel');
-
-    /* Role hint */
-    if (slug && roleHints[slug]) {
-        roleHint.textContent = '↳ ' + roleHints[slug];
-        roleHint.style.display = 'block';
-    } else {
-        roleHint.style.display = 'none';
-    }
+    const roleHint = document.getElementById('roleHint');
 
     if (!slug || noManagerSlugs.includes(slug)) {
-        /* Hide manager */
         mField.classList.remove('visible-field');
         mField.classList.add('hidden-field');
         mSelect.value = '';
         mHint.style.display = 'none';
+        roleHint.style.display = 'none';
         return;
     }
 
-    /* Show manager */
     mField.classList.remove('hidden-field');
     mField.classList.add('visible-field');
 
-    /* Filter manager options */
-    const allowedRoles = managerRoleMap[slug] || null;
-    let anyVisible = false;
+    /* Filter manager options by role */
+    const allowed = managerRoleMap[slug] || null;
     Array.from(mSelect.options).forEach(opt => {
-        if (!opt.value) return; // keep "No Manager" always
-        const optSlug = opt.dataset.roleSlug;
-        if (!allowedRoles || allowedRoles.includes(optSlug)) {
-            opt.style.display = '';
-            anyVisible = true;
-        } else {
-            opt.style.display = 'none';
-            if (opt.selected) { opt.selected = false; mSelect.value = ''; }
-        }
+        if (!opt.value) return;
+        const show = !allowed || allowed.includes(opt.dataset.roleSlug);
+        opt.style.display = show ? '' : 'none';
+        if (!show && opt.selected) { opt.selected = false; mSelect.value = ''; }
     });
 
-    /* Manager label */
     mLabel.innerHTML = 'Manager <span style="color:#ef4444;margin-left:2px;">*</span>';
 
-    /* Manager hint */
     if (managerHints[slug]) {
         mHintTxt.textContent = managerHints[slug];
         mHint.style.display = 'flex';
     } else {
         mHint.style.display = 'none';
     }
+
+    roleHint.style.display = 'none';
 }
 
+/* ── Password toggle ────────────────────────── */
 function togglePw() {
     const inp  = document.getElementById('passwordInput');
     const icon = document.getElementById('pwEyeIcon');
-    if (inp.type === 'password') {
-        inp.type = 'text';
-        icon.className = 'fas fa-eye-slash';
-    } else {
-        inp.type = 'password';
-        icon.className = 'fas fa-eye';
-    }
+    inp.type   = inp.type === 'password' ? 'text' : 'password';
+    icon.className = inp.type === 'text' ? 'fas fa-eye-slash' : 'fas fa-eye';
 }
 
-/* Init on page load (edit mode) */
+/* ── Init (edit mode pre-select) ────────────── */
 document.addEventListener('DOMContentLoaded', function () {
-    const sel = document.getElementById('roleSelect');
-    if (sel.value) handleRoleChange(sel);
+    const preSelected = document.querySelector('.role-option.selected');
+    if (preSelected) {
+        /* Simulate click to populate trigger + run manager logic */
+        const fn = preSelected.getAttribute('onclick');
+        if (fn) {
+            /* Replace 'this' reference with actual element */
+            const bound = new Function('el', fn.replace('selectRole(this,', 'selectRole(el,'));
+            try { bound.call(preSelected, preSelected); } catch(e) {}
+        }
+    }
 });
 </script>
 @endsection
