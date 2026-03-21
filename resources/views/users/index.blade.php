@@ -488,42 +488,67 @@ function renderNode(node) {
             ${hasChildren ? `<div style="font-size:10px;color:${c.text};margin-top:4px;opacity:0.75;">${node.children.length} direct report${node.children.length>1?'s':''}</div>` : ''}
         </div>`;
 
-    // Build floating children section (no manager — no connecting line)
-    const floatingSection = (node.floatingChildren && node.floatingChildren.length)
-        ? `<div style="margin-top:16px;padding-top:12px;border-top:1.5px dashed #cbd5e1;display:flex;flex-direction:column;align-items:center;">
-               <div style="font-size:10px;font-weight:600;color:#94a3b8;margin-bottom:10px;display:flex;align-items:center;gap:5px;">
-                   <i class="fas fa-unlink" style="font-size:9px;"></i> No manager assigned
-               </div>
-               <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;align-items:flex-start;">
-                   ${node.floatingChildren.map(fc => renderNode(fc)).join('')}
-               </div>
-           </div>`
-        : '';
+    // Floating children block — placed BESIDE connected children in the same row
+    const hasFloating = node.floatingChildren && node.floatingChildren.length > 0;
+
+    const makeFloatBlock = (topPadding) =>
+        `<div style="display:flex;flex-direction:column;align-items:center;
+                     margin-left:20px;padding-left:16px;
+                     border-left:1.5px dashed #cbd5e1;
+                     padding-top:${topPadding}px;">
+             <div style="font-size:10px;font-weight:600;color:#94a3b8;margin-bottom:8px;
+                         white-space:nowrap;display:flex;align-items:center;gap:4px;">
+                 <i class="fas fa-unlink" style="font-size:9px;"></i> No manager
+             </div>
+             <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+                 ${node.floatingChildren.map(fc => renderNode(fc)).join('')}
+             </div>
+         </div>`;
 
     if (!hasChildren) {
-        // No real children — but may still have floating ones
-        return `<div style="display:inline-flex;flex-direction:column;align-items:center;">${card}${floatingSection}</div>`;
+        // No real children — floating ones appear below
+        const floatingBelow = hasFloating
+            ? `<div style="margin-top:16px;padding-top:12px;border-top:1.5px dashed #cbd5e1;
+                           display:flex;flex-direction:column;align-items:center;">
+                   <div style="font-size:10px;font-weight:600;color:#94a3b8;margin-bottom:10px;
+                               display:flex;align-items:center;gap:5px;">
+                       <i class="fas fa-unlink" style="font-size:9px;"></i> No manager assigned
+                   </div>
+                   <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;align-items:flex-start;">
+                       ${node.floatingChildren.map(fc => renderNode(fc)).join('')}
+                   </div>
+               </div>` : '';
+        return `<div style="display:inline-flex;flex-direction:column;align-items:center;">${card}${floatingBelow}</div>`;
     }
 
     const n = node.children.length;
 
-    // Single child: simple vertical line
+    // Single child: vertical stem → flex row [connected child | floating children]
     if (n === 1) {
+        const connectedHtml = renderNode(node.children[0]);
+        if (hasFloating) {
+            return `
+                <div style="display:inline-flex;flex-direction:column;align-items:center;">
+                    ${card}
+                    <div style="width:2px;height:28px;background:${LINE};"></div>
+                    <div style="display:flex;align-items:flex-start;gap:0;">
+                        ${connectedHtml}
+                        ${makeFloatBlock(0)}
+                    </div>
+                </div>`;
+        }
         return `
             <div style="display:inline-flex;flex-direction:column;align-items:center;">
                 ${card}
                 <div style="width:2px;height:28px;background:${LINE};"></div>
-                ${renderNode(node.children[0])}
-                ${floatingSection}
+                ${connectedHtml}
             </div>`;
     }
 
-    // Multiple children: proper connected bus line
-    // Each child column gets an "arm" that forms the horizontal bus:
-    //   first child  → only right half filled (line starts at child center, goes right)
-    //   middle children → full width filled (continuous)
-    //   last child   → only left half filled (line ends at child center)
-    // Then a short vertical drop from the bus down to each child card.
+    // Multiple children: bus-line connector
+    // first child  → right half of arm filled
+    // middle children → full arm filled
+    // last child   → left half of arm filled
     const childrenHtml = node.children.map((ch, i) => {
         const isFirst = i === 0;
         const isLast  = i === n - 1;
@@ -551,14 +576,15 @@ function renderNode(node) {
             </div>`;
     }).join('');
 
+    // arm (2px) + drop (20px) = 22px total before card — float block gets same top padding
     return `
         <div style="display:inline-flex;flex-direction:column;align-items:center;">
             ${card}
             <div style="width:2px;height:18px;background:${LINE};"></div>
             <div style="display:flex;align-items:flex-start;gap:0;">
                 ${childrenHtml}
+                ${hasFloating ? makeFloatBlock(22) : ''}
             </div>
-            ${floatingSection}
         </div>`;
 }
 
