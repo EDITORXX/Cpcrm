@@ -5,620 +5,458 @@
 @section('page-subtitle', 'Welcome, ' . (auth()->user()->name ?? 'Admin') . ' (Admin)')
 
 @section('header-actions')
-<div style="display: flex; gap: 10px; flex-wrap: wrap;">
-    <a href="{{ route('admin.flow-test') }}" class="btn btn-brand-gradient" style="color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center;">
-        <i class="fas fa-check-circle" style="margin-right: 5px;"></i> Flow Testing
-    </a>
-    <div class="dropdown" style="position: relative;">
-        <button class="btn btn-brand-gradient" style="color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">
-            <i class="fas fa-download" style="margin-right: 5px;"></i> Export Leads
-            <i class="fas fa-chevron-down" style="margin-left: 5px;"></i>
+<div style="display:flex;gap:10px;align-items:center;">
+    <div class="dropdown" style="position:relative;">
+        <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'"
+            style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:linear-gradient(135deg,#063A1C,#205A44);color:#fff;border:none;border-radius:9px;font-size:13.5px;font-weight:600;cursor:pointer;">
+            <i class="fas fa-download"></i> Export
+            <i class="fas fa-chevron-down" style="font-size:10px;"></i>
         </button>
-        <div class="dropdown-menu" style="position: absolute; top: 100%; left: 0; background: white; border: 1px solid #E5DED4; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 8px; min-width: 200px; z-index: 1000; display: none;">
-            <a href="{{ route('export.index') }}" style="display: block; padding: 10px; color: var(--text-color); text-decoration: none; border-radius: 4px;" onmouseover="this.style.background='#F7F6F3'" onmouseout="this.style.background='transparent'">
-                <i class="fas fa-file-csv" style="margin-right: 8px;"></i> Custom Export
+        <div style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:6px;min-width:200px;z-index:1000;">
+            <a href="{{ route('export.index') }}" style="display:flex;align-items:center;gap:9px;padding:9px 12px;color:#374151;text-decoration:none;border-radius:7px;font-size:13px;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                <i class="fas fa-sliders-h" style="color:#205A44;width:14px;"></i> Custom Export
             </a>
-            <form action="{{ route('export.prospects') }}" method="POST" style="margin: 0;">
-                @csrf
-                <input type="hidden" name="format" value="csv">
-                <button type="submit" style="width: 100%; text-align: left; padding: 10px; background: none; border: none; color: var(--text-color); cursor: pointer; border-radius: 4px;" onmouseover="this.style.background='#F7F6F3'" onmouseout="this.style.background='transparent'">
-                    <i class="fas fa-user-check" style="margin-right: 8px;"></i> Export Prospects
+            <form action="{{ route('export.prospects') }}" method="POST" style="margin:0;">@csrf<input type="hidden" name="format" value="csv">
+                <button type="submit" style="width:100%;display:flex;align-items:center;gap:9px;padding:9px 12px;background:none;border:none;color:#374151;cursor:pointer;border-radius:7px;font-size:13px;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                    <i class="fas fa-user-check" style="color:#205A44;width:14px;"></i> Export Prospects
                 </button>
             </form>
-            <form action="{{ route('export.meetings') }}" method="POST" style="margin: 0;">
-                @csrf
-                <input type="hidden" name="format" value="csv">
-                <button type="submit" style="width: 100%; text-align: left; padding: 10px; background: none; border: none; color: var(--text-color); cursor: pointer; border-radius: 4px;" onmouseover="this.style.background='#F7F6F3'" onmouseout="this.style.background='transparent'">
-                    <i class="fas fa-calendar-check" style="margin-right: 8px;"></i> Export Meetings
+            <form action="{{ route('export.meetings') }}" method="POST" style="margin:0;">@csrf<input type="hidden" name="format" value="csv">
+                <button type="submit" style="width:100%;display:flex;align-items:center;gap:9px;padding:9px 12px;background:none;border:none;color:#374151;cursor:pointer;border-radius:7px;font-size:13px;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                    <i class="fas fa-calendar-check" style="color:#205A44;width:14px;"></i> Export Meetings
                 </button>
             </form>
-            <form action="{{ route('export.site-visits') }}" method="POST" style="margin: 0;">
-                @csrf
-                <input type="hidden" name="format" value="csv">
-                <button type="submit" style="width: 100%; text-align: left; padding: 10px; background: none; border: none; color: var(--text-color); cursor: pointer; border-radius: 4px;" onmouseover="this.style.background='#F7F6F3'" onmouseout="this.style.background='transparent'">
-                    <i class="fas fa-map-marker-alt" style="margin-right: 8px;"></i> Export Site Visits
+            <form action="{{ route('export.site-visits') }}" method="POST" style="margin:0;">@csrf<input type="hidden" name="format" value="csv">
+                <button type="submit" style="width:100%;display:flex;align-items:center;gap:9px;padding:9px 12px;background:none;border:none;color:#374151;cursor:pointer;border-radius:7px;font-size:13px;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                    <i class="fas fa-map-marker-alt" style="color:#205A44;width:14px;"></i> Export Site Visits
                 </button>
             </form>
-            <form action="{{ route('export.closed-leads') }}" method="POST" style="margin: 0;">
-                @csrf
-                <input type="hidden" name="format" value="csv">
-                <button type="submit" style="width: 100%; text-align: left; padding: 10px; background: none; border: none; color: var(--text-color); cursor: pointer; border-radius: 4px;" onmouseover="this.style.background='#F7F6F3'" onmouseout="this.style.background='transparent'">
-                    <i class="fas fa-check-circle" style="margin-right: 8px;"></i> Export Closed Leads
+            <form action="{{ route('export.closed-leads') }}" method="POST" style="margin:0;">@csrf<input type="hidden" name="format" value="csv">
+                <button type="submit" style="width:100%;display:flex;align-items:center;gap:9px;padding:9px 12px;background:none;border:none;color:#374151;cursor:pointer;border-radius:7px;font-size:13px;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                    <i class="fas fa-check-circle" style="color:#205A44;width:14px;"></i> Export Closed
                 </button>
             </form>
-            <form action="{{ route('export.dead-leads') }}" method="POST" style="margin: 0;">
-                @csrf
-                <input type="hidden" name="format" value="csv">
-                <button type="submit" style="width: 100%; text-align: left; padding: 10px; background: none; border: none; color: var(--text-color); cursor: pointer; border-radius: 4px;" onmouseover="this.style.background='#F7F6F3'" onmouseout="this.style.background='transparent'">
-                    <i class="fas fa-times-circle" style="margin-right: 8px;"></i> Export Dead Leads
+            <form action="{{ route('export.dead-leads') }}" method="POST" style="margin:0;">@csrf<input type="hidden" name="format" value="csv">
+                <button type="submit" style="width:100%;display:flex;align-items:center;gap:9px;padding:9px 12px;background:none;border:none;color:#374151;cursor:pointer;border-radius:7px;font-size:13px;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                    <i class="fas fa-times-circle" style="color:#ef4444;width:14px;"></i> Export Dead
                 </button>
             </form>
         </div>
     </div>
 </div>
+<script>document.addEventListener('click',function(e){document.querySelectorAll('.dropdown [style*="display:block"]').forEach(function(m){if(!m.parentElement.contains(e.target))m.style.display='none';});});</script>
 @endsection
 
 @push('styles')
 <style>
-    .stat-card {
-        background: white;
-        padding: 24px;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        border: 1px solid #E5DED4;
-        transition: transform 0.2s;
-    }
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-    .stat-value {
-        font-size: 32px;
-        font-weight: 700;
-        color: var(--text-color);
-        margin-top: 8px;
-    }
-    .stat-label {
-        font-size: 14px;
-        color: #B3B5B4;
-        font-weight: 500;
-    }
-    .chart-container {
-        position: relative;
-        height: 300px;
-        margin: 20px 0;
-        background: white;
-        padding: 20px;
-        border-radius: 12px;
-        border: 1px solid #E5DED4;
-    }
-    .section-card {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        border: 1px solid #E5DED4;
-        padding: 24px;
-        margin-bottom: 24px;
-    }
-    .section-title {
-        font-size: 20px;
-        font-weight: 600;
-        color: var(--text-color);
-        margin-bottom: 16px;
-        padding-bottom: 12px;
-        border-bottom: 2px solid #E5DED4;
-    }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    th, td {
-        padding: 12px;
-        text-align: left;
-        border-bottom: 1px solid #E5DED4;
-    }
-    th {
-        background: #F7F6F3;
-        font-weight: 600;
-        color: var(--text-color);
-        font-size: 14px;
-    }
-    td {
-        color: var(--text-color);
-        font-size: 14px;
-    }
-    .badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 500;
-    }
-    .badge-new { background: #dbeafe; color: #1e40af; }
-    .badge-connected { background: #bfdbfe; color: #1e3a8a; }
-    .badge-verified-prospect { background: #e9d5ff; color: #6b21a8; }
-    .badge-meeting-scheduled { background: #ddd6fe; color: #5b21b6; }
-    .badge-meeting-completed { background: #cffafe; color: #155e75; }
-    .badge-visit-scheduled { background: #ede9fe; color: #5b21b6; }
-    .badge-visit-done { background: #fce7f3; color: #9f1239; }
-    .badge-revisited-scheduled { background: #fce7f3; color: #9f1239; }
-    .badge-revisited-completed { background: #fecdd3; color: #881337; }
-    .badge-closed { background: #d1fae5; color: #065f46; }
-    .badge-dead { background: #fee2e2; color: #991b1b; }
-    .badge-on-hold { background: #f3f4f6; color: #374151; }
-    .badge-contacted { background: #fef3c7; color: #92400e; }
-    .badge-default { background: #f3f4f6; color: #6b7280; }
-    .badge-qualified { background: #e9d5ff; color: #6b21a8; } /* Backward compatibility */
-    .visits-meetings-filter-btn {
-        background: #6c757d;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 500;
-        transition: all 0.3s;
-    }
-    .visits-meetings-filter-btn:hover {
-        background: #5a6268;
-        transform: translateY(-1px);
-    }
-    .visits-meetings-filter-btn.active {
-        background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    .quick-action-btn {
-        display: inline-block;
-        padding: 12px 24px;
-        background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-        color: white;
-        border-radius: 8px;
-        text-decoration: none;
-        font-weight: 500;
-        margin-right: 12px;
-        margin-bottom: 12px;
-        transition: opacity 0.2s;
-    }
-    .quick-action-btn:hover {
-        opacity: 0.9;
-    }
+/* ── Stat Cards ─────────────────────────────── */
+.stat-card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    padding: 20px 22px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    transition: transform .2s, box-shadow .2s;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,.1); }
+.stat-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.stat-icon i { font-size: 20px; color: #fff; }
+.stat-value { font-size: 30px; font-weight: 700; color: #111827; line-height: 1; }
+.stat-label { font-size: 12px; color: #6b7280; font-weight: 500; margin-top: 4px; }
+
+/* ── Section Cards ──────────────────────────── */
+.section-card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    padding: 22px 24px;
+    margin-bottom: 22px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05);
+}
+.section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1.5px solid #f3f4f6;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+.section-title-icon {
+    width: 28px; height: 28px; border-radius: 7px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg,#063A1C,#205A44);
+    flex-shrink: 0;
+}
+.section-title-icon i { color: #fff; font-size: 12px; }
+
+/* ── Mini stat box ──────────────────────────── */
+.mini-stat {
+    background: #f9fafb; border-radius: 10px; padding: 14px 16px;
+    border: 1px solid #f3f4f6;
+}
+.mini-stat-val { font-size: 22px; font-weight: 700; color: #063A1C; line-height: 1; }
+.mini-stat-lbl { font-size: 11px; color: #6b7280; margin-top: 4px; }
+
+/* ── Date filter pills ──────────────────────── */
+.date-filter-btn {
+    padding: 7px 16px; border: 1.5px solid #e5e7eb; background: #fff;
+    border-radius: 20px; font-size: 12.5px; font-weight: 600; color: #374151;
+    cursor: pointer; transition: all .2s; white-space: nowrap;
+}
+.date-filter-btn:hover { border-color: #205A44; color: #205A44; }
+.date-filter-btn.active { background: linear-gradient(135deg,#063A1C,#205A44); color: #fff; border-color: transparent; box-shadow: 0 2px 8px rgba(6,58,28,.25); }
+
+/* ── VM filter pills ────────────────────────── */
+.visits-meetings-filter-btn {
+    padding: 6px 14px; border: 1.5px solid #e5e7eb; background: #fff;
+    border-radius: 20px; font-size: 12px; font-weight: 600; color: #374151;
+    cursor: pointer; transition: all .2s;
+}
+.visits-meetings-filter-btn:hover { border-color: #205A44; color: #205A44; }
+.visits-meetings-filter-btn.active { background: linear-gradient(135deg,#063A1C,#205A44); color: #fff; border-color: transparent; }
+
+/* ── Tables ─────────────────────────────────── */
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 11px 14px; text-align: left; border-bottom: 1px solid #f3f4f6; }
+th { background: #f9fafb; font-weight: 600; color: #374151; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
+td { color: #374151; font-size: 13.5px; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fafafa; }
+
+/* ── Badges ─────────────────────────────────── */
+.badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.badge-new { background: #dbeafe; color: #1e40af; }
+.badge-connected { background: #bfdbfe; color: #1e3a8a; }
+.badge-verified-prospect { background: #e9d5ff; color: #6b21a8; }
+.badge-meeting-scheduled { background: #ddd6fe; color: #5b21b6; }
+.badge-meeting-completed { background: #cffafe; color: #155e75; }
+.badge-visit-scheduled { background: #ede9fe; color: #5b21b6; }
+.badge-visit-done { background: #fce7f3; color: #9f1239; }
+.badge-revisited-scheduled { background: #fce7f3; color: #9f1239; }
+.badge-revisited-completed { background: #fecdd3; color: #881337; }
+.badge-closed { background: #d1fae5; color: #065f46; }
+.badge-dead { background: #fee2e2; color: #991b1b; }
+.badge-on-hold { background: #f3f4f6; color: #374151; }
+.badge-contacted { background: #fef3c7; color: #92400e; }
+.badge-default { background: #f3f4f6; color: #6b7280; }
+.badge-qualified { background: #e9d5ff; color: #6b21a8; }
+
+/* ── Chart container ────────────────────────── */
+.chart-container { position: relative; height: 280px; }
+
+/* ── Call stats filter ──────────────────────── */
+.call-stats-filter-btn {
+    padding: 5px 12px; border: 1.5px solid #e5e7eb; background: #fff;
+    border-radius: 6px; font-size: 12px; font-weight: 600; color: #374151; cursor: pointer; transition: all .2s;
+}
+.call-stats-filter-btn.active { background: linear-gradient(135deg,#063A1C,#205A44); color: #fff; border-color: transparent; }
+
+/* ── quick-action-btn kept for JS compat ──── */
+.quick-action-btn { display: none; }
 </style>
 @endpush
 
 @section('content')
 <div id="dashboard-content">
-    <!-- Loading State -->
-    <div id="loading" class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2" style="border-color: var(--primary-color);"></div>
-        <p class="mt-4 text-[#B3B5B4]">Loading dashboard data...</p>
+
+    {{-- ── Loading State ──────────────────────────────────── --}}
+    <div id="loading" style="text-align:center;padding:60px 20px;">
+        <div style="width:44px;height:44px;border:3px solid #e5e7eb;border-top-color:#205A44;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px;"></div>
+        <p style="color:#9ca3af;font-size:14px;">Loading dashboard...</p>
     </div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
-    <!-- Date Range Filter -->
-    <div class="section-card mb-6">
-        <div class="section-title mb-4">Filter Dashboard</div>
-        <div class="flex flex-wrap items-center gap-4">
-            <div class="flex gap-2 flex-wrap">
-                <button onclick="applyDateFilter('today')" id="filter-today" class="date-filter-btn">Today</button>
-                <button onclick="applyDateFilter('week')" id="filter-week" class="date-filter-btn">This Week</button>
-                <button onclick="applyDateFilter('month')" id="filter-month" class="date-filter-btn active">This Month</button>
-                <button onclick="applyDateFilter('year')" id="filter-year" class="date-filter-btn">This Year</button>
+    {{-- ── Date Filter ────────────────────────────────────── --}}
+    <div class="section-card" style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                <span style="font-size:12px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">Period:</span>
+                <button onclick="applyDateFilter('today')"   id="filter-today"  class="date-filter-btn">Today</button>
+                <button onclick="applyDateFilter('week')"    id="filter-week"   class="date-filter-btn">This Week</button>
+                <button onclick="applyDateFilter('month')"   id="filter-month"  class="date-filter-btn active">This Month</button>
+                <button onclick="applyDateFilter('year')"    id="filter-year"   class="date-filter-btn">This Year</button>
             </div>
-            <div class="flex items-center gap-2">
-                <label class="text-sm text-brand-primary font-medium">Custom:</label>
-                <input type="date" id="custom-start-date" class="px-3 py-2 border border-[#E5DED4] rounded-lg text-sm bg-white text-brand-primary" onchange="applyCustomDateFilter()">
-                <span class="text-[#B3B5B4]">to</span>
-                <input type="date" id="custom-end-date" class="px-3 py-2 border border-[#E5DED4] rounded-lg text-sm bg-white text-brand-primary" onchange="applyCustomDateFilter()">
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Stats Grid -->
-    <div id="main-stats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6 hidden">
-        <div class="stat-card">
-            <div class="stat-label">Total Leads</div>
-            <div class="stat-value" id="total-leads">0</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Total Visits</div>
-            <div class="stat-value" id="total-visits">0</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Total Meetings</div>
-            <div class="stat-value" id="total-meetings">0</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Total Closers</div>
-            <div class="stat-value" id="total-closers">0</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Dead</div>
-            <div class="stat-value" id="total-dead">0</div>
-        </div>
-    </div>
-
-    <!-- Lead Statistics and Property Segments -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <!-- Lead Statistics -->
-        <div class="section-card">
-            <div class="section-title">Lead Statistics</div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div class="p-4 bg-[#F7F6F3] rounded-lg">
-                    <div class="text-2xl font-bold text-brand-primary" id="leads-today">0</div>
-                    <div class="text-sm text-[#B3B5B4]">New Leads (Today)</div>
-                </div>
-                <div class="p-4 bg-[#F7F6F3] rounded-lg">
-                    <div class="text-2xl font-bold text-brand-primary" id="leads-week">0</div>
-                    <div class="text-sm text-[#B3B5B4]">New Leads (This Week)</div>
-                </div>
-                <div class="p-4 bg-[#F7F6F3] rounded-lg">
-                    <div class="text-2xl font-bold text-brand-primary" id="leads-month">0</div>
-                    <div class="text-sm text-[#B3B5B4]">New Leads (This Month)</div>
-                </div>
-            </div>
-            <div class="chart-container">
-                <canvas id="leadStatusChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Property Segments -->
-        <div class="section-card">
-            <div class="section-title">Property Segments</div>
-            <div class="chart-container">
-                <canvas id="propertySegmentsChart"></canvas>
-            </div>
-            <div id="property-segments-legend" class="mt-4 flex flex-wrap gap-4 justify-center">
-                <p class="text-[#B3B5B4]">Loading...</p>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto;">
+                <span style="font-size:12px;color:#6b7280;font-weight:500;">Custom:</span>
+                <input type="date" id="custom-start-date" onchange="applyCustomDateFilter()"
+                    style="padding:6px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:12.5px;color:#374151;outline:none;background:#f9fafb;">
+                <span style="font-size:12px;color:#9ca3af;">→</span>
+                <input type="date" id="custom-end-date" onchange="applyCustomDateFilter()"
+                    style="padding:6px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:12.5px;color:#374151;outline:none;background:#f9fafb;">
             </div>
         </div>
     </div>
 
-    <!-- Agents Visits vs Meetings -->
+    {{-- ── KPI Stats Row ───────────────────────────────────── --}}
+    <div id="main-stats" style="display:none;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:22px;" class="grid">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:linear-gradient(135deg,#063A1C,#205A44);"><i class="fas fa-users"></i></div>
+            <div><div class="stat-value" id="total-leads">0</div><div class="stat-label">Total Leads</div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6);"><i class="fas fa-map-marker-alt"></i></div>
+            <div><div class="stat-value" id="total-visits">0</div><div class="stat-label">Site Visits</div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);"><i class="fas fa-calendar-check"></i></div>
+            <div><div class="stat-value" id="total-meetings">0</div><div class="stat-label">Meetings</div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:linear-gradient(135deg,#065f46,#10b981);"><i class="fas fa-handshake"></i></div>
+            <div><div class="stat-value" id="total-closers">0</div><div class="stat-label">Closed</div></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:linear-gradient(135deg,#991b1b,#ef4444);"><i class="fas fa-times-circle"></i></div>
+            <div><div class="stat-value" id="total-dead">0</div><div class="stat-label">Dead</div></div>
+        </div>
+    </div>
+
+    {{-- ── Lead Statistics + Property Segments ──────────────── --}}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:22px;" class="grid-responsive-2">
+        <div class="section-card" style="margin-bottom:0;">
+            <div class="section-title">
+                <span class="section-title-icon"><i class="fas fa-chart-bar"></i></span>
+                Lead Statistics
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;">
+                <div class="mini-stat"><div class="mini-stat-val" id="leads-today">0</div><div class="mini-stat-lbl">Today</div></div>
+                <div class="mini-stat"><div class="mini-stat-val" id="leads-week">0</div><div class="mini-stat-lbl">This Week</div></div>
+                <div class="mini-stat"><div class="mini-stat-val" id="leads-month">0</div><div class="mini-stat-lbl">This Month</div></div>
+            </div>
+            <div class="chart-container"><canvas id="leadStatusChart"></canvas></div>
+        </div>
+        <div class="section-card" style="margin-bottom:0;">
+            <div class="section-title">
+                <span class="section-title-icon"><i class="fas fa-building"></i></span>
+                Property Segments
+            </div>
+            <div class="chart-container"><canvas id="propertySegmentsChart"></canvas></div>
+            <div id="property-segments-legend" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center;">
+                <span style="color:#9ca3af;font-size:12px;">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    {{-- ── Agents Visits vs Meetings ────────────────────────── --}}
     <div class="section-card">
-        <div class="section-title">Agents Visits vs Meetings</div>
-        <div class="chart-container">
-            <canvas id="agentsVisitsMeetingsChart"></canvas>
+        <div class="section-title">
+            <span class="section-title-icon"><i class="fas fa-chart-line"></i></span>
+            Agents — Visits vs Meetings
         </div>
-        <div id="agents-visits-meetings-table" class="mt-4">
-            <p class="text-[#B3B5B4]">Loading...</p>
-        </div>
-    </div>
-
-    <!-- Sales Executive Performance -->
-    <div class="section-card">
-        <div class="section-title">Sales Executive Performance</div>
-        <div id="telecaller-performance-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <p class="text-[#B3B5B4]">Loading...</p>
+        <div class="chart-container"><canvas id="agentsVisitsMeetingsChart"></canvas></div>
+        <div id="agents-visits-meetings-table" style="margin-top:16px;overflow-x:auto;">
+            <p style="color:#9ca3af;font-size:13px;">Loading...</p>
         </div>
     </div>
 
-    <!-- Leads Allocated (75% No Response Yet + 25% Average Response Time) -->
+    {{-- ── Sales Executive Performance ─────────────────────── --}}
     <div class="section-card">
-        <div class="section-title">Leads Allocated</div>
-        <div style="display: flex; gap: 24px; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 0; min-height: 0; width: 75%;">
-                <div class="section-title" style="font-size: 1rem; margin-bottom: 12px;">Leads Allocated</div>
-                <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead>
-                            <tr style="background: #F7F6F3; border-bottom: 2px solid #E5DED4;">
-                                <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-color); width: 40px;"> </th>
-                                <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-color);">User Name</th>
-                                <th style="padding: 12px; text-align: center; font-weight: 600; color: var(--text-color);">Pending Count</th>
-                                <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-color);">Oldest Assign</th>
-                            </tr>
-                        </thead>
-                        <tbody id="leads-pending-response-tbody">
-                            <tr>
-                                <td colspan="4" style="padding: 20px; text-align: center; color: #B3B5B4;">Loading...</td>
-                            </tr>
-                        </tbody>
-                    </table>
+        <div class="section-title">
+            <span class="section-title-icon"><i class="fas fa-trophy"></i></span>
+            Sales Executive Performance
+        </div>
+        <div id="telecaller-performance-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;">
+            <p style="color:#9ca3af;font-size:13px;">Loading...</p>
+        </div>
+    </div>
+
+    {{-- ── Leads Allocated + Avg Response ──────────────────── --}}
+    <div class="section-card">
+        <div class="section-title">
+            <span class="section-title-icon"><i class="fas fa-tasks"></i></span>
+            Leads Allocated
+        </div>
+        <div style="display:grid;grid-template-columns:3fr 1fr;gap:24px;align-items:start;" class="grid-responsive-leads">
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:36px;"></th>
+                            <th>Sales Executive</th>
+                            <th style="text-align:center;">Pending</th>
+                            <th>Oldest Assigned</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leads-pending-response-tbody">
+                        <tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:20px;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div>
+                <div style="font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.4px;margin-bottom:12px;">Avg Response Time</div>
+                <div id="average-response-time-panel">
+                    <p style="color:#9ca3af;font-size:12px;">Loading...</p>
                 </div>
             </div>
-            <div style="width: 25%; min-width: 200px;">
-                <div class="section-title" style="font-size: 1rem; margin-bottom: 12px;">Average Response</div>
-                <div id="average-response-time-panel" style="min-height: 60px;">
-                    <p class="text-sm text-[#B3B5B4]">Loading...</p>
-                </div>
-            </div>
         </div>
     </div>
 
-    <!-- User Visits & Meetings -->
+    {{-- ── User Visits & Meetings ────────────────────────────── --}}
     <div class="section-card">
-        <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
-            <span>User Visits & Meetings</span>
-            <a href="{{ route('export.index') }}" style="background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; text-decoration: none;">
-                <i class="fas fa-download" style="margin-right: 4px;"></i> Export
+        <div class="section-title" style="justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:9px;">
+                <span class="section-title-icon"><i class="fas fa-user-clock"></i></span>
+                User Visits &amp; Meetings
+            </div>
+            <a href="{{ route('export.index') }}" style="font-size:12px;font-weight:600;color:#205A44;text-decoration:none;display:flex;align-items:center;gap:5px;">
+                <i class="fas fa-download"></i> Export
             </a>
         </div>
-        
-        <!-- Filter Buttons -->
-        <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-            <button class="visits-meetings-filter-btn active" data-filter="today" onclick="filterVisitsMeetings('today', this)">
-                Today
-            </button>
-            <button class="visits-meetings-filter-btn" data-filter="tomorrow" onclick="filterVisitsMeetings('tomorrow', this)">
-                Tomorrow
-            </button>
-            <button class="visits-meetings-filter-btn" data-filter="this_weekend" onclick="filterVisitsMeetings('this_weekend', this)">
-                This Weekend
-            </button>
-            <button class="visits-meetings-filter-btn" data-filter="this_month" onclick="filterVisitsMeetings('this_month', this)">
-                This Month
-            </button>
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+            <button class="visits-meetings-filter-btn active" onclick="filterVisitsMeetings('today',this)">Today</button>
+            <button class="visits-meetings-filter-btn" onclick="filterVisitsMeetings('tomorrow',this)">Tomorrow</button>
+            <button class="visits-meetings-filter-btn" onclick="filterVisitsMeetings('this_weekend',this)">Weekend</button>
+            <button class="visits-meetings-filter-btn" onclick="filterVisitsMeetings('this_month',this)">This Month</button>
         </div>
-
-        <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="p-4 bg-[#F7F6F3] rounded-lg">
-                <div class="text-2xl font-bold text-brand-primary" id="visits-meetings-total-users">0</div>
-                <div class="text-sm text-[#B3B5B4] mt-1">Total Users</div>
-            </div>
-            <div class="p-4 bg-[#F7F6F3] rounded-lg">
-                <div class="text-2xl font-bold text-brand-primary" id="visits-meetings-total-visits">0</div>
-                <div class="text-sm text-[#B3B5B4] mt-1">Total Visits</div>
-            </div>
-            <div class="p-4 bg-[#F7F6F3] rounded-lg">
-                <div class="text-2xl font-bold text-brand-primary" id="visits-meetings-total-meetings">0</div>
-                <div class="text-sm text-[#B3B5B4] mt-1">Total Meetings</div>
-            </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;">
+            <div class="mini-stat"><div class="mini-stat-val" id="visits-meetings-total-users">0</div><div class="mini-stat-lbl">Users</div></div>
+            <div class="mini-stat"><div class="mini-stat-val" id="visits-meetings-total-visits">0</div><div class="mini-stat-lbl">Site Visits</div></div>
+            <div class="mini-stat"><div class="mini-stat-val" id="visits-meetings-total-meetings">0</div><div class="mini-stat-lbl">Meetings</div></div>
         </div>
-
-        <!-- Detailed Table -->
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse;">
+        <div style="overflow-x:auto;">
+            <table>
                 <thead>
-                    <tr style="background: #F7F6F3; border-bottom: 2px solid #E5DED4;">
-                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-color); cursor: pointer;" onclick="sortTable('user_name')">
-                            User Name <i class="fas fa-sort" style="margin-left: 5px;"></i>
-                        </th>
-                        <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-color); cursor: pointer;" onclick="sortTable('role')">
-                            Role <i class="fas fa-sort" style="margin-left: 5px;"></i>
-                        </th>
-                        <th style="padding: 12px; text-align: center; font-weight: 600; color: var(--text-color); cursor: pointer;" onclick="sortTable('visits_count')">
-                            Visits Count <i class="fas fa-sort" style="margin-left: 5px;"></i>
-                        </th>
-                        <th style="padding: 12px; text-align: center; font-weight: 600; color: var(--text-color); cursor: pointer;" onclick="sortTable('meetings_count')">
-                            Meetings Count <i class="fas fa-sort" style="margin-left: 5px;"></i>
-                        </th>
-                        <th style="padding: 12px; text-align: center; font-weight: 600; color: var(--text-color); cursor: pointer;" onclick="sortTable('total')">
-                            Total <i class="fas fa-sort" style="margin-left: 5px;"></i>
-                        </th>
+                    <tr>
+                        <th style="cursor:pointer;" onclick="sortTable('user_name')">User <i class="fas fa-sort" style="opacity:.4;"></i></th>
+                        <th style="cursor:pointer;" onclick="sortTable('role')">Role <i class="fas fa-sort" style="opacity:.4;"></i></th>
+                        <th style="text-align:center;cursor:pointer;" onclick="sortTable('visits_count')">Visits <i class="fas fa-sort" style="opacity:.4;"></i></th>
+                        <th style="text-align:center;cursor:pointer;" onclick="sortTable('meetings_count')">Meetings <i class="fas fa-sort" style="opacity:.4;"></i></th>
+                        <th style="text-align:center;cursor:pointer;" onclick="sortTable('total')">Total <i class="fas fa-sort" style="opacity:.4;"></i></th>
                     </tr>
                 </thead>
                 <tbody id="visits-meetings-table-body">
-                    <tr>
-                        <td colspan="5" style="padding: 20px; text-align: center; color: #B3B5B4;">Loading...</td>
-                    </tr>
+                    <tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:20px;">Loading...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- System Call Statistics -->
+    {{-- ── Call Statistics ──────────────────────────────────── --}}
     <div class="section-card" id="call-statistics-section">
-        <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
-            <span><i class="fas fa-phone mr-2"></i>System Call Statistics</span>
-            <div style="display: flex; gap: 10px;">
-                <button class="call-stats-filter-btn active" data-filter="today" onclick="loadCallStatistics('today', this)" style="padding: 6px 12px; border: 1px solid var(--border-color); background: var(--primary-color); color: white; border-radius: 6px; cursor: pointer; font-size: 12px;">Today</button>
-                <button class="call-stats-filter-btn" data-filter="this_week" onclick="loadCallStatistics('this_week', this)" style="padding: 6px 12px; border: 1px solid var(--border-color); background: white; color: var(--text-color); border-radius: 6px; cursor: pointer; font-size: 12px;">This Week</button>
-                <button class="call-stats-filter-btn" data-filter="this_month" onclick="loadCallStatistics('this_month', this)" style="padding: 6px 12px; border: 1px solid var(--border-color); background: white; color: var(--text-color); border-radius: 6px; cursor: pointer; font-size: 12px;">This Month</button>
-                <a href="{{ route('calls.index') }}" style="background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; text-decoration: none;">
-                    <i class="fas fa-list" style="margin-right: 4px;"></i> View All
-                </a>
+        <div class="section-title" style="justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:9px;">
+                <span class="section-title-icon"><i class="fas fa-phone"></i></span>
+                Call Statistics
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;">
+                <button class="call-stats-filter-btn active" onclick="loadCallStatistics('today',this)">Today</button>
+                <button class="call-stats-filter-btn" onclick="loadCallStatistics('this_week',this)">Week</button>
+                <button class="call-stats-filter-btn" onclick="loadCallStatistics('this_month',this)">Month</button>
+                <a href="{{ route('calls.index') }}" style="font-size:12px;font-weight:600;color:#205A44;text-decoration:none;padding:5px 10px;border:1.5px solid #bbf7d0;border-radius:6px;">View All</a>
             </div>
         </div>
-        
-        <!-- Call Stats Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div class="p-4 bg-[#F7F6F3] rounded-lg">
-                <div class="text-2xl font-bold text-brand-primary" id="call-stats-total">0</div>
-                <div class="text-sm text-[#B3B5B4] mt-1">Total Calls</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+            <div class="mini-stat"><div class="mini-stat-val" id="call-stats-total">0</div><div class="mini-stat-lbl">Total Calls</div></div>
+            <div class="mini-stat"><div class="mini-stat-val" id="call-stats-duration">0s</div><div class="mini-stat-lbl">Total Duration</div></div>
+            <div class="mini-stat"><div class="mini-stat-val" id="call-stats-avg-duration">0s</div><div class="mini-stat-lbl">Avg Duration</div></div>
+            <div class="mini-stat"><div class="mini-stat-val" id="call-stats-connection-rate">0%</div><div class="mini-stat-lbl">Connection Rate</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+            <div style="border:1px solid #f3f4f6;border-radius:10px;padding:16px;">
+                <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:12px;">Calls by Role</div>
+                <div class="chart-container"><canvas id="callsByRoleChart"></canvas></div>
             </div>
-            <div class="p-4 bg-[#F7F6F3] rounded-lg">
-                <div class="text-2xl font-bold text-brand-primary" id="call-stats-duration">0s</div>
-                <div class="text-sm text-[#B3B5B4] mt-1">Total Duration</div>
-            </div>
-            <div class="p-4 bg-[#F7F6F3] rounded-lg">
-                <div class="text-2xl font-bold text-brand-primary" id="call-stats-avg-duration">0s</div>
-                <div class="text-sm text-[#B3B5B4] mt-1">Avg Duration</div>
-            </div>
-            <div class="p-4 bg-[#F7F6F3] rounded-lg">
-                <div class="text-2xl font-bold text-brand-primary" id="call-stats-connection-rate">0%</div>
-                <div class="text-sm text-[#B3B5B4] mt-1">Connection Rate</div>
+            <div style="border:1px solid #f3f4f6;border-radius:10px;padding:16px;">
+                <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:12px;">Call Outcome Distribution</div>
+                <div class="chart-container"><canvas id="outcomeDistributionChart"></canvas></div>
             </div>
         </div>
-
-        <!-- Charts Row -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <!-- Calls by Role Chart -->
-            <div class="chart-container">
-                <h3 style="font-size: 16px; font-weight: 600; color: var(--text-color); margin-bottom: 15px;">Calls by Role</h3>
-                <canvas id="callsByRoleChart"></canvas>
-            </div>
-
-            <!-- Outcome Distribution Chart -->
-            <div class="chart-container">
-                <h3 style="font-size: 16px; font-weight: 600; color: var(--text-color); margin-bottom: 15px;">Call Outcome Distribution</h3>
-                <canvas id="outcomeDistributionChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Top Users Table -->
-        <div id="top-users-section" style="display: none;">
-            <h3 style="font-size: 16px; font-weight: 600; color: var(--text-color); margin-bottom: 15px;">Top Users by Calls</h3>
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="background: #F7F6F3; border-bottom: 2px solid #E5DED4;">
-                            <th style="padding: 12px; text-align: left; font-weight: 600; color: var(--text-color);">User Name</th>
-                            <th style="padding: 12px; text-align: center; font-weight: 600; color: var(--text-color);">Total Calls</th>
-                            <th style="padding: 12px; text-align: center; font-weight: 600; color: var(--text-color);">Total Duration</th>
-                            <th style="padding: 12px; text-align: center; font-weight: 600; color: var(--text-color);">Avg Duration</th>
-                        </tr>
-                    </thead>
-                    <tbody id="top-users-table-body">
-                    </tbody>
+        <div id="top-users-section" style="display:none;">
+            <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:12px;">Top Users by Calls</div>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead><tr><th>User</th><th style="text-align:center;">Calls</th><th style="text-align:center;">Duration</th><th style="text-align:center;">Avg</th></tr></thead>
+                    <tbody id="top-users-table-body"></tbody>
                 </table>
             </div>
         </div>
+        <div id="recent-calls-section" style="display:none;margin-top:16px;">
+            <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:12px;">Recent Calls</div>
+            <div id="recent-calls-list" style="max-height:280px;overflow-y:auto;"></div>
+        </div>
+    </div>
 
-        <!-- Recent Calls -->
-        <div id="recent-calls-section" style="margin-top: 20px; display: none;">
-            <h3 style="font-size: 16px; font-weight: 600; color: var(--text-color); margin-bottom: 15px;">Recent Calls</h3>
-            <div id="recent-calls-list" style="max-height: 300px; overflow-y: auto;">
+    {{-- ── User Stats + Recent Activities (2 col) ──────────── --}}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:22px;" class="grid-responsive-2">
+        <div class="section-card" style="margin-bottom:0;">
+            <div class="section-title">
+                <span class="section-title-icon"><i class="fas fa-user-cog"></i></span>
+                Team Overview
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
+                <div class="mini-stat" style="text-align:center;"><div class="mini-stat-val" id="users-admin">0</div><div class="mini-stat-lbl">Admin</div></div>
+                <div class="mini-stat" style="text-align:center;"><div class="mini-stat-val" id="users-crm">0</div><div class="mini-stat-lbl">CRM</div></div>
+                <div class="mini-stat" style="text-align:center;"><div class="mini-stat-val" id="users-sales-manager">0</div><div class="mini-stat-lbl">Sr. Manager</div></div>
+                <div class="mini-stat" style="text-align:center;"><div class="mini-stat-val" id="users-sales-executive">0</div><div class="mini-stat-lbl">Sales Exec</div></div>
+                <div class="mini-stat" style="text-align:center;"><div class="mini-stat-val" id="users-telecaller">0</div><div class="mini-stat-lbl">Telecaller</div></div>
+                <div class="mini-stat" style="text-align:center;"><div class="mini-stat-val" id="users-total">0</div><div class="mini-stat-lbl">Total Active</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;">
+                    <div style="font-size:20px;font-weight:700;color:#065f46;" id="users-new-month">0</div>
+                    <div style="font-size:11px;color:#6b7280;margin-top:3px;">New This Month</div>
+                </div>
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px;">
+                    <div style="font-size:20px;font-weight:700;color:#1e40af;" id="users-active-24h">0</div>
+                    <div style="font-size:11px;color:#6b7280;margin-top:3px;">Active (24h)</div>
+                </div>
+            </div>
+        </div>
+        <div class="section-card" style="margin-bottom:0;">
+            <div class="section-title">
+                <span class="section-title-icon"><i class="fas fa-history"></i></span>
+                Recent Activities
+            </div>
+            <div id="recent-activities" style="max-height:280px;overflow-y:auto;">
+                <p style="color:#9ca3af;font-size:13px;">Loading...</p>
             </div>
         </div>
     </div>
 
-    <!-- User Statistics -->
+    {{-- ── Recent Leads ──────────────────────────────────────── --}}
     <div class="section-card">
-        <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
-            <span>User Statistics</span>
-            <a href="{{ route('export.index') }}" style="background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; text-decoration: none;">
-                <i class="fas fa-download" style="margin-right: 4px;"></i> Export
-            </a>
+        <div class="section-title" style="justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:9px;">
+                <span class="section-title-icon"><i class="fas fa-user-plus"></i></span>
+                Recent Leads
+            </div>
+            <a href="{{ route('leads.index') }}" style="font-size:12px;font-weight:600;color:#205A44;text-decoration:none;">View All →</a>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
-            <div class="text-center p-4 bg-[#F7F6F3] rounded-lg">
-                <div class="text-2xl font-bold text-brand-primary" id="users-admin">0</div>
-                <div class="text-sm text-[#B3B5B4] mt-1">Admin</div>
-            </div>
-            <div class="text-center p-4 bg-[#F7F6F3] rounded-lg">
-                <div class="text-2xl font-bold text-brand-primary" id="users-crm">0</div>
-                <div class="text-sm text-[#B3B5B4] mt-1">CRM</div>
-            </div>
-            <div class="text-center p-4 bg-[#F7F6F3] rounded-lg">
-                <div class="text-2xl font-bold text-brand-primary" id="users-sales-manager">0</div>
-                <div class="text-sm text-[#B3B5B4] mt-1">Senior Manager</div>
-            </div>
-            <div class="text-center p-4 bg-[#F7F6F3] rounded-lg">
-                <div class="text-2xl font-bold text-brand-primary" id="users-sales-executive">0</div>
-                <div class="text-sm text-[#B3B5B4] mt-1">Sales Executive</div>
-            </div>
-            <div class="text-center p-4 bg-[#F7F6F3] rounded-lg">
-                <div class="text-2xl font-bold text-brand-primary" id="users-telecaller">0</div>
-                <div class="text-sm text-[#B3B5B4] mt-1">Sales Executive</div>
-            </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="p-4 bg-[#F7F6F3] rounded-lg">
-                <div class="text-lg font-semibold text-brand-primary" id="users-new-month">0</div>
-                <div class="text-sm text-[#B3B5B4]">New Users (This Month)</div>
-            </div>
-            <div class="p-4 bg-[#F7F6F3] rounded-lg">
-                <div class="text-lg font-semibold text-brand-primary" id="users-active-24h">0</div>
-                <div class="text-sm text-[#B3B5B4]">Active Users (24h)</div>
-            </div>
-            <div class="p-4 bg-[#F7F6F3] rounded-lg">
-                <div class="text-lg font-semibold text-brand-primary" id="users-total">0</div>
-                <div class="text-sm text-[#B3B5B4]">Total Active Users</div>
-            </div>
+        <div id="recent-leads" style="overflow-x:auto;">
+            <p style="color:#9ca3af;font-size:13px;">Loading...</p>
         </div>
     </div>
 
-    <!-- System Health Stats -->
-    <div id="health-stats" class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6 hidden">
-        <div class="stat-card">
-            <div class="stat-label">Pending Verifications</div>
-            <div class="stat-value text-yellow-600" id="pending-verifications">0</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Active Automations</div>
-            <div class="stat-value" id="active-automations">0</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Pending Imports</div>
-            <div class="stat-value" id="pending-imports">0</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Failed Imports (7d)</div>
-            <div class="stat-value text-red-600" id="failed-imports">0</div>
-        </div>
+    {{-- hidden IDs kept for JS compat --}}
+    <div style="display:none;">
+        <span id="pending-verifications"></span>
+        <span id="active-automations"></span>
+        <span id="pending-imports"></span>
+        <span id="failed-imports"></span>
     </div>
-
-    <!-- Export Options -->
-    <div class="section-card">
-        <div class="section-title">Export Data</div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
-            <a href="{{ route('export.index') }}" class="quick-action-btn" style="background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));">
-                <i class="fas fa-file-csv" style="margin-right: 8px;"></i> Custom Export
-            </a>
-            <form action="{{ route('export.prospects') }}" method="POST" style="margin: 0;">
-                @csrf
-                <input type="hidden" name="format" value="csv">
-                <button type="submit" class="quick-action-btn" style="background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); width: 100%;">
-                    <i class="fas fa-user-check" style="margin-right: 8px;"></i> Export Prospects
-                </button>
-            </form>
-            <form action="{{ route('export.meetings') }}" method="POST" style="margin: 0;">
-                @csrf
-                <input type="hidden" name="format" value="csv">
-                <button type="submit" class="quick-action-btn" style="background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); width: 100%;">
-                    <i class="fas fa-calendar-check" style="margin-right: 8px;"></i> Export Meetings
-                </button>
-            </form>
-            <form action="{{ route('export.site-visits') }}" method="POST" style="margin: 0;">
-                @csrf
-                <input type="hidden" name="format" value="csv">
-                <button type="submit" class="quick-action-btn" style="background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); width: 100%;">
-                    <i class="fas fa-map-marker-alt" style="margin-right: 8px;"></i> Export Site Visits
-                </button>
-            </form>
-            <form action="{{ route('export.closed-leads') }}" method="POST" style="margin: 0;">
-                @csrf
-                <input type="hidden" name="format" value="csv">
-                <button type="submit" class="quick-action-btn" style="background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); width: 100%;">
-                    <i class="fas fa-check-circle" style="margin-right: 8px;"></i> Export Closed Leads
-                </button>
-            </form>
-            <form action="{{ route('export.dead-leads') }}" method="POST" style="margin: 0;">
-                @csrf
-                <input type="hidden" name="format" value="csv">
-                <button type="submit" class="quick-action-btn" style="background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end)); width: 100%;">
-                    <i class="fas fa-times-circle" style="margin-right: 8px;"></i> Export Dead Leads
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="section-card">
-        <div class="section-title">Quick Actions</div>
-        <div>
-            <a href="{{ route('users.create') }}" class="quick-action-btn">Create User</a>
-            <a href="{{ route('lead-import.index') }}" class="quick-action-btn">Import Leads</a>
-            <a href="{{ route('admin.targets.index') }}" class="quick-action-btn">View Targets</a>
-            <a href="{{ route('admin.dead-leads') }}" class="quick-action-btn">Dead Leads</a>
-        </div>
-    </div>
-
-    <!-- System Targets Overview -->
-    <div id="target-overview-section" class="section-card hidden">
-        <div class="section-title">System Targets Overview</div>
-        <div id="target-overview-content">
-            <p class="text-gray-600">Loading targets...</p>
-        </div>
-    </div>
-
-    <!-- Recent Leads -->
-    <div class="section-card">
-        <div class="section-title">Recent Leads</div>
-        <div id="recent-leads">
-            <p class="text-gray-600">Loading...</p>
-        </div>
-    </div>
-
-    <!-- Recent Activities -->
-    <div class="section-card">
-        <div class="section-title">Recent System Activities</div>
-        <div id="recent-activities">
-            <p class="text-gray-600">Loading...</p>
-        </div>
-    </div>
+    <div id="health-stats" style="display:none;"></div>
+    <div id="target-overview-section" style="display:none;"><div id="target-overview-content"></div></div>
 </div>
+
+<style>
+@media(max-width:768px){
+    .grid-responsive-2{grid-template-columns:1fr !important;}
+    .grid-responsive-leads{grid-template-columns:1fr !important;}
+    #main-stats{grid-template-columns:repeat(2,1fr) !important;}
+}
+@media(max-width:480px){
+    #main-stats{grid-template-columns:1fr !important;}
+}
+</style>
 @endsection
 
 @push('scripts')
