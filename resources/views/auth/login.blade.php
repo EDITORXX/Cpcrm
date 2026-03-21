@@ -571,7 +571,7 @@
                             <input type="checkbox" name="remember" style="width: auto; margin-right: 8px; cursor: pointer;">
                             <span style="color: #4a5568;">Remember me</span>
                         </label>
-                        <a href="#" style="color: #205A44; text-decoration: none;">Forgot password?</a>
+                        <a href="{{ route('password.forgot') }}" style="color: #205A44; text-decoration: none;">Forgot password?</a>
                     </div>
 
                     <button type="submit" class="btn-signin">Login</button>

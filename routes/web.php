@@ -289,6 +289,15 @@ Route::post('/login/firebase', [LoginController::class, 'loginWithFirebase'])->m
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::get('/logout', [LoginController::class, 'logout'])->name('logout.get'); // Fallback for expired sessions
 
+// Password Reset via OTP
+Route::get('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'showForgotForm'])->name('password.forgot');
+Route::post('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'sendOtp'])->name('password.send-otp')->middleware('throttle:5,1');
+Route::get('/verify-otp', [\App\Http\Controllers\Auth\PasswordResetController::class, 'showOtpForm'])->name('password.otp.form');
+Route::post('/verify-otp', [\App\Http\Controllers\Auth\PasswordResetController::class, 'verifyOtp'])->name('password.verify-otp')->middleware('throttle:10,1');
+Route::post('/resend-otp', [\App\Http\Controllers\Auth\PasswordResetController::class, 'resendOtp'])->name('password.resend-otp')->middleware('throttle:3,1');
+Route::get('/reset-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'showResetForm'])->name('password.reset.form');
+Route::post('/reset-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'resetPassword'])->name('password.update');
+
 // Sales Executive Routes (no auth required)
 Route::get('/sales-executive/dashboard', [\App\Http\Controllers\SalesExecutiveController::class, 'dashboard'])->name('sales-executive.dashboard');
 Route::get('/sales-executive/tasks', [\App\Http\Controllers\SalesExecutiveController::class, 'tasks'])->name('sales-executive.tasks');
