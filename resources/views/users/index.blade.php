@@ -406,9 +406,34 @@ function getColor(slug) {
 }
 
 // ── Build tree from flat list ───────────────────────────────
-function buildTree(users) {
+function buildTree(users, forceAdminRoot = false) {
     const map = {};
     users.forEach(u => { map[u.id] = { ...u, children: [] }; });
+
+    if (forceAdminRoot) {
+        // Find admin user(s)
+        const admins = users.filter(u => u.role_slug === 'admin');
+        const adminIds = new Set(admins.map(u => u.id));
+
+        users.forEach(u => {
+            if (adminIds.has(u.id)) return; // skip admins themselves
+            if (u.manager_id && map[u.manager_id]) {
+                // Has a real manager in the tree
+                map[u.manager_id].children.push(map[u.id]);
+            } else {
+                // No manager → attach under first admin
+                const firstAdmin = admins[0];
+                if (firstAdmin) {
+                    map[firstAdmin.id].children.push(map[u.id]);
+                }
+            }
+        });
+
+        // Return admin(s) as roots
+        return admins.map(a => map[a.id]);
+    }
+
+    // Default: standard tree build
     const roots = [];
     users.forEach(u => {
         if (u.manager_id && map[u.manager_id]) {
@@ -503,7 +528,7 @@ function renderHierarchy() {
         countEl.textContent = data.length + ' active users';
     }
 
-    const tree = buildTree(JSON.parse(JSON.stringify(data))); // deep clone
+    const tree = buildTree(JSON.parse(JSON.stringify(data)), currentMode === 'actual'); // deep clone
 
     if (tree.length === 0) {
         container.innerHTML = `<div style="text-align:center;padding:60px;color:#6b7280;">
