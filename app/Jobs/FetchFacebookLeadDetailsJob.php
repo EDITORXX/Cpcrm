@@ -124,6 +124,12 @@ class FetchFacebookLeadDetailsJob implements ShouldQueue
                 $notes = implode("\n", $parts);
             }
 
+            // Skip if lead with same phone already exists
+            if ($phone && Lead::where('phone', $phone)->exists()) {
+                Log::info('FetchFacebookLeadDetailsJob: duplicate phone — lead skipped', ['phone' => $phone, 'leadgen_id' => $this->leadgenId]);
+                return null;
+            }
+
             $lead = Lead::create([
                 'name'        => $name  ?: 'Facebook Lead',
                 'phone'       => $phone ?: 'N/A',

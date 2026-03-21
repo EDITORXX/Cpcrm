@@ -48,10 +48,18 @@ class LeadImportService
                         continue;
                     }
 
+                    // Skip if lead with same phone already exists
+                    $phone = $leadData['phone'];
+                    if (Lead::where('phone', $phone)->exists()) {
+                        $failed++;
+                        $errors[] = "Row " . ($index + 1) . ": Duplicate phone {$phone} — lead already exists";
+                        continue;
+                    }
+
                     // Create lead
                     $lead = Lead::create([
                         'name' => $leadData['name'],
-                        'phone' => $leadData['phone'],
+                        'phone' => $phone,
                         'email' => $leadData['email'] ?? null,
                         'address' => $leadData['address'] ?? null,
                         'city' => $leadData['city'] ?? null,
@@ -216,10 +224,18 @@ class LeadImportService
                         continue;
                     }
 
+                    // Skip if lead with same phone already exists
+                    $phone = $leadData['phone'];
+                    if (Lead::where('phone', $phone)->exists()) {
+                        $failed++;
+                        $errors[] = "Row " . ($index + 1) . ": Duplicate phone {$phone} — lead already exists";
+                        continue;
+                    }
+
                     // Create lead
                     $lead = Lead::create([
                         'name' => $leadData['name'],
-                        'phone' => $leadData['phone'],
+                        'phone' => $phone,
                         'email' => $leadData['email'] ?? null,
                         'address' => $leadData['address'] ?? null,
                         'city' => $leadData['city'] ?? null,

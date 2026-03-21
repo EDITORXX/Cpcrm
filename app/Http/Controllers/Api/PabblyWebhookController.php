@@ -143,6 +143,12 @@ class PabblyWebhookController extends Controller
                 $leadData['budget_max'] = $this->parseNumericValue($leadData['budget_max']);
             }
 
+            // Skip if lead with same phone already exists
+            if (Lead::where('phone', $leadData['phone'])->exists()) {
+                Log::info('PabblyWebhook: duplicate phone — lead skipped', ['phone' => $leadData['phone']]);
+                return response()->json(['status' => 'skipped', 'message' => 'Lead with this phone already exists'], 200);
+            }
+
             // Create the lead
             $lead = Lead::create($leadData);
 
