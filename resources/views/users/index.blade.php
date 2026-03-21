@@ -234,7 +234,7 @@
         {{-- Legend --}}
         <div style="padding:10px 28px;border-bottom:1px solid #f3f4f6;display:flex;gap:14px;flex-wrap:wrap;flex-shrink:0;align-items:center;">
             <span style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;">Roles:</span>
-            @foreach([['#7c3aed','Admin'],['#1d4ed8','CRM'],['#0369a1','HR / Finance'],['#065f46','Sales Manager'],['#15803d','Senior Manager'],['#ca8a04','Asst. SM'],['#b45309','Sales Executive']] as $l)
+            @foreach([['#7c3aed','Admin'],['#1d4ed8','CRM'],['#0369a1','HR / Finance'],['#be185d','Sales Head'],['#065f46','Sales Manager'],['#15803d','Senior Manager'],['#ca8a04','Asst. SM'],['#b45309','Sales Executive']] as $l)
             <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:#374151;">
                 <span style="width:10px;height:10px;border-radius:3px;background:{{ $l[0] }};display:inline-block;"></span> {{ $l[1] }}
             </div>
@@ -256,9 +256,10 @@ const demoUsers = [
     { id:2,  name:'Priya Singh',    role:'CRM Manager',             role_slug:'crm',                     manager_id:1,    avatar:'P', children:[] },
     { id:3,  name:'Anita Verma',    role:'HR Manager',              role_slug:'hr_manager',              manager_id:1,    avatar:'A', children:[] },
     { id:4,  name:'Suresh Gupta',   role:'Finance Manager',         role_slug:'finance_manager',         manager_id:1,    avatar:'S', children:[] },
-    { id:5,  name:'Mohan Yadav',    role:'Sales Manager',           role_slug:'sales_manager',           manager_id:1,    avatar:'M', children:[] },
-    { id:6,  name:'Deepak Kumar',   role:'Senior Manager',          role_slug:'senior_manager',          manager_id:5,    avatar:'D', children:[] },
-    { id:7,  name:'Neha Joshi',     role:'Senior Manager',          role_slug:'senior_manager',          manager_id:5,    avatar:'N', children:[] },
+    { id:5,  name:'Arjun Kapoor',   role:'Sales Head',              role_slug:'sales_head',              manager_id:1,    avatar:'A', children:[] },
+    { id:14, name:'Mohan Yadav',    role:'Sales Manager',           role_slug:'sales_manager',           manager_id:5,    avatar:'M', children:[] },
+    { id:6,  name:'Deepak Kumar',   role:'Senior Manager',          role_slug:'senior_manager',          manager_id:14,   avatar:'D', children:[] },
+    { id:7,  name:'Neha Joshi',     role:'Senior Manager',          role_slug:'senior_manager',          manager_id:14,   avatar:'N', children:[] },
     { id:8,  name:'Amit Patel',     role:'Asst. Sales Manager',     role_slug:'assistant_sales_manager', manager_id:6,    avatar:'A', children:[] },
     { id:9,  name:'Kavita Rao',     role:'Asst. Sales Manager',     role_slug:'assistant_sales_manager', manager_id:7,    avatar:'K', children:[] },
     { id:10, name:'Ravi Mehta',     role:'Sales Executive',         role_slug:'sales_executive',         manager_id:8,    avatar:'R', children:[] },
@@ -273,6 +274,7 @@ const roleColors = {
     'crm':                     { bg:'#dbeafe', border:'#1d4ed8', text:'#1e40af' },
     'hr_manager':              { bg:'#e0f2fe', border:'#0369a1', text:'#075985' },
     'finance_manager':         { bg:'#e0f2fe', border:'#0369a1', text:'#075985' },
+    'sales_head':              { bg:'#fce7f3', border:'#be185d', text:'#9d174d' },
     'sales_manager':           { bg:'#d1fae5', border:'#065f46', text:'#064e3b' },
     'senior_manager':          { bg:'#d1fae5', border:'#15803d', text:'#14532d' },
     'assistant_sales_manager': { bg:'#fef9c3', border:'#ca8a04', text:'#92400e' },
