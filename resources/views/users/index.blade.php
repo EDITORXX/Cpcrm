@@ -413,9 +413,9 @@ function buildTree(users, forceAdminRoot = false) {
     if (forceAdminRoot) {
         const admins   = users.filter(u => u.role_slug === 'admin');
         const adminIds = new Set(admins.map(u => u.id));
-        // Only CRM, HR Manager, Finance Manager are auto-placed under Admin when they have no manager.
-        // Everyone else with no manager_id → independent root (no forced connection).
-        const adminAutoSlugs = new Set(['crm', 'hr_manager', 'finance_manager']);
+        // CRM, HR Manager, Finance Manager, Sales Manager are auto-placed under Admin when they have no manager.
+        // Everyone else with no manager_id → floating child of their natural parent role (no line).
+        const adminAutoSlugs = new Set(['crm', 'hr_manager', 'finance_manager', 'sales_manager', 'sales_head']);
 
         // Natural parent role for unconnected users (used for visual placement, no line drawn)
         const naturalParentSlug = {
@@ -488,8 +488,21 @@ function renderNode(node) {
             ${hasChildren ? `<div style="font-size:10px;color:${c.text};margin-top:4px;opacity:0.75;">${node.children.length} direct report${node.children.length>1?'s':''}</div>` : ''}
         </div>`;
 
+    // Build floating children section (no manager — no connecting line)
+    const floatingSection = (node.floatingChildren && node.floatingChildren.length)
+        ? `<div style="margin-top:16px;padding-top:12px;border-top:1.5px dashed #cbd5e1;display:flex;flex-direction:column;align-items:center;">
+               <div style="font-size:10px;font-weight:600;color:#94a3b8;margin-bottom:10px;display:flex;align-items:center;gap:5px;">
+                   <i class="fas fa-unlink" style="font-size:9px;"></i> No manager assigned
+               </div>
+               <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;align-items:flex-start;">
+                   ${node.floatingChildren.map(fc => renderNode(fc)).join('')}
+               </div>
+           </div>`
+        : '';
+
     if (!hasChildren) {
-        return `<div style="display:inline-flex;flex-direction:column;align-items:center;">${card}</div>`;
+        // No real children — but may still have floating ones
+        return `<div style="display:inline-flex;flex-direction:column;align-items:center;">${card}${floatingSection}</div>`;
     }
 
     const n = node.children.length;
@@ -501,6 +514,7 @@ function renderNode(node) {
                 ${card}
                 <div style="width:2px;height:28px;background:${LINE};"></div>
                 ${renderNode(node.children[0])}
+                ${floatingSection}
             </div>`;
     }
 
@@ -537,18 +551,6 @@ function renderNode(node) {
             </div>`;
     }).join('');
 
-    // Floating children (no manager set) — shown below at same level but without connecting lines
-    const floatingHtml = (node.floatingChildren && node.floatingChildren.length)
-        ? `<div style="margin-top:18px;padding-top:14px;border-top:1.5px dashed #cbd5e1;display:flex;flex-direction:column;align-items:center;gap:0;">
-               <div style="font-size:10px;font-weight:600;color:#94a3b8;margin-bottom:12px;display:flex;align-items:center;gap:5px;">
-                   <i class="fas fa-unlink" style="font-size:9px;"></i> No manager assigned
-               </div>
-               <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;align-items:flex-start;">
-                   ${node.floatingChildren.map(fc => renderNode(fc)).join('')}
-               </div>
-           </div>`
-        : '';
-
     return `
         <div style="display:inline-flex;flex-direction:column;align-items:center;">
             ${card}
@@ -556,7 +558,7 @@ function renderNode(node) {
             <div style="display:flex;align-items:flex-start;gap:0;">
                 ${childrenHtml}
             </div>
-            ${floatingHtml}
+            ${floatingSection}
         </div>`;
 }
 
