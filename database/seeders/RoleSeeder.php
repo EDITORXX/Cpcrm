@@ -35,15 +35,15 @@ class RoleSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'name' => 'Senior Manager',
+                'name' => 'Sales Manager',
                 'slug' => 'sales_manager',
                 'description' => 'View all team leads, assign leads to sales executives, track team performance',
                 'is_active' => true,
             ],
             [
-                'name' => 'Manager',
+                'name' => 'Senior Manager',
                 'slug' => 'senior_manager',
-                'description' => 'Manager with extended permissions in the hierarchy',
+                'description' => 'Senior Manager with extended permissions in the hierarchy',
                 'is_active' => true,
             ],
             [
