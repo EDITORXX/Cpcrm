@@ -179,6 +179,11 @@ class Lead extends Model
         return $this->hasMany(LeadAssignment::class)->where('is_active', true);
     }
 
+    public function crmAssignments(): HasMany
+    {
+        return $this->hasMany(CrmAssignment::class);
+    }
+
     public function siteVisits(): HasMany
     {
         return $this->hasMany(SiteVisit::class);
@@ -212,6 +217,26 @@ class Lead extends Model
     public function prospects(): HasMany
     {
         return $this->hasMany(Prospect::class);
+    }
+
+    /**
+     * Manager prospect verification flow: lead created by Sales Executive or any CRM assignment by SE.
+     */
+    public function qualifiesForProspectVerificationFlow(): bool
+    {
+        $this->loadMissing(['creator.role', 'crmAssignments.assignedBy.role']);
+
+        if ($this->creator?->role?->slug === Role::SALES_EXECUTIVE) {
+            return true;
+        }
+
+        foreach ($this->crmAssignments as $assignment) {
+            if ($assignment->assignedBy?->role?->slug === Role::SALES_EXECUTIVE) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function meetings(): HasMany

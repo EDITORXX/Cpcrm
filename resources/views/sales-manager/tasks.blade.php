@@ -1460,14 +1460,10 @@
             const isPendingMeeting = task.status === 'pending' && isMeetingTask;
             const isPendingVisit = task.status === 'pending' && isVisitTask;
             
-            // Check if lead has prospect (from telecaller) - needs verification
-            const hasProspect = task.has_prospect === true && 
-                               task.prospect && 
-                               task.prospect.is_pending_verification === true;
-            
-            // Check if task is related to prospect (has prospect OR prospect verification related)
-            const isProspectTask = task.has_prospect === true || 
-                                  (task.prospect && task.prospect.is_pending_verification === true) ||
+            // Prospect verification queue: SE-originated lead with pending prospect (server flag)
+            const useProspectVerificationFlow = task.use_prospect_verification_flow === true;
+
+            const isProspectTask = useProspectVerificationFlow ||
                                   (task.title && task.title.toLowerCase().includes('prospect verification'));
             
             // Check if task is a site visit reminder
@@ -1501,7 +1497,7 @@
                         ${task.notes && task.notes.includes('Pre-meeting reminder') ? '<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;"><span class="meeting-badge" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-calendar-check" style="font-size: 10px;"></i> Meeting</span></div>' : ''}
                     </div>
                     <div class="task-actions">
-                        <button class="task-action-btn btn-call" onclick="handleManagerCallClick(${task.id}, '${leadPhone}', ${hasProspect})" title="Call">
+                        <button class="task-action-btn btn-call" onclick="handleManagerCallClick(${task.id}, '${leadPhone}', ${useProspectVerificationFlow})" title="Call">
                             <i class="fas fa-phone"></i>
                             <span>Call</span>
                         </button>
@@ -1560,8 +1556,8 @@
         }
     }
 
-    // Handle manager call click - Check if lead has prospect or is direct assignment
-    async function handleManagerCallClick(taskId, phoneNumber, hasProspect = null) {
+    // Manager call: prospect verify/reject only when use_prospect_verification_flow (SE-originated); else lead form
+    async function handleManagerCallClick(taskId, phoneNumber, useProspectVerificationFlow = null) {
         currentTaskId = taskId;
         
         // First, check if this is a meeting task
@@ -1618,25 +1614,21 @@
             return; // Exit early for meeting tasks
         }
         
-        // If hasProspect not provided, fetch task data to check
-        if (hasProspect === null) {
+        // If useProspectVerificationFlow not provided, resolve from task list
+        if (useProspectVerificationFlow === null) {
             try {
                 const tasksResponse = await apiCall('/tasks');
                 if (tasksResponse && tasksResponse.success && tasksResponse.data) {
                     const taskData = tasksResponse.data.find(t => t.id === taskId);
-                    hasProspect = taskData?.has_prospect === true && 
-                                 taskData?.prospect?.is_pending_verification === true;
+                    useProspectVerificationFlow = taskData?.use_prospect_verification_flow === true;
                 }
             } catch (error) {
                 console.error('Error fetching task data:', error);
-                // Safer fallback: treat as direct lead to avoid wrong prospect actions.
-                hasProspect = false;
+                useProspectVerificationFlow = false;
             }
         }
-        
-        // If lead has prospect from telecaller → show verification popup
-        // If no prospect (direct assignment) → open Lead Requirement Form directly
-        if (hasProspect) {
+
+        if (useProspectVerificationFlow) {
             // Lead from telecaller - show verification popup (current behavior)
             if (phoneNumber && phoneNumber !== 'N/A' && phoneNumber !== '') {
                 const cleanPhone = String(phoneNumber).replace(/[^0-9]/g, '');
@@ -2069,7 +2061,11 @@
             const result = await apiCall(`/tasks/${taskId}/lead-requirement-form`);
             
             if (result && result.success) {
-                renderManagerLeadForm(result);
+                if (result.form_mode === 'prospect_verification' || result.use_prospect_verification_flow === true) {
+                    renderProspectVerificationForm(result);
+                } else {
+                    renderLeadDetailForm(result);
+                }
             } else {
                 showAlert('Failed to load form: ' + (result?.error || result?.message || 'Unknown error'), 'error');
                 closeManagerLeadRequirementFormModal();
@@ -2094,17 +2090,29 @@
         closeManagerLeadRequirementFormModal();
     }
 
-    // Render manager lead requirement form (similar to telecaller but all fields visible)
-    function renderManagerLeadForm(data) {
+    function renderProspectVerificationForm(data) {
+        renderManagerLeadFormInternal(data, 'prospect_verification');
+    }
+
+    function renderLeadDetailForm(data) {
+        renderManagerLeadFormInternal(data, 'lead_detail');
+    }
+
+    // Shared builder: prospect verification vs lead detail (fields same; labels/title differ)
+    function renderManagerLeadFormInternal(data, mode) {
         const container = document.getElementById('managerLeadFormContainer');
-        
-        // Update modal title based on whether it's a prospect or direct lead
+        const isProspectVerification = mode === 'prospect_verification';
+
         const modalTitle = document.querySelector('#managerLeadRequirementFormModal .modal-header h3');
         if (modalTitle) {
-            const hasProspect = data.has_prospect === true;
-            modalTitle.textContent = hasProspect ? 'Prospect Verification' : 'Lead Detail Form';
+            modalTitle.textContent = isProspectVerification ? 'Prospect Verification' : 'Lead Detail Form';
         }
-        
+
+        const basicSectionTitle = isProspectVerification ? 'Basic Information' : 'Lead contact';
+        const requirementsSectionTitle = isProspectVerification ? 'Lead Requirements' : 'Lead Requirements';
+        const verificationSectionTitle = isProspectVerification ? 'Verification Details' : 'Lead classification';
+        const submitLabel = isProspectVerification ? 'Verify Prospect' : 'Save lead details';
+
         const formValues = data.form_values || {};
         
         // Get existing values for pre-population
@@ -2120,7 +2128,7 @@
                 <input type="hidden" name="task_id" value="${currentTaskId}">
                 
                 <div style="margin-bottom: 24px;">
-                    <h3 style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">Basic Information</h3>
+                    <h3 style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">${basicSectionTitle}</h3>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div>
                             <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
@@ -2151,7 +2159,7 @@
                 </div>
                 
                 <div style="margin-bottom: 24px;">
-                    <h3 style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">Lead Requirements</h3>
+                    <h3 style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">${requirementsSectionTitle}</h3>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <!-- Category Field -->
                         <div>
@@ -2315,7 +2323,7 @@
                 </div>
                 
                 <div style="margin-bottom: 24px;">
-                    <h3 style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">Verification Details</h3>
+                    <h3 style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">${verificationSectionTitle}</h3>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div>
                             <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 6px;">
@@ -2453,7 +2461,7 @@
                     </button>
                     <button type="submit" 
                             style="padding: 10px 20px; background: #205A44; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
-                        <i class="fas fa-check-circle" style="margin-right: 8px;"></i>Verify Prospect
+                        <i class="fas fa-check-circle" style="margin-right: 8px;"></i>${submitLabel}
                     </button>
                 </div>
             </form>

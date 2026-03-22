@@ -784,7 +784,7 @@ class SalesManagerController extends Controller
             // Show all phone_call tasks (these are all manager verification tasks)
             $query = Task::where('assigned_to', $user->id)
                 ->where('type', 'phone_call')
-                ->with(['lead.prospects', 'assignedTo', 'creator']);
+                ->with(['lead.prospects', 'lead.creator.role', 'lead.crmAssignments.assignedBy.role', 'assignedTo', 'creator']);
                 
             // Debug: Log total tasks before filters
             $totalTasksBeforeFilter = (clone $query)->count();
@@ -970,16 +970,17 @@ class SalesManagerController extends Controller
                 $leadStatus = null;
                 $hasProspect = false;
                 $prospectData = null;
-                
+                $useProspectVerificationFlow = false;
+
                 if ($task->lead) {
                     // Load prospects if not already loaded
                     if (!$task->lead->relationLoaded('prospects')) {
                         $task->lead->load('prospects');
                     }
-                    
+
                     // Get latest prospect
                     $prospect = $task->lead->prospects->sortByDesc('created_at')->first();
-                    
+
                     if ($prospect) {
                         $hasProspect = true;
                         $leadStatus = $prospect->lead_status ?? null;
@@ -991,8 +992,11 @@ class SalesManagerController extends Controller
                             'is_pending_verification' => in_array($prospect->verification_status ?? '', ['pending', 'pending_verification']),
                         ];
                     }
+
+                    $useProspectVerificationFlow = ($prospectData && ($prospectData['is_pending_verification'] ?? false))
+                        && $task->lead->qualifiesForProspectVerificationFlow();
                 }
-                
+
                 $taskText = strtolower(trim(
                     ($task->title ?? '') . ' ' .
                     ($task->description ?? '') . ' ' .
@@ -1003,7 +1007,7 @@ class SalesManagerController extends Controller
                 $isMeetingTask = str_contains($taskText, 'meeting id') ||
                                  str_contains($taskText, 'pre-meeting') ||
                                  (str_contains($taskText, 'meeting') && !$isSiteVisitTask);
-                $isProspectTask = $hasProspect ||
+                $isProspectTask = $useProspectVerificationFlow ||
                                   str_contains($taskText, 'prospect verification') ||
                                   str_contains($taskText, 'prospect');
                 $taskCategory = 'other';
@@ -1033,6 +1037,7 @@ class SalesManagerController extends Controller
                     'completed_at' => $task->completed_at ? $task->completed_at->toDateTimeString() : null,
                     'is_overdue' => $isOverdue,
                     'has_prospect' => $hasProspect, // Flag to indicate if lead has associated prospect
+                    'use_prospect_verification_flow' => $useProspectVerificationFlow,
                     'prospect' => $prospectData, // Prospect data if exists
                     'lead' => $task->lead ? [
                         'id' => $task->lead->id,
@@ -1113,9 +1118,11 @@ class SalesManagerController extends Controller
             ], 403);
         }
 
-        $task->load(['lead.prospects', 'lead.formFieldValues', 'assignedTo', 'creator']);
+        $task->load(['lead.prospects', 'lead.creator.role', 'lead.crmAssignments.assignedBy.role', 'lead.formFieldValues', 'assignedTo', 'creator']);
         $task->is_overdue = $task->isOverdue();
         $task->scheduled_at_formatted = $task->scheduled_at ? $task->scheduled_at->format('Y-m-d H:i:s') : null;
+
+        $useProspectVerificationFlow = false;
 
         // Get prospect lead_status if available
         if ($task->lead) {
@@ -1123,11 +1130,15 @@ class SalesManagerController extends Controller
             if ($prospect) {
                 $task->lead->lead_status = $prospect->lead_status ?? null;
                 $task->prospect = $prospect;
+                $pending = in_array($prospect->verification_status ?? '', ['pending', 'pending_verification']);
+                $useProspectVerificationFlow = $pending && $task->lead->qualifiesForProspectVerificationFlow();
             }
-            
+
             // Add form fields to lead
             $task->lead->form_fields = $task->lead->getFormFieldsArray();
         }
+
+        $task->setAttribute('use_prospect_verification_flow', $useProspectVerificationFlow);
 
         return response()->json([
             'success' => true,
@@ -1332,7 +1343,10 @@ class SalesManagerController extends Controller
             
             // Determine if this is a prospect (from telecaller) or direct lead
             $hasProspect = $prospect && in_array($prospect->verification_status ?? '', ['pending', 'pending_verification']);
-            
+
+            $useProspectVerificationFlow = $hasProspect && $lead->qualifiesForProspectVerificationFlow();
+            $formMode = $useProspectVerificationFlow ? 'prospect_verification' : 'lead_detail';
+
             // Load form field values
             $lead->load('formFieldValues');
             
@@ -1462,8 +1476,10 @@ class SalesManagerController extends Controller
                 'field_keys' => $mappedFields->pluck('key')->toArray(),
                 'prospect_id' => $prospect?->id,
                 'has_prospect' => $hasProspect,
+                'form_mode' => $formMode,
+                'use_prospect_verification_flow' => $useProspectVerificationFlow,
             ]);
-            
+
             return response()->json([
                 'success' => true,
                 'task_id' => $task->id,
@@ -1473,9 +1489,11 @@ class SalesManagerController extends Controller
                 'lead_email' => $lead->email,
                 'prospect_id' => $prospect?->id,
                 'prospect_status' => $prospect?->verification_status,
-                'has_prospect' => $hasProspect, // Flag to determine if this is a prospect or direct lead
+                'has_prospect' => $hasProspect,
+                'form_mode' => $formMode,
+                'use_prospect_verification_flow' => $useProspectVerificationFlow,
                 'form_values' => $existingValues,
-                'form_fields' => $mappedFields->values()->all(), // Use mappedFields and ensure it's an array
+                'form_fields' => $mappedFields->values()->all(),
             ]);
         } catch (\Exception $e) {
             \Log::error('Get Lead Requirement Form Error', [
