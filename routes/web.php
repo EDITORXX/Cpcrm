@@ -713,6 +713,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Leads Management
     Route::resource('leads', \App\Http\Controllers\LeadController::class);
+    Route::get('/leads/{lead}/edit-requirements', [\App\Http\Controllers\LeadController::class, 'editRequirements'])->name('leads.edit.requirements');
     Route::get('/leads/{lead}/short-details', [\App\Http\Controllers\LeadController::class, 'shortDetails'])->name('leads.short-details');
     
     // Call Logs Routes

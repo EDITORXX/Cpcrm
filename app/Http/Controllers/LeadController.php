@@ -422,6 +422,21 @@ class LeadController extends Controller
         return view('leads.edit', compact('lead'));
     }
 
+    public function editRequirements(Request $request, Lead $lead)
+    {
+        $user = $request->user();
+
+        // Check access permissions
+        if (!$this->canAccessLead($user, $lead)) {
+            abort(403, 'You do not have permission to edit this lead.');
+        }
+
+        // Load lead with form field values
+        $lead->load('formFieldValues');
+
+        return view('leads.edit-requirements', compact('lead'));
+    }
+
     public function update(Request $request, Lead $lead)
     {
         $user = $request->user();

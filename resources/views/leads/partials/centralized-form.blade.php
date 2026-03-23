@@ -21,6 +21,7 @@
             @csrf
             @method('PUT')
             
+            @if(!isset($showBasicInfo) || $showBasicInfo !== false)
             <!-- Name and Phone Fields (Always visible, editable) -->
             <div class="mb-8">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">Basic Information</h3>
@@ -29,21 +30,21 @@
                         <label for="lead_name" class="block text-sm font-medium text-gray-700 mb-2">
                             Name <span class="text-red-500">*</span>
                         </label>
-                        <input type="text" 
-                               name="name" 
+                        <input type="text"
+                               name="name"
                                id="lead_name"
                                value="{{ old('name', $lead->name) }}"
                                required
                                placeholder="Enter lead name"
                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#205A44] focus:border-[#205A44]">
                     </div>
-                    
+
                     <div>
                         <label for="lead_phone" class="block text-sm font-medium text-gray-700 mb-2">
                             Mobile Number <span class="text-red-500">*</span>
                         </label>
-                        <input type="tel" 
-                               name="phone" 
+                        <input type="tel"
+                               name="phone"
                                id="lead_phone"
                                value="{{ old('phone', $lead->phone) }}"
                                required
@@ -52,6 +53,7 @@
                     </div>
                 </div>
             </div>
+            @endif
             
             @foreach($fieldsByLevel as $level => $levelFields)
                 <div class="form-level-section mb-8" data-level="{{ $level }}">
